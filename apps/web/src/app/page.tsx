@@ -15,7 +15,7 @@ import { Header } from "@rehab-grid/ui/components/layout/Header";
 import { RecentUpdates } from "@rehab-grid/ui/components/layout/RecentUpdates";
 import { ScrollAnimationSection } from "@rehab-grid/ui/components/layout/ScrollAnimationSection";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Download, Monitor } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -209,6 +209,49 @@ export default function HomePage() {
                 {hasHistory ? CTA_BUTTON_LABEL_RESUME : CTA_BUTTON_LABEL_TRY}{" "}
                 <ArrowRight className="ml-2 size-4" />
               </Button>
+            </div>
+          </div>
+        </ScrollAnimationSection>
+
+        {/* PC専用: Windowsインストーラーダウンロードセクション */}
+        <ScrollAnimationSection className="hidden desktop:block py-10 md:py-12 px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="rounded-xl border border-border bg-card/50 p-8 md:p-10 transition-colors hover:border-primary/30">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                {/* 左側: テキストコンテンツ */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Monitor className="size-6 text-primary" />
+                    <h3 className="text-xl font-bold tracking-tight text-foreground">
+                      Windows版をインストール
+                    </h3>
+                  </div>
+                  <p className="text-muted-foreground max-w-xl">
+                    ブラウザを開かずに、デスクトップから直接起動。<br />
+                    オフラインでも動作し、より快適な操作性を提供します。
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Windows 10/11 (64bit) 対応
+                  </p>
+                </div>
+
+                {/* 右側: ダウンロードボタン */}
+                <a
+                  href="https://github.com/Sierra117-KF/rehab-grid/releases/download/v1.0.0/rehab-grid_1.0.0_x64-setup.exe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-12 px-8 text-base border-primary/50 hover:bg-primary/10 hover:border-primary"
+                  >
+                    <Download className="mr-2 size-5" />
+                    ダウンロード
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
         </ScrollAnimationSection>
