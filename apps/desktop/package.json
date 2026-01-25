@@ -1,0 +1,47 @@
+{
+  "name": "@rehab-grid/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-assets.mjs",
+    "prebuild": "node scripts/copy-assets.mjs",
+    "dev": "next dev",
+    "dev:fast": "next dev --turbopack",
+    "build": "next build",
+    "tauri:dev": "tauri dev",
+    "tauri:dev:fast": "tauri dev --config src-tauri/tauri.dev-fast.conf.json",
+    "tauri:dev:debug": "tauri dev --devtools",
+    "tauri:build": "tauri build",
+    "tauri:build:debug": "tauri build --debug",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "copy-assets": "node scripts/copy-assets.mjs"
+  },
+  "dependencies": {
+    "@rehab-grid/core": "workspace:*",
+    "@rehab-grid/ui": "workspace:*",
+    "@rehab-grid/pages": "workspace:*",
+    "@tauri-apps/api": "^2.9.1",
+    "lucide-react": "0.563.0",
+    "@tauri-apps/plugin-dialog": "2.6.0",
+    "@tauri-apps/plugin-fs": "2.4.5",
+    "@tauri-apps/plugin-shell": "2.3.4",
+    "next": "16.1.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@rehab-grid/config": "workspace:*",
+    "@tauri-apps/cli": "^2.9.6",
+    "@types/node": "^25",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // テスト環境固有の型定義を追加
+    "types": [
+      "vitest/globals",
+      "node",
+      "@testing-library/jest-dom",
+      "vitest/importMeta"
+    ],
+
+    // テスト環境でのパスエイリアス設定
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/tests/*": ["./tests/*"],
+      "@rehab-grid/core": ["./packages/core/src"],
+      "@rehab-grid/core/*": ["./packages/core/src/*"],
+      "@rehab-grid/ui": ["./packages/ui/src"],
+      "@rehab-grid/ui/*": ["./packages/ui/src/*"],
+      "@rehab-grid/pages": ["./packages/pages/src"],
+      "@rehab-grid/pages/*": ["./packages/pages/src/*"]
+    },
+
+    // テスト環境での追加設定
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    // 基本ファイル
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+
+    // テスト専用型定義（優先的に読み込み）
+    "tests/types.d.ts",
+
+    // テスト関連ファイルをすべて含める
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "apps/**/tests/**/*.ts",
+    "apps/**/tests/**/*.tsx",
+    "packages/**/tests/**/*.ts",
+    "packages/**/tests/**/*.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+
+    // テスト設定ファイル
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    // 最小限の除外設定（テスト関連ファイルは除外しない）
+    "node_modules",
+    "dist/**/*",
+    ".next/**/*",
+    "coverage/**/*",
+    "out/**/*"
+  ]
+}

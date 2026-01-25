@@ -1,0 +1,50 @@
+{
+  // --- 1. コードフォーマッター設定 (Prettier) ---
+  // 基本的にPrettierに任せる
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+
+  // 言語ごとに明示的にPrettierを指定（他の拡張機能との競合を確実に防ぐ）
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // --- 2. Tailwind CSS 設定 ---
+  // @tailwind, @apply などの独自ルールを警告扱いしない
+  "css.lint.unknownAtRules": "ignore",
+
+  // --- 3. リンター設定 (ESLint) ---
+  // 入力中にリアルタイムで検証（高速化）
+  "eslint.run": "onType",
+
+  // 【重要】ESLint Flat Config (eslint.config.mjs) を使用している場合のみ true
+  "eslint.useFlatConfig": true,
+
+  // 保存時にESLintの修正可能なエラー（import順序など）を自動修正
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // 明示的に検証対象を指定
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ]
+}

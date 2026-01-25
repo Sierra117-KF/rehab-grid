@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm lint:fix:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm test:jsdom:*)",
+      "Bash(pnpm test:browser:*)",
+      "Bash(pnpm type-check:*)",
+      "Bash(pnpm type-check:test:*)",
+      "Bash(pnpm --filter @rehab-grid/* type-check)",
+      "Bash(pnpm --filter @rehab-grid/* lint)",
+      "Bash(pnpm --filter @rehab-grid/* test)",
+      "Bash(pnpm build)",
+      "Bash(pnpm dlx eslint:*)",
+      "Bash(mkdir:*)",
+      "mcp__ide__getDiagnostics",
+      "Skill(vitest-guideline)",
+      "Skill(frontend-design)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rm:-rf:*)",
+      "Bash(del:*)",
+      "Bash(dd:*)",
+      "Bash(rmdir:*)",
+      "Bash(rd:*)",
+      "Bash(git:*)",
+      "Bash(format:*)",
+      "Bash(shutdown:*)",
+      "Bash(sudo:*)",
+      "Bash(curl:*)",
+      "Bash(ssh:*)",
+      "Bash(mkfs:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(find:*)",
+      "Bash(fd:*)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(apt:*)",
+      "Bash(yum:*)",
+      "Bash(mv:*)",
+      "Bash(npm:*)",
+      "Read(.env)",
+      "Read(.env.local)"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@rehab-grid/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/copy-assets.mjs",
+    "prebuild": "node scripts/copy-assets.mjs",
+    "dev": "next dev",
+    "dev:fast": "next dev --turbopack",
+    "build": "next build",
+    "preview": "pnpm dlx serve out",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest --run",
+    "copy-assets": "node scripts/copy-assets.mjs"
+  },
+  "dependencies": {
+    "@rehab-grid/core": "workspace:*",
+    "@rehab-grid/pages": "workspace:*",
+    "@rehab-grid/ui": "workspace:*",
+    "lucide-react": "0.563.0",
+    "next": "16.1.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@rehab-grid/config": "workspace:*",
+    "@types/node": "^25",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "jszip": "3.10.1"
+  }
+}

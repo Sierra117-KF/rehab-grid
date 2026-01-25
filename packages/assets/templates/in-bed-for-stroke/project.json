@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-17T09:49:40.809Z",
+    "updatedAt": "2026-01-18T06:32:20.226Z",
+    "title": "【脳卒中】ベッド上の自主トレ",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid2",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "Mbp901OGnThSHc8JItwNe",
+      "order": 0,
+      "title": "つま先の上下体操",
+      "imageSource": "sample_lying_13",
+      "description": "両方のつま先を一緒に上げ下ろしします",
+      "dosages": {
+        "reps": "２０",
+        "sets": "×３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "c-IlMbnitxhr1mSRIjgpE",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "Tkwb8L6oqX067ojUUTE3Z",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "1d_pSdnphf8M-jPlJxL3_",
+          "value": "違和感があれば中止"
+        }
+      ]
+    },
+    {
+      "id": "xqLMoeXwoHmQo7_Hnqw_b",
+      "order": 1,
+      "title": "お尻上げ体操",
+      "imageSource": "sample_lying_01",
+      "description": "両方の膝を立てて、腰をゆっくり上げ下ろしします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "tsFCgTdEOK7eGLVyzqD3a",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "rSLiiqVnY9_3OZzUOS8y0",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "l2D_lXaG80oI-EicwR8jd",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "uS9cSormFyflTKGaee42-",
+      "order": 2,
+      "title": "上体起こし体操",
+      "imageSource": "sample_lying_07",
+      "description": "両足の膝を立てて、手を太ももに当てます。頭と肩を持ち上げて、手を膝まで伸ばします。",
+      "dosages": {
+        "reps": "疲れるまで",
+        "sets": "× ３",
+        "frequency": "１日３回"
+      },
+      "precautions": [
+        {
+          "id": "wuoheJUe4Cy0fxdScTa09",
+          "value": "ゆっくり呼吸する"
+        },
+        {
+          "id": "O46Soqted02lK9s8_qFke",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "Y71F0Bz9L_RjPxRzHhgiR",
+          "value": "めまいがしたら休む"
+        },
+        {
+          "id": "GPdsz5-HYXMVQBqV-qbI_",
+          "value": "顎をしっかり引く"
+        },
+        {
+          "id": "kTHZa1K7olIxA2YmaU256",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "orHUvhXw04Vg_RULqqE67",
+      "order": 3,
+      "title": "腰の左右ひねり体操",
+      "imageSource": "sample_lying_10",
+      "description": "両足の膝を立てます。腰をひねって、両膝を左右に動かします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "qrDivvLScBil1okm1yJci",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "fcjucNHRgwOjtUCeWd6Tl",
+          "value": "腰を反らさない"
+        },
+        {
+          "id": "9-xPMON8yaInXz-wFKb76",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "R-D7ppTD6Y7SeBDEKQQ2T",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "JylgmEc70LyuK50O7fPyT",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "UtuotqJvn17KHWpdZKCVu",
+      "order": 4,
+      "title": "寝返り練習",
+      "imageSource": "sample_lying_11",
+      "description": "両手を胸の前で組んで、両方の膝を立てます。体全体を横に倒して、横向きになります",
+      "dosages": {
+        "reps": "３",
+        "sets": "× １",
+        "frequency": "１日３回"
+      },
+      "precautions": [
+        {
+          "id": "eLgzxxyNRxbEhHkHXyp4N",
+          "value": "麻痺している手足の方向には向かない"
+        },
+        {
+          "id": "VodicROSoMWo0YZbw0I2w",
+          "value": "麻痺している手は必ず胸かお腹の前に置く"
+        },
+        {
+          "id": "N8XpLKDHh3YVID6L301-M",
+          "value": "難しいときはベッドの柵を持つ"
+        },
+        {
+          "id": "rIDT4T3U6y9bsOQXj6Rpd",
+          "value": "体がベッドから落ちそうなときは止めて人を呼ぶ"
+        },
+        {
+          "id": "XEuU-xwwNJJpMRk9tOtab",
+          "value": "無理をしない"
+        }
+      ]
+    },
+    {
+      "id": "2fOto9Av-Z2JM84W3dHSa",
+      "order": 5,
+      "title": "両手伸ばし体操",
+      "imageSource": "sample_lying_12",
+      "description": "両手を胸の前で組みます。両手の力を一緒に使って、手を天井に向かって伸ばします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "CqaE5VOh3t1FyDiVgkIBR",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "SxxA4c3ZdEuOuH_dBjN2-",
+          "value": "痛みが出たら中止"
+        },
+        {
+          "id": "9PC6kaPMV8HdLFT5H1jNL",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "PEKMDRqDq44pHwKdGuL83",
+          "value": "無理をしない"
+        },
+        {
+          "id": "9CEH4mwJQq9x1oWhDqKij",
+          "value": "力を入れたまま５秒キープ"
+        }
+      ]
+    }
+  ]
+}

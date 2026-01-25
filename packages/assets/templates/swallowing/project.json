@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T07:20:02.134Z",
+    "updatedAt": "2026-01-18T07:31:52.124Z",
+    "title": "嚥下体操",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid1",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "3Mt8o8ZJVo6TevRMoRdyT",
+      "order": 0,
+      "title": "唇の体操",
+      "imageSource": "sample_sitting_10",
+      "description": "口を小さくすぼめて「う」の形にします。次に、口を大きく横に開いて「い」の形にします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× １",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "glum2N8PQGM1dSKkOcjJW",
+          "value": "鏡を見ながら練習する"
+        }
+      ]
+    },
+    {
+      "id": "B55NdgLy0PmAHer5mRoC2",
+      "order": 1,
+      "title": "舌の体操１",
+      "imageSource": "sample_sitting_11",
+      "description": "口を閉じた状態から、舌を「べー」と大きく下に突き出します。",
+      "precautions": [
+        {
+          "id": "IhcAA4q3cNhYt4pojX3yd",
+          "value": "鏡を見ながら練習する"
+        }
+      ],
+      "dosages": {
+        "reps": "１０",
+        "sets": "× １",
+        "frequency": "１日５回"
+      }
+    },
+    {
+      "id": "4-ksyvjXrxAFqRBiV0Wzw",
+      "order": 2,
+      "title": "舌の体操２",
+      "imageSource": "sample_sitting_12",
+      "description": "舌を右・左へ大きく動かします。次に舌を上に向けて大きく動かします。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× １",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "Pe7QljBRpULJm14OUuA5I",
+          "value": "鏡を見ながら練習する"
+        }
+      ]
+    },
+    {
+      "id": "XZr5EAbIfL_M_IgYw9ITr",
+      "order": 3,
+      "title": "上体起こし体操",
+      "imageSource": "sample_lying_07",
+      "description": "両足の膝を立てて、手を太ももに当てます。頭と肩を持ち上げて、手を膝まで伸ばします。",
+      "precautions": [
+        {
+          "id": "OmvcpzhNfGK7Cyw3UUGOH",
+          "value": "ゆっくり呼吸する"
+        },
+        {
+          "id": "q65bnBJ_idpY_Oal0odsw",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "MMFpoZwhRWAENmI9xWmxe",
+          "value": "めまいがしたら休む"
+        },
+        {
+          "id": "SJyA0tZ11yev4w64ZIVQ9",
+          "value": "顎をしっかり引く"
+        },
+        {
+          "id": "TDkFaSZqkmwGq_ClNe0ML",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ],
+      "dosages": {
+        "reps": "疲れるまで",
+        "sets": "× ３",
+        "frequency": "１日３回"
+      }
+    },
+    {
+      "id": "jdyv2JLazcxe-qvV09Y5g",
+      "order": 4,
+      "title": "立ち上がり練習",
+      "imageSource": "sample_standing_01",
+      "description": "テーブル等に手をついて、椅子から立ち上がります。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "朝・昼・晩"
+      },
+      "precautions": [
+        {
+          "id": "au87w7dtgsQpFMLMuY4Vd",
+          "value": "ゆっくり座る"
+        },
+        {
+          "id": "JLPl6sC_rkgpVeNtTqZZc",
+          "value": "めまいがしたら休む"
+        }
+      ]
+    }
+  ]
+}

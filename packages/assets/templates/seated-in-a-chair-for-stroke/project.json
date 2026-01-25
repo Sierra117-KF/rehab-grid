@@ -1,0 +1,145 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T05:46:54.381Z",
+    "updatedAt": "2026-01-18T06:29:50.521Z",
+    "title": "【脳卒中】座位の自主トレ",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid3",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "aj1hFX8Mbq53D-44CuEc4",
+      "order": 0,
+      "title": "もも上げ体操",
+      "imageSource": "sample_sitting_01",
+      "description": "手を膝の上に乗せて、片方ずつ膝を持ち上げて下ろします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "N6MTJu1eOYVSw9Ue09n9E",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "Jlri_4DQvPuUT7vHBrQIJ",
+          "value": "膝を伸ばさない"
+        },
+        {
+          "id": "Tg8JDCHk5elyUn1KP1oAh",
+          "value": "お腹に力を入れる"
+        }
+      ]
+    },
+    {
+      "id": "EImY1nCZcBnR7Vx5SUL29",
+      "order": 1,
+      "title": "つま先の上げ下ろし体操",
+      "imageSource": "sample_sitting_03",
+      "description": "両手を膝に乗せます。両方のつま先と踵を交互に持ち上げます。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "_907Y7Y9yIGEN7Jai-4tq",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "M3hrPDH_La0QhvRn6tpco",
+          "value": "後ろへ仰け反らない"
+        },
+        {
+          "id": "A9QK30PMGBUeB7yy79mje",
+          "value": "こむら返りが起きそうになったら中止"
+        }
+      ]
+    },
+    {
+      "id": "u0IuhJw0xyuzPm6ocTK-e",
+      "order": 2,
+      "title": "手を持ち上げる体操",
+      "imageSource": "sample_sitting_04",
+      "description": "麻痺している手を持ち上げます。難しい場合は反対の手で支えてください。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× 3",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "fu1pGoww6jbK_Ypf6m4uZ",
+          "value": "顔より上には手を上げない"
+        },
+        {
+          "id": "j9Apuj99cImpizdUlfPjM",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "HgKAfu3mBH21YAglyIp7y",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "ytLtKMqPl5DYTm6O0Vi4G",
+      "order": 3,
+      "title": "棒体操",
+      "imageSource": "sample_sitting_09",
+      "description": "棒（杖）を両手で掴んで上へ持ち上げます",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "tjZ2TvQuytK7t4yiMtpmE",
+          "value": "背筋をまっすぐにする"
+        },
+        {
+          "id": "QmZUSC91a3_qwvor6RI30",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "4m4iOyt-pINyaPRVkbS9K",
+          "value": "めまいがしたら休む"
+        }
+      ]
+    },
+    {
+      "id": "7Ei1J0iqzlQ4J-C1nYA2y",
+      "order": 4,
+      "title": "タオル拭き体操",
+      "imageSource": "sample_sitting_08",
+      "description": "机の上にタオルやハンカチを置いて、麻痺している手を乗せます。机の上を拭くように動かします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "K8ic-wfftciEpL_r8Hq6o",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "znx7Y3wwdws1KbOBBxIeT",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "2jiqh7Tq6ofNCBul0_xpV",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    }
+  ]
+}

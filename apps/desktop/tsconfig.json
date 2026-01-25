@@ -1,0 +1,23 @@
+{
+  "extends": "@rehab-grid/config/typescript",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@rehab-grid/core": ["../../packages/core/src"],
+      "@rehab-grid/core/*": ["../../packages/core/src/*"],
+      "@rehab-grid/ui": ["../../packages/ui/src"],
+      "@rehab-grid/ui/*": ["../../packages/ui/src/*"],
+      "@rehab-grid/pages": ["../../packages/pages/src"],
+      "@rehab-grid/pages/*": ["../../packages/pages/src/*"]
+    },
+    "plugins": [{ "name": "next" }]
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": ["node_modules", ".next", "out", "tests", "src-tauri"]
+}

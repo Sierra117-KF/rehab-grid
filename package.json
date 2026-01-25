@@ -1,0 +1,70 @@
+{
+  "name": "rehab-grid",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@rehab-grid/web",
+    "dev:web:fast": "pnpm --filter @rehab-grid/web dev:fast",
+    "dev:desktop": "pnpm --filter @rehab-grid/desktop tauri:dev",
+    "dev:desktop:fast": "pnpm --filter @rehab-grid/desktop tauri:dev:fast",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=@rehab-grid/web",
+    "build:desktop": "pnpm --filter @rehab-grid/desktop tauri:build",
+    "lint": "turbo lint",
+    "lint:root": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "turbo type-check",
+    "type-check:root": "tsc --noEmit",
+    "type-check:test": "tsc --noEmit -p packages/core/tsconfig.test.json && tsc --noEmit -p packages/ui/tsconfig.test.json && tsc --noEmit -p apps/web/tsconfig.test.json && tsc --noEmit -p apps/desktop/tsconfig.test.json",
+    "test": "vitest --run --config vitest.config.ts",
+    "test:root": "vitest --run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "test:ui": "vitest --ui --config vitest.config.ts",
+    "test:coverage": "vitest --coverage --config vitest.config.ts",
+    "test:jsdom": "vitest --run --config vitest.config.ts --project=core --project=ui --project=desktop",
+    "test:browser": "vitest --run --config vitest.config.ts --project=web-browser",
+    "test:browser:watch": "vitest --config vitest.config.ts --project=web-browser",
+    "test:browser:ui": "vitest --config vitest.config.ts --project=web-browser --browser.headless=false",
+    "clean": "turbo clean && node -e \"require('fs').rmSync('node_modules', {recursive:true, force:true})\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@rehab-grid/config": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.9.6",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^25",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9",
+    "jsdom": "^27.4.0",
+    "playwright": "^1.58.0",
+    "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4",
+    "turbo": "^2.7.5",
+    "typescript": "^5",
+    "vitest": "^4.0.18",
+    "vitest-browser-react": "^2.0.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "supabase",
+      "unrs-resolver"
+    ],
+    "overrides": {
+      "@types/react": "19.2.9",
+      "@types/react-dom": "19.2.3"
+    }
+  },
+  "packageManager": "pnpm@10.28.0"
+}

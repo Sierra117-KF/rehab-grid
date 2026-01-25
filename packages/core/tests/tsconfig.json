@@ -1,0 +1,9 @@
+{
+  // VSCodeがこのフォルダを独立したTSプロジェクトとして認識できるように、
+  // パッケージの tsconfig.test.json を継承します
+  "extends": "../tsconfig.test.json",
+  "compilerOptions": {
+    // インクリメンタルや参照プロジェクトは不要
+    "composite": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals",
+      "node",
+      "@testing-library/jest-dom",
+      "vitest/importMeta"
+    ],
+    "paths": {
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["../core/src/lib/*"],
+      "@/utils/*": ["../core/src/utils/*"],
+      "@/hooks/*": ["../core/src/hooks/*"],
+      "@/types": ["../core/src/types"],
+      "@/types/*": ["../core/src/types/*"],
+      "@/tests/*": ["./tests/*"],
+      "@rehab-grid/core": ["../core/src/index.ts"],
+      "@rehab-grid/core/*": ["../core/src/*"],
+      "@rehab-grid/ui": ["./src/index.ts"],
+      "@rehab-grid/ui/*": ["./src/*"],
+      "@/*": ["./src/*"]
+    },
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.config.ts"
+  ],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

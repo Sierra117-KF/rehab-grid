@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T07:32:19.662Z",
+    "updatedAt": "2026-01-18T08:01:34.459Z",
+    "title": "下肢の整形外科術後の自主トレ",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid2",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "0YtsE8dVsNSt-1GBIIxDZ",
+      "order": 0,
+      "title": "つま先の上下体操",
+      "imageSource": "sample_lying_13",
+      "description": "両方のつま先を一緒に上げ下ろしします",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "qXkXeTgzoVcg-WM_RsfkZ",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "fV2wZCm8dslDOuGZouCSt",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "oABAkNOyT5HY6vPXcFlXu",
+          "value": "違和感があれば中止"
+        }
+      ]
+    },
+    {
+      "id": "PnRtsdYkbmKchyF7nEBbg",
+      "order": 1,
+      "title": "足指じゃんけん",
+      "imageSource": "sample_lying_14",
+      "description": "両足の指を曲げて「グー」を形にして、次に指を大きく広げて「パー」の形にします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "vWNjKRF8WdlU29v2W_UQA",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "AraF98mLh0U0Usj8lsgL4",
+      "order": 2,
+      "title": "お尻上げ体操",
+      "imageSource": "sample_lying_01",
+      "description": "両方の膝を立てて、腰をゆっくり上げ下ろしします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "F8RZTp3B310Em30YzXeEc",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "yWC1ZB5Vq1DmikMvyKKq8",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "DHggVzfTMKnnoP84sX0gQ",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "uSCttCVAYF-cEoqTCAxKd",
+      "order": 3,
+      "title": "足上げ体操",
+      "imageSource": "sample_lying_02",
+      "description": "運動する足を伸ばして、反対の足を曲げて膝を立てます。運動する足を伸ばしたまま４５°くらいまで持ち上げて、ゆっくり下ろします。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "0h8ksHQPcXvPYwLHzVBWj",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "aosQsUj9_XsBYecIJNrk9",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "51kKP0ikSRtyz7_J4qhd9",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "oaoKLp5URu-K2XSe7Fl7e",
+          "value": "片方が終われば反対側も行う"
+        }
+      ]
+    },
+    {
+      "id": "BtB_zIgDh_ONcqu4wjt8C",
+      "order": 4,
+      "title": "足開き体操１",
+      "imageSource": "sample_lying_04",
+      "description": "両手を腰に当てて、両足をまっすぐ伸ばします。運動する足を伸ばしたまま外側へ開いて戻します。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "W98iLp-yaQA093fq9H-tf",
+          "value": "腰が動かないよう、手で押さえる"
+        },
+        {
+          "id": "fGnnMzdmaJi5pGpsq-QVx",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "yXdk8bHLjGlXGyTqbEtaS",
+          "value": "足を持ち上げないで、ベッドへ擦るように動かす"
+        },
+        {
+          "id": "Qm95RxMXihog6QOiTjuHm",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "Du1k2zqdgD99we-0LtVXJ",
+      "order": 5,
+      "title": "足開き体操２",
+      "imageSource": "sample_lying_03",
+      "description": "両手を腰に当てて、運動する方の足を曲げ、膝を立てます。膝を外側へ倒して、元の位置へ戻します。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "y0HXmGbXmYaiqx-6fnztk",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "tHmvkC4mM3nNkqnYerTmh",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "LTg1tsDUrrYDgSw2PaaZc",
+          "value": "違和感があれば中止"
+        },
+        {
+          "id": "IyypdgzwBIR_0eQbofBNw",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "sjoAlgt2u5treS6afRnlv",
+          "value": "膝は内側へ入れない"
+        }
+      ]
+    },
+    {
+      "id": "7By_K-G8mOLvb_u4ydlAt",
+      "order": 6,
+      "title": "股関節のストレッチ",
+      "imageSource": "sample_lying_05",
+      "description": "ストレッチする方の膝を立てて、反対の足の太ももを両手で抱えます。膝をゆっくり伸ばして、足の付け根を伸ばします。",
+      "dosages": {
+        "reps": "１分",
+        "sets": "× １",
+        "frequency": "１日３回"
+      },
+      "precautions": [
+        {
+          "id": "H6RzCGT8LWWIEuIPbNztP",
+          "value": "反対の足の太ももを抱えておき、しっかり曲げておく"
+        },
+        {
+          "id": "NrTgc0gWCnpPkuh5Qnimh",
+          "value": "伸ばす足の付け根が突っ張る場合は、伸ばし具合を加減する"
+        },
+        {
+          "id": "aF72Ak37wl1y4IrO-yqOO",
+          "value": "少し突っ張る程度（痛くない範囲）で止める"
+        }
+      ]
+    },
+    {
+      "id": "BFbaG6UCMybBqGLuqBEha",
+      "order": 7,
+      "title": "膝の曲げ伸ばし体操",
+      "imageSource": "sample_lying_06",
+      "description": "運動する足の太ももを両手で抱えて、膝を曲げておきます。膝を伸ばして足を天井に向かって突き出し、ゆっくり曲げていきます。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "abP_id4-oB56tJXXPqIEQ",
+          "value": "太ももをしっかり抱えておく"
+        },
+        {
+          "id": "6a7MbSmGm8bpxykr3NLBx",
+          "value": "膝を曲げるときは、足の重みを利用してしっかり曲げる"
+        },
+        {
+          "id": "qAr6uV9TU35kXEs3gTuNj",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "4aHUY_yp-ynHxEX59t3Jo",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    }
+  ]
+}

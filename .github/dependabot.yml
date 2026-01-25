@@ -1,0 +1,58 @@
+version: 2
+updates:
+  # npm dependencies (pnpm monorepo)
+  - package-ecosystem: "npm"
+    directory: "/"    # pnpm workspaces: ルートのpnpm-lock.yaml経由で全依存関係を検出
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+    groups:
+      # Production dependencies
+      production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+        dependency-type: "production"
+      # Development dependencies
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    commit-message:
+      prefix: "chore(actions)"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 3
+
+  # Cargo dependencies (Tauri)
+  - package-ecosystem: "cargo"
+    directory: "/apps/desktop/src-tauri"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    commit-message:
+      prefix: "chore(deps-rust)"
+    labels:
+      - "dependencies"
+      - "rust"
+    open-pull-requests-limit: 3

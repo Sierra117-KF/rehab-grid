@@ -1,0 +1,13 @@
+{
+  "extends": "@rehab-grid/config/typescript",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@rehab-grid/core": ["./src/index.ts"],
+      "@rehab-grid/core/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "tests"]
+}

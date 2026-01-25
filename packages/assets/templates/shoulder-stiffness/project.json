@@ -1,0 +1,187 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T06:33:26.499Z",
+    "updatedAt": "2026-01-18T07:19:32.220Z",
+    "title": "肩こり体操",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid3",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "uUhfD3UdIvVf7u9SoUprb",
+      "order": 0,
+      "title": "腹部ブレーシング",
+      "imageSource": "sample_lying_09",
+      "description": "腹筋全体に力を入れて固め、両足を直角に曲げて持ち上げます。両手を正面～頭側へ反復させて動かします。",
+      "dosages": {
+        "reps": "疲れるまで",
+        "sets": "× １",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "9M7uZCPGgdfy5hKXMUtp8",
+          "value": "腰が反って隙間を作らないよう、しっかり腹筋に力を入れる"
+        },
+        {
+          "id": "f6cmD_LCn68tJ1iRwrSi9",
+          "value": "腹式呼吸でゆっくりと深い呼吸を続ける"
+        },
+        {
+          "id": "hAKvjK_su2tVOKv6ZYCBK",
+          "value": "顎を少し引く"
+        },
+        {
+          "id": "pX4L4D3vizRRvIUK7Er_D",
+          "value": "両足は90°に曲げた状態をキープ"
+        }
+      ]
+    },
+    {
+      "id": "UUhKl0tdAVnl4NPdTOdBW",
+      "order": 1,
+      "title": "脊柱の安定化＋股関節の柔軟性向上",
+      "imageSource": "sample_lying_16",
+      "description": "四つ這い姿勢になります。手で床を押しながら、体全体を前後にゆっくり動かします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ２",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "CxUwn9uU5MtEhh8pmPfBt",
+          "value": "背筋はまっすぐに保つ"
+        },
+        {
+          "id": "Wa1ZC0p38hx2YpXlLtA-g",
+          "value": "股関節が固くて下がりにくい場合は足を開く"
+        },
+        {
+          "id": "IGD__VR-vkmqPkkCKVrpr",
+          "value": "少し腰を反っておくよう意識する"
+        }
+      ]
+    },
+    {
+      "id": "QzQj0fUnVE4e7CPwzvJC7",
+      "order": 2,
+      "title": "ブリュガー体操",
+      "imageSource": "sample_sitting_05",
+      "description": "椅子に腰かけて背筋を伸ばします。両肘を脇に当てて、手のひらを上に向けます。息を吸いながら肘を支点に両手を開いて、胸を張ります。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× １",
+        "frequency": "１日数回"
+      },
+      "precautions": [
+        {
+          "id": "gZRBare1DiZitvH8TkCVo",
+          "value": "腹筋を固めて深い腹式呼吸を保つ"
+        },
+        {
+          "id": "TG1VkRXbIfkxGUY11pyZN",
+          "value": "腰を反らず、背筋をまっすぐに保つ"
+        },
+        {
+          "id": "Yan08tg8nuJqhiOvmLKee",
+          "value": "常に脇を締めて、手の平を上に向けておく"
+        },
+        {
+          "id": "2mTu-O22x5DeH9kQunHS3",
+          "value": "デスクワーク等で疲れたときに行う"
+        }
+      ]
+    },
+    {
+      "id": "6tQCQUcizKnH2rV8pBuuj",
+      "order": 3,
+      "title": "肩甲骨外旋・内転",
+      "imageSource": "sample_sitting_07",
+      "description": "椅子に腰かけて背筋を伸ばし、両手を後頭部に当てて組みます。息を吸いながら両肘を開いて、胸を張ります。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× １",
+        "frequency": "１日数回"
+      },
+      "precautions": [
+        {
+          "id": "ckXq-le8JN-H5SA8oa2X1",
+          "value": "腹筋を固めて深い腹式呼吸を保つ"
+        },
+        {
+          "id": "ISI5TcoTc511rr1FaNO8b",
+          "value": "顎を引いて、常に正面を向いておく"
+        },
+        {
+          "id": "rX8j1y1HC_vDV4BJT9KxB",
+          "value": "デスクワーク等で疲れたときに行う"
+        }
+      ]
+    },
+    {
+      "id": "CQQgkHiZ_DeB43OgqgGsX",
+      "order": 4,
+      "title": "肩甲骨外転・内旋～内転・外旋",
+      "imageSource": "sample_sitting_06",
+      "description": "両手をまっすぐ正面へ突き出し、肩甲骨を開くようにして背中を伸ばします。次に両手を90°に曲げながら後ろへ引いて、胸を張ります。",
+      "precautions": [
+        {
+          "id": "gr7SR6ECSO-nPoQV3jLmI",
+          "value": "肩甲骨が大きく動くように意識する"
+        },
+        {
+          "id": "D_BBPpKnvHodf2vlxffLe",
+          "value": "胸を張るときは顎を引いて背筋を伸ばす"
+        },
+        {
+          "id": "_BSqzUE_OXSTO2kILsiec",
+          "value": "肘が下に下がらないよう注意"
+        },
+        {
+          "id": "QssUDLh3KDxvyypNsoyZg",
+          "value": "デスクワーク等で疲れたときに行う"
+        }
+      ],
+      "dosages": {
+        "reps": "１０",
+        "sets": "× １",
+        "frequency": "１日数回"
+      }
+    },
+    {
+      "id": "riLmZfPA08H-MDq9ZXzE2",
+      "order": 5,
+      "title": "壁を使った腕立て伏せ",
+      "imageSource": "sample_standing_09",
+      "description": "壁から少し離れて立ち、両手をまっすぐ壁につきます。腕立て伏せの要領で腕を曲げ伸ばしします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× １",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "pUI4tJDH3qW092JjLl6p7",
+          "value": "背筋はまっすぐに保つ"
+        },
+        {
+          "id": "ipEwKZe29fZtxgBt-XOS9",
+          "value": "ゆっくり呼吸する"
+        },
+        {
+          "id": "nrDbZ1hCVijqD-pBdy6aW",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "zZtaWv-AEzKUQMn5ItfYa",
+          "value": "腕を曲げるときは脇を締める"
+        }
+      ]
+    }
+  ]
+}

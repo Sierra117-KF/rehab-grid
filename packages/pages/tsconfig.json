@@ -1,0 +1,21 @@
+{
+  "extends": "@rehab-grid/config/typescript",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["../ui/src/components/*"],
+      "@/lib/*": ["../core/src/lib/*"],
+      "@/utils/*": ["../core/src/utils/*"],
+      "@/hooks/*": ["../core/src/hooks/*"],
+      "@/types": ["../core/src/types"],
+      "@/types/*": ["../core/src/types/*"],
+      "@rehab-grid/core": ["../core/src/index.ts"],
+      "@rehab-grid/core/*": ["../core/src/*"],
+      "@rehab-grid/ui": ["../ui/src/index.ts"],
+      "@rehab-grid/ui/*": ["../ui/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

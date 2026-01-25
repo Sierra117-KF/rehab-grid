@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T06:33:26.499Z",
+    "updatedAt": "2026-01-18T07:04:42.000Z",
+    "title": "腰痛体操（丸腰）",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid3",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "uUhfD3UdIvVf7u9SoUprb",
+      "order": 0,
+      "title": "腹部ブレーシング",
+      "imageSource": "sample_lying_09",
+      "description": "腹筋全体に力を入れて固め、両足を直角に曲げて持ち上げます。両手を正面～頭側へ反復させて動かします。",
+      "dosages": {
+        "reps": "疲れるまで",
+        "sets": "× １",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "9M7uZCPGgdfy5hKXMUtp8",
+          "value": "腰が反って隙間を作らないよう、しっかり腹筋に力を入れる"
+        },
+        {
+          "id": "f6cmD_LCn68tJ1iRwrSi9",
+          "value": "腹式呼吸でゆっくりと深い呼吸を続ける"
+        },
+        {
+          "id": "hAKvjK_su2tVOKv6ZYCBK",
+          "value": "顎を少し引く"
+        },
+        {
+          "id": "pX4L4D3vizRRvIUK7Er_D",
+          "value": "両足は90°に曲げた状態をキープ"
+        }
+      ]
+    },
+    {
+      "id": "o7SKLiJam-KAd5LDGoO-j",
+      "order": 1,
+      "title": "股関節の可動性向上＋腰椎の回旋制御",
+      "imageSource": "sample_lying_03",
+      "description": "片方の膝を立てて、膝を正面～外側へと反復して動かします。両手は脇腹もしくは骨盤に当てておきます。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ２",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "_7zaoIls2IRxYc1ghlKge",
+          "value": "重要なのは「腰が動かない」こと"
+        },
+        {
+          "id": "Wu-jEhDrSUlyOoV5pIJB5",
+          "value": "腹筋を固める＋腹式呼吸をキープ"
+        },
+        {
+          "id": "Dq-nMOHnmzew1APtG-_qB",
+          "value": "腰を捻ってしまうギリギリまで足をゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "UUhKl0tdAVnl4NPdTOdBW",
+      "order": 2,
+      "title": "脊柱の安定化＋股関節の柔軟性向上",
+      "imageSource": "sample_lying_16",
+      "description": "四つ這い姿勢になります。手で床を押しながら、体全体を前後にゆっくり動かします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ２",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "CxUwn9uU5MtEhh8pmPfBt",
+          "value": "背筋はまっすぐに保つ"
+        },
+        {
+          "id": "Wa1ZC0p38hx2YpXlLtA-g",
+          "value": "股関節が固くて下がりにくい場合は足を開く"
+        },
+        {
+          "id": "IGD__VR-vkmqPkkCKVrpr",
+          "value": "少し腰を反っておくよう意識する"
+        }
+      ]
+    },
+    {
+      "id": "SqPJyZAyYK_s0yACc4Bvd",
+      "order": 3,
+      "title": "ふくらはぎのストレッチング",
+      "imageSource": "sample_standing_07",
+      "description": "テーブル等へ両手をつきます。足を前後に開き、体重を前の足にかけます。ゆっくり腰を前に出して、後ろ足のふくらはぎを伸ばします。",
+      "dosages": {
+        "reps": "１分",
+        "sets": "× 1",
+        "frequency": "１日数回"
+      },
+      "precautions": [
+        {
+          "id": "JO2qlwjffJdnS3b6xFQ3z",
+          "value": "後ろ足の踵は床につける"
+        },
+        {
+          "id": "0TrYWqLA6GhS7nT1dwK0w",
+          "value": "後ろ足の膝は伸ばす"
+        },
+        {
+          "id": "OtkdjmNE1cvH2hv3Sk4BF",
+          "value": "体はまっすぐ起こしておく"
+        },
+        {
+          "id": "neNSd7C5DLsZTFN04YS3e",
+          "value": "反動をつけず、気持ちいい程度を３０秒～１分程度味わう"
+        },
+        {
+          "id": "Wc1i_cRzRYQcmd11lSRZU",
+          "value": "片方が終わったら反対の足へ"
+        }
+      ]
+    },
+    {
+      "id": "9dcc9FnU3AXDhRPtdOzRc",
+      "order": 4,
+      "title": "ハムストリングスのストレッチング",
+      "imageSource": "sample_sitting_02",
+      "description": "椅子に浅く腰掛け、手を膝に乗せます。片方の膝を伸ばし、ゆっくり体を前に傾けて、太ももの裏側を伸ばします。",
+      "dosages": {
+        "reps": "１分",
+        "sets": "× １",
+        "frequency": "１日数回"
+      },
+      "precautions": [
+        {
+          "id": "3H_zg0X9lT9L3FSVyXxIt",
+          "value": "腰を曲げず、おへそを突き出すイメージ"
+        },
+        {
+          "id": "J2UZqQpB2NinZO65h9A-1",
+          "value": "伸ばす方の膝は伸ばしておく"
+        },
+        {
+          "id": "1J2c9gFyD7kP7y5D9n1zJ",
+          "value": "反動をつけず、気持ちいい程度を３０秒～１分程度味わう"
+        },
+        {
+          "id": "kWyxcQA1ZFDCUKgx4WWwc",
+          "value": "片方が終わったら反対の足へ"
+        }
+      ]
+    },
+    {
+      "id": "K8X3slzi5GYMpo6RWoNxf",
+      "order": 5,
+      "title": "椎間板除圧＋股関節可動性向上",
+      "imageSource": "sample_standing_08",
+      "description": "テーブル等に両手をついて、お尻を後ろに引きながら前かがみになります。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× 1",
+        "frequency": "１日数回"
+      },
+      "precautions": [
+        {
+          "id": "SlKRQ6KZiNzwX-FMarnGJ",
+          "value": "デスクワークなどで腰が辛くなったら行う"
+        },
+        {
+          "id": "7uJG4GPSHU7itRYFWib3A",
+          "value": "腰を曲げず、少し反らせるイメージ"
+        },
+        {
+          "id": "isPTdC2FB8nU8tUqFx3uu",
+          "value": "お尻を後ろに引いて、太ももの後ろを伸ばすイメージ"
+        },
+        {
+          "id": "oRXr692CPK87Ex1UzvxH2",
+          "value": "膝は前へ一切出さない"
+        }
+      ]
+    }
+  ]
+}

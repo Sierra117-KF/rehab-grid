@@ -1,0 +1,17 @@
+{
+  "extends": "@rehab-grid/config/typescript",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    ".next",
+    "out",
+    "dist",
+    "coverage",
+    "apps/**/out",
+    "apps/**/.next"
+  ]
+}

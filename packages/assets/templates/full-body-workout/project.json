@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T08:01:59.836Z",
+    "updatedAt": "2026-01-18T08:20:36.807Z",
+    "title": "全身の自主トレ",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid1",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "wg-dYircNPSVHDwxVz1Fr",
+      "order": 0,
+      "title": "お尻上げ体操",
+      "imageSource": "sample_lying_01",
+      "description": "両方の膝を立てて、腰をゆっくり上げ下ろしします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "mF8WB91B_1NVqw0BBLhJN",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "e07pwRtUZAGTdKXVaZNCg",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "7ejpKNimPti2xOAUYNwoh",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    },
+    {
+      "id": "PTnkdIWaCm3be_eF-ZSBZ",
+      "order": 1,
+      "title": "上体起こし体操",
+      "imageSource": "sample_lying_07",
+      "description": "両足の膝を立てて、手を太ももに当てます。頭と肩を持ち上げて、手を膝まで伸ばします。",
+      "dosages": {
+        "reps": "疲れるまで",
+        "sets": "× ３",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "jRrK5NMqpd0_udbIihnPg",
+          "value": "ゆっくり呼吸する"
+        },
+        {
+          "id": "NP2qPnjoiavB6R2oNN38F",
+          "value": "お腹に力を入れる"
+        },
+        {
+          "id": "RhEdEexD-EQSIJviZw-FR",
+          "value": "めまいがしたら休む"
+        },
+        {
+          "id": "1ryzPQlfG9jB3eRMhBd-f",
+          "value": "顎をしっかり引く"
+        },
+        {
+          "id": "FMsjr58ddY4eNurKyD_ym",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "bOUUWwwLN4hq-aaQOhSIq",
+      "order": 2,
+      "title": "つま先の上げ下ろし体操",
+      "imageSource": "sample_sitting_03",
+      "description": "両手を膝に乗せます。両方のつま先と踵を交互に持ち上げます。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "朝・晩"
+      },
+      "precautions": [
+        {
+          "id": "mR4uap09OtRi91UiWtSU3",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "snP2wMP9VkuUiEanyf-oX",
+          "value": "後ろへ仰け反らない"
+        },
+        {
+          "id": "qbyz5yOSAvTtv5x8VpxcV",
+          "value": "こむら返りが起きそうになったら中止"
+        }
+      ]
+    },
+    {
+      "id": "Ty7H8bnLAJ4GPs8aFa-r8",
+      "order": 3,
+      "title": "棒体操",
+      "imageSource": "sample_sitting_09",
+      "description": "棒（杖）を両手で掴んで上へ持ち上げます",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "朝・昼・晩"
+      },
+      "precautions": [
+        {
+          "id": "TnlTQSbC9DtpMzgiuPy3O",
+          "value": "背筋をまっすぐにする"
+        },
+        {
+          "id": "WTa0cY4B1ngmw7H_UnNIV",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "Gj2-vTgxDqsxXGbFfmhEN",
+          "value": "めまいがしたら休む"
+        }
+      ]
+    },
+    {
+      "id": "lmhT-UTgyfW0AynxvhA8g",
+      "order": 4,
+      "title": "立ち上がり練習",
+      "imageSource": "sample_standing_01",
+      "description": "テーブル等に手をついて、椅子から立ち上がります。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "朝・昼・晩"
+      },
+      "precautions": [
+        {
+          "id": "QdZB9FiKNMPw3k47u4oZr",
+          "value": "ゆっくり座る"
+        },
+        {
+          "id": "sYjp3zo5Ky_eIuIIidLph",
+          "value": "めまいがしたら休む"
+        }
+      ]
+    },
+    {
+      "id": "wh7HTcnkgSbHep1gT2dBX",
+      "order": 5,
+      "title": "踵上げ体操",
+      "imageSource": "sample_standing_06",
+      "description": "テーブル等に手をついて立ちます。両方の踵を上げて背伸びをして、ゆっくり下ろします。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "朝・昼・晩"
+      },
+      "precautions": [
+        {
+          "id": "U7QD7LBgm5KJvazMyZw-9",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "yO2rq88SusdqY2Dse8csu",
+          "value": "反動をつけずに、ゆっくり動かす"
+        },
+        {
+          "id": "UoQKN910Cunuw5bDCStca",
+          "value": "無理をしない"
+        },
+        {
+          "id": "lt53u6PTANv0gO1S6Wmr4",
+          "value": "こむら返りが起きそうになったら中止"
+        }
+      ]
+    }
+  ]
+}

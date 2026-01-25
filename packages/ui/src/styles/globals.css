@@ -1,0 +1,451 @@
+@import "tailwindcss";
+
+/* ========================================
+ * Tailwind v4 ソースパス設定（モノレポ対応）
+ * @source ディレクティブでスキャン対象を明示的に指定
+ * ======================================== */
+@source "../../../../apps/web/src/**/*.{js,jsx,ts,tsx}";
+@source "../../../../apps/desktop/src/**/*.{js,jsx,ts,tsx}";
+@source "../../**/*.{js,jsx,ts,tsx}";
+@source "../../../../packages/core/src/**/*.{js,jsx,ts,tsx}";
+@source "../../../../packages/pages/src/**/*.{js,jsx,ts,tsx}";
+
+/* ========================================
+ * shadcn/ui CSS変数 + カスタムカラーパレット
+ * デザインガイドライン準拠: ライトベース + オレンジアクセント
+ * 注: 単一テーマ構成（ライト/ダークモード切り替えなし）
+ * ======================================== */
+
+:root {
+  /* 基本カラー */
+  --background: #ececec; /* 少し濃いグレー（目に優しく、長時間作業向け） */
+  --foreground: #09090b; /* zinc-950: より黒に近いテキスト */
+
+  /* カード */
+  --card: #ffffff;
+  --card-foreground: #09090b;
+
+  /* ポップオーバー */
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+
+  /* プライマリ（オレンジアクセント） */
+  --primary: #ea580c; /* orange-600: 白背景でコントラスト確保 */
+  --primary-foreground: #ffffff;
+
+  /* プライマリアクティブ（D&D強調用） */
+  --primary-active: #fb923c; /* orange-400: ドラッグ時の明るいオレンジ */
+
+  /* セカンダリ */
+  --secondary: #f4f4f5; /* zinc-100 */
+  --secondary-foreground: #18181b;
+
+  /* ミュート */
+  --muted: #f4f4f5; /* zinc-100 */
+  --muted-foreground: #3f3f46; /* zinc-700: さらに濃いグレーで可読性向上 */
+
+  /* アクセント */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+
+  /* アクセントセカンダリ（装飾用） */
+  --accent-secondary: #3b82f6; /* blue-500: 装飾グラデーション用 */
+
+  /* プライマリライト（グラデーション用） */
+  --primary-light: #fb923c; /* orange-400: テキストグラデーション終点 */
+
+  /* 破壊的アクション */
+  --destructive: #dc2626; /* red-600 */
+
+  /* 用量表示色（数値強調型デザイン） - shared.ts の DOSAGE_COLORS と同期 */
+  --dosage-value: #1e293b; /* slate-800: 数値 */
+  --dosage-label: #94a3b8; /* slate-400: ラベル */
+  --dosage-accent: #3b82f6; /* blue-500: アクセント */
+  --dosage-accent-light: rgba(59, 130, 246, 0.3); /* blue-500/30: 下線 */
+
+  /* 注意事項（アンバー系: 穏やかな警告色） */
+  --precaution-bg: #fef3c7; /* amber-100 */
+  --precaution-title: #78350f; /* amber-900: 印刷時の視認性向上 */
+  --precaution-text: #451a03; /* amber-950相当: 黒に近い濃い茶色 */
+
+  /* ボーダー・入力・リング */
+  --border: #a1a1aa; /* zinc-400: さらに濃いグレーで視認性向上 */
+  --input: #a1a1aa;
+  --ring: #ea580c;
+
+  /* チャート色（将来拡張用） */
+  --chart-1: #ea580c;
+  --chart-2: #7c3aed;
+  --chart-3: #0891b2;
+  --chart-4: #059669;
+  --chart-5: #e11d48;
+
+  /* 角丸 */
+  --radius: 0.75rem;
+}
+
+/* ========================================
+ * Tailwindテーマ拡張
+ * ======================================== */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-active: var(--primary-active);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-destructive: var(--destructive);
+  --color-dosage-value: var(--dosage-value);
+  --color-dosage-label: var(--dosage-label);
+  --color-dosage-accent: var(--dosage-accent);
+  --color-dosage-accent-light: var(--dosage-accent-light);
+  --color-precaution-bg: var(--precaution-bg);
+  --color-precaution-title: var(--precaution-title);
+  --color-precaution-text: var(--precaution-text);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-noto-sans-jp);
+}
+
+/* ========================================
+ * カスタムvariant（タブレット対応）
+ * ======================================== */
+
+/*
+ * デスクトップ判定: マウス操作(pointer: fine) かつ 768px以上
+ * タッチデバイス（スマホ・タブレット）はdesktop:が適用されない
+ * 使用例: desktop:flex, desktop:hidden, desktop:block
+ */
+@custom-variant desktop {
+  @media (pointer: fine) and (min-width: 768px) {
+    @slot;
+  }
+}
+
+/* ========================================
+ * ベーススタイル
+ * ======================================== */
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-noto-sans-jp), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+ * カスタム入力フィールドスタイル
+ * shadcn/uiのデフォルトスタイルを上書きするため詳細度を上げる
+ * ======================================== */
+
+/* プロジェクトタイトル入力フィールド（オレンジボーダー） */
+input[data-slot="input"].input-orange {
+  border-color: oklch(
+    0.553 0.195 38.4
+  ); /* orange-600: 白背景でのコントラスト確保 */
+  border-radius: 0.25rem; /* rounded: ボタンと統一 */
+}
+
+input[data-slot="input"].input-orange:focus-visible {
+  border-color: oklch(0.646 0.222 41.116); /* orange-500: フォーカス時 */
+  --tw-ring-color: oklch(0.646 0.222 41.116 / 0.3); /* orange-500/30 */
+}
+
+/* プロジェクトタイトルボタン（オレンジボーダー） */
+.project-title-button {
+  border: 1px solid oklch(0.553 0.195 38.4); /* orange-600 */
+}
+
+/* ========================================
+ * ブランド名強調スタイル
+ * ======================================== */
+
+/* リハぐりブランド名強調 */
+.brand-name {
+  font-size: 1.375rem; /* text-xl相当 (22px) */
+  font-weight: 700; /* font-bold */
+  color: var(--primary); /* テーマカラー（orange-600）に統一 */
+  letter-spacing: 0.025em; /* tracking-wide */
+}
+
+/* ========================================
+ * アニメーションユーティリティ
+ * ======================================== */
+
+/* スタッガードフェードイン */
+.animate-fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+.animate-fade-up-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.animate-fade-up-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.animate-fade-up-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.animate-fade-up-delay-4 {
+  animation-delay: 0.4s;
+}
+
+.animate-fade-up-delay-5 {
+  animation-delay: 0.5s;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* スクロールアニメーション（Intersection Observer連携） */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
+}
+
+.scroll-animate.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* スクロールアニメーション遅延 */
+.scroll-animate-delay-1 {
+  transition-delay: 0.1s;
+}
+
+.scroll-animate-delay-2 {
+  transition-delay: 0.2s;
+}
+
+/* フェードイン */
+.animate-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* スライドイン・スライドアウト（モバイルサイドバー用） */
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.animate-slide-out-left {
+  animation: slideOutLeft 0.3s ease-in forwards;
+}
+
+.animate-slide-out-right {
+  animation: slideOutRight 0.3s ease-in forwards;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(calc(-100% - 0.75rem));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(calc(100% + 0.75rem));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 0.75rem));
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(100% + 0.75rem));
+  }
+}
+
+/* スライドダウン・アップ（ドロップダウンメニュー用） */
+.animate-slide-down {
+  animation: slideDown 0.2s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.2s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* 画面上端からスライドダウン（ドロップダウンメニュー用） */
+.animate-menu-slide-down {
+  animation: menuSlideDown 0.3s ease-out forwards;
+}
+
+.animate-menu-slide-up {
+  animation: menuSlideUp 0.3s ease-in forwards;
+}
+
+@keyframes menuSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% - 1rem));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menuSlideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(-100% - 1rem));
+  }
+}
+
+/* ノイズテクスチャ */
+.bg-noise {
+  position: relative;
+}
+
+.bg-noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* ========================================
+ * Selectコンポーネントの背景色統一
+ * ======================================== */
+
+/* Selectトリガー（ドロップダウンボタン）の背景を白に */
+[data-slot="select-trigger"] {
+  background-color: white;
+}
+
+/* ========================================
+ * ヒーローグリッド（インタラクティブ2D）
+ * ======================================== */
+
+/* グリッドコンテナ */
+.hero-grid {
+  transform: rotate(3deg);
+  transition: transform 0.4s ease;
+}
+
+.hero-grid:hover {
+  transform: rotate(0deg);
+}
+
+/* グリッドカード基本スタイル */
+.hero-grid-card {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* 各カードのホバーアクション（異なる動き） */
+.hero-grid-card:nth-child(1):hover {
+  transform: translateY(-8px) rotate(-2deg);
+  box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.15);
+}
+
+.hero-grid-card:nth-child(2):hover {
+  transform: translateY(-6px) rotate(3deg);
+  box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.15);
+}
+
+.hero-grid-card:nth-child(3):hover {
+  transform: translateX(-6px) rotate(-1deg);
+  box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.15);
+}
+
+/* アクセントカード（オレンジ）の特別なホバー */
+.hero-grid-card-accent:hover {
+  transform: scale(1.08);
+  border-color: var(--primary);
+  box-shadow:
+    0 12px 24px -8px rgb(0 0 0 / 0.15),
+    0 0 20px -4px var(--primary);
+}

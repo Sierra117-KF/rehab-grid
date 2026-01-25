@@ -1,0 +1,50 @@
+{
+  "tools": {
+    "allowed": [
+      "run_shell_command(pnpm lint)",
+      "run_shell_command(pnpm lint:fix)",
+      "run_shell_command(pnpm test)",
+      "run_shell_command(pnpm test:jsdom)",
+      "run_shell_command(pnpm test:browser)",
+      "run_shell_command(pnpm type-check)",
+      "run_shell_command(pnpm type-check:test)",
+      "run_shell_command(pnpm --filter @rehab-grid/* type-check)",
+      "run_shell_command(pnpm --filter @rehab-grid/* lint)",
+      "run_shell_command(pnpm --filter @rehab-grid/* test)",
+      "run_shell_command(pnpm build)",
+      "run_shell_command(pnpm dlx eslint)",
+      "run_shell_command(mkdir)"
+    ],
+    "exclude": [
+      "run_shell_command(rm)",
+      "run_shell_command(rm -rf)",
+      "run_shell_command(del)",
+      "run_shell_command(dd)",
+      "run_shell_command(rmdir)",
+      "run_shell_command(rd)",
+      "run_shell_command(format)",
+      "run_shell_command(shutdown)",
+      "run_shell_command(git)",
+      "run_shell_command(sudo)",
+      "run_shell_command(curl)",
+      "run_shell_command(ssh)",
+      "run_shell_command(mkfs)",
+      "run_shell_command(wget)",
+      "run_shell_command(nc)",
+      "run_shell_command(find)",
+      "run_shell_command(fd)",
+      "run_shell_command(cat)",
+      "run_shell_command(chmod)",
+      "run_shell_command(apt)",
+      "run_shell_command(yum)",
+      "run_shell_command(mv)",
+      "run_shell_command(npm)"
+    ]
+  },
+  "general": {
+    "preferredEditor": "cursor"
+  },
+  "ui": {
+    "theme": "Default"
+  }
+}

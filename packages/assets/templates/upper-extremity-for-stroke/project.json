@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "version": "0.1.0",
+    "createdAt": "2026-01-18T08:21:01.015Z",
+    "updatedAt": "2026-01-18T08:32:10.657Z",
+    "title": "【脳卒中】上肢の自主トレ",
+    "projectType": "training"
+  },
+  "settings": {
+    "layoutType": "grid3",
+    "themeColor": "#3b82f6"
+  },
+  "items": [
+    {
+      "id": "Wr7YJEEaCulKqWcGgBuPz",
+      "order": 0,
+      "title": "両手伸ばし体操",
+      "imageSource": "sample_lying_12",
+      "description": "両手を胸の前で組みます。両手の力を一緒に使って、手を天井に向かって伸ばします",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "JB7lUzcr8UjM1rsYxse9Y",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "7YrBSoIfa1X3yUaNvRlJg",
+          "value": "痛みが出たら中止"
+        },
+        {
+          "id": "EktI7fgO3IoDK6L3-WO4U",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "J8iy61buzw09QyDCFWlNB",
+          "value": "無理をしない"
+        },
+        {
+          "id": "OXWcavMQENapuz96xrv0z",
+          "value": "力を入れたまま５秒キープ"
+        }
+      ]
+    },
+    {
+      "id": "11bKLvV4Me967JJTm6z3p",
+      "order": 1,
+      "title": "手を持ち上げる体操",
+      "imageSource": "sample_sitting_04",
+      "description": "麻痺している手を持ち上げます。難しい場合は反対の手で支えてください。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日5回"
+      },
+      "precautions": [
+        {
+          "id": "sc1WMFEzJVxsZW1y2WRLe",
+          "value": "顔より上には手を上げない"
+        },
+        {
+          "id": "UGsiiBECcD1264UPoJdBB",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "JAnLcFevwl5aapyL7tk_5",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "Isfl6a44h-MBC1UHZ7TDn",
+      "order": 2,
+      "title": "肩関節外旋トレーニング",
+      "imageSource": "sample_sitting_05",
+      "description": "椅子に腰かけて背筋を伸ばします。脇を締めたまま手のひらを上に向けて、両方の手の平を外側へ動かします。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "nW1wH4vVhu8jCwRnznyz7",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "0pR1XdVesNr4cQVwLJtoH",
+          "value": "痛みが出たら中止"
+        },
+        {
+          "id": "6mIAjNVAhm0gM0iT-WyqK",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "G5vsOf3dgXOv-gqHol465",
+          "value": "背筋をまっすぐにする"
+        }
+      ]
+    },
+    {
+      "id": "1cwq-7lpe00gfzAHTOGLY",
+      "order": 3,
+      "title": "棒体操",
+      "imageSource": "sample_sitting_09",
+      "description": "棒（杖）を両手で掴んで上へ持ち上げます",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "WNlhzwLNqYh5CfSNVfIwF",
+          "value": "背筋をまっすぐにする"
+        },
+        {
+          "id": "RyKh_t35QpbW1pC4fWbFa",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "WzhwnVt248LY4D-c1LuB8",
+          "value": "めまいがしたら休む"
+        }
+      ]
+    },
+    {
+      "id": "VyZ7PPKypAqRdoAVOq0eP",
+      "order": 4,
+      "title": "タオル拭き体操",
+      "imageSource": "sample_sitting_08",
+      "description": "机の上にタオルやハンカチを置いて、麻痺している手を乗せます。机の上を拭くように動かします。",
+      "dosages": {
+        "reps": "２０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "NDCazfSFtpiHnFueffIUj",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "dz6y-5Sp7zQdnlJmK2IaM",
+          "value": "最初は小さく、徐々に大きく"
+        },
+        {
+          "id": "oIARic6YR5FacZy6R6vVP",
+          "value": "反動をつけずに、ゆっくり動かす"
+        }
+      ]
+    },
+    {
+      "id": "x9DKfZGZDC8HeRPG6KGW3",
+      "order": 5,
+      "title": "壁バンザイ体操",
+      "imageSource": "sample_standing_10",
+      "description": "壁に向かって、少し離れて立ちます。両手を壁に当てて、壁に手を当てながら上に上げて、ゆっくり下ろします。",
+      "dosages": {
+        "reps": "１０",
+        "sets": "× ３",
+        "frequency": "１日５回"
+      },
+      "precautions": [
+        {
+          "id": "nGBuXdXLxMuQmDR_n_D_U",
+          "value": "手を壁に向かって突き出すように上げる"
+        },
+        {
+          "id": "cf0j_SUtkMVeDw0vXAPNL",
+          "value": "背筋をまっすぐにする"
+        },
+        {
+          "id": "D-IN3q4SC5RZdsGdaVvsK",
+          "value": "痛くない範囲で動かす"
+        },
+        {
+          "id": "omh6O-ZPgDSI0z1FalUZW",
+          "value": "めまいがしたら休む"
+        },
+        {
+          "id": "OlJmBr61fKZHnMMQsDlST",
+          "value": "最初は小さく、徐々に大きく"
+        }
+      ]
+    }
+  ]
+}

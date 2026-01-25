@@ -1,0 +1,66 @@
+{
+  "after-lower-limb-orthopedic-surgery": {
+    "images/img_001.webp": "sample_lying_13",
+    "images/img_002.webp": "sample_lying_14",
+    "images/img_003.webp": "sample_lying_01",
+    "images/img_004.webp": "sample_lying_02",
+    "images/img_005.webp": "sample_lying_04",
+    "images/img_006.webp": "sample_lying_03",
+    "images/img_007.webp": "sample_lying_05",
+    "images/img_008.webp": "sample_lying_06"
+  },
+  "full-body-workout": {
+    "images/img_001.webp": "sample_lying_01",
+    "images/img_002.webp": "sample_lying_07",
+    "images/img_003.webp": "sample_sitting_03",
+    "images/img_004.webp": "sample_sitting_09",
+    "images/img_005.webp": "sample_standing_01",
+    "images/img_006.webp": "sample_standing_06"
+  },
+  "in-bed-for-stroke": {
+    "images/img_001.webp": "sample_lying_13",
+    "images/img_002.webp": "sample_lying_01",
+    "images/img_003.webp": "sample_lying_07",
+    "images/img_004.webp": "sample_lying_10",
+    "images/img_005.webp": "sample_lying_11",
+    "images/img_006.webp": "sample_lying_12"
+  },
+  "low-back-pain": {
+    "images/img_001.webp": "sample_lying_09",
+    "images/img_002.webp": "sample_lying_03",
+    "images/img_003.webp": "sample_lying_16",
+    "images/img_004.webp": "sample_standing_07",
+    "images/img_005.webp": "sample_sitting_02",
+    "images/img_006.webp": "sample_standing_08"
+  },
+  "seated-in-a-chair-for-stroke": {
+    "images/img_001.webp": "sample_sitting_01",
+    "images/img_002.webp": "sample_sitting_03",
+    "images/img_003.webp": "sample_sitting_04",
+    "images/img_004.webp": "sample_sitting_09",
+    "images/img_005.webp": "sample_sitting_08"
+  },
+  "shoulder-stiffness": {
+    "images/img_001.webp": "sample_lying_09",
+    "images/img_002.webp": "sample_lying_16",
+    "images/img_003.webp": "sample_sitting_05",
+    "images/img_004.webp": "sample_sitting_07",
+    "images/img_005.webp": "sample_sitting_06",
+    "images/img_006.webp": "sample_standing_09"
+  },
+  "swallowing": {
+    "images/img_001.webp": "sample_sitting_10",
+    "images/img_002.webp": "sample_sitting_11",
+    "images/img_003.webp": "sample_sitting_12",
+    "images/img_004.webp": "sample_lying_07",
+    "images/img_005.webp": "sample_standing_01"
+  },
+  "upper-extremity-for-stroke": {
+    "images/img_001.webp": "sample_lying_12",
+    "images/img_002.webp": "sample_sitting_04",
+    "images/img_003.webp": "sample_sitting_05",
+    "images/img_004.webp": "sample_sitting_09",
+    "images/img_005.webp": "sample_sitting_08",
+    "images/img_006.webp": "sample_standing_10"
+  }
+}
