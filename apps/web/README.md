@@ -35,6 +35,7 @@ apps/web/
 │   ├── fonts/                      # 日本語フォント（自動コピー）
 │   ├── icons/                      # PWA/ロゴアイコン
 │   ├── images/
+│   │   ├── og-image.webp           # OGP画像（SNS共有用）
 │   │   ├── bento-grid/             # トップページ装飾画像
 │   │   └── samples/                # サンプル運動画像（自動コピー）
 │   └── templates/                  # テンプレートJSON（自動コピー）
@@ -249,6 +250,30 @@ base-uri 'self';
 | `packages/assets/icons/logo.png`  | `public/icons/logo.png`  |
 
 これらのファイルは `.gitignore` で管理外とし、ビルドごとにクリーンコピーされます。
+
+## OGPメタデータ
+
+SNS（note、X、Facebookなど）でリンク共有時にサムネイル画像とメタ情報が表示されるよう、OGP（Open Graph Protocol）メタデータを設定しています。
+
+### 設定内容
+
+- **OGP画像**: `public/images/og-image.webp`（1200×630px）
+- **Twitter Card**: `summary_large_image`（大きな画像カード）
+
+### OGP画像の更新
+
+新しいOGP画像を作成する場合は、`scripts/convert-ogp-image.mjs` を使用して1200×630pxにリサイズ・変換できます：
+
+```bash
+node scripts/convert-ogp-image.mjs 元画像.png apps/web/public/images/og-image.webp
+```
+
+### 確認方法
+
+デプロイ後、以下のツールでOGPが正しく設定されているか確認できます：
+
+- [OGP確認ツール（ラッコツールズ）](https://rakko.tools/tools/9/)
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator)
 
 ## 設定ファイル
 

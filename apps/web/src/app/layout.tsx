@@ -5,6 +5,18 @@ import { Toaster } from "@rehab-grid/ui/components/wrapped/Toaster";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+/** サイトのベースURL */
+const SITE_URL = "https://rehaguri.com";
+/** サイト名 */
+const SITE_NAME = "リハぐり";
+/** アプリケーションタイトル（OGP/Twitter共通） */
+const APP_TITLE = "リハぐり - 自主トレーニング指導箋作成アプリ";
+/** OGP/Twitter用の説明文 */
+const OGP_DESCRIPTION =
+  "Wordより圧倒的に速い自主トレ指導箋の作成体験。完全ローカル動作で安心。";
+/** OGP画像URL */
+const OGP_IMAGE_URL = `${SITE_URL}/images/og-image.webp`;
+
 /**
  * Noto Sans JP ローカルフォント設定
  * サブセット化されたフォントファイルを使用（CSP準拠）
@@ -30,7 +42,7 @@ const notoSansJP = localFont({
  * アプリケーションのメタデータ
  */
 export const metadata: Metadata = {
-  title: "リハぐり - 自主トレーニング指導箋作成アプリ",
+  title: APP_TITLE,
   description:
     "リハビリテーションセラピスト向け「自主トレーニング指導箋」作成アプリ。Wordより圧倒的に速い作成体験を提供します。完全クライアントサイド動作でセキュリティも安心。",
   keywords: [
@@ -46,11 +58,26 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "リハぐり開発チーム" }],
   openGraph: {
-    title: "リハぐり - 自主トレーニング指導箋作成アプリ",
-    description:
-      "Wordより圧倒的に速い自主トレ指導箋の作成体験。完全ローカル動作で安心。",
+    title: APP_TITLE,
+    description: OGP_DESCRIPTION,
     type: "website",
     locale: "ja_JP",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: OGP_IMAGE_URL,
+        width: 1200,
+        height: 630,
+        alt: APP_TITLE,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_TITLE,
+    description: OGP_DESCRIPTION,
+    images: [OGP_IMAGE_URL],
   },
 };
 
