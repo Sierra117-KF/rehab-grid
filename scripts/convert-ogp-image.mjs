@@ -11,10 +11,8 @@
  */
 
 import sharp from "sharp";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { stat } from "fs/promises";
+import { resolve } from "path";
 
 // OGP推奨サイズ
 const OGP_WIDTH = 1200;
@@ -64,9 +62,7 @@ async function convertOgpImage(inputPath, outputPath) {
 
   // 出力ファイルのサイズを確認
   const outputMetadata = await sharp(absoluteOutputPath).metadata();
-  const { size } = await import("fs").then((fs) =>
-    fs.promises.stat(absoluteOutputPath),
-  );
+  const { size } = await stat(absoluteOutputPath);
 
   console.log(`✅ 変換完了!`);
   console.log(`   サイズ: ${outputMetadata.width}×${outputMetadata.height}`);
