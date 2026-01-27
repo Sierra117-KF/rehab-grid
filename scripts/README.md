@@ -9,6 +9,7 @@
 1. **フォント最適化**: PDF出力機能で使用する日本語フォント（Noto Sans JP）のサブセット化
 2. **テンプレート画像マッピング**: テンプレート内の重複画像をサンプル画像への参照に置き換えるためのマッピング生成
 3. **PWAアイコン生成**: ロゴ画像から各種サイズのPWAアイコンを自動生成
+4. **OGP画像変換**: SNS共有用のOGP画像を最適なサイズ・形式に変換
 
 ## ディレクトリ構造
 
@@ -20,6 +21,7 @@ scripts/
 ├── subset-fonts.py                     # フォントサブセット化（Python）
 ├── create-template-image-mapping.mjs   # テンプレート画像マッピング生成
 ├── generate-pwa-icons.mjs              # PWAアイコン生成
+├── convert-ogp-image.mjs               # OGP画像変換
 └── output/
     └── template-image-mapping.json     # 生成されたマッピングファイル
 ```
@@ -155,11 +157,11 @@ node scripts/create-template-image-mapping.mjs
 
 **生成されるファイル**:
 
-| ファイル名 | サイズ | 用途 |
-|-----------|--------|------|
-| `icon-192x192.png` | 192×192 | Android用 |
-| `icon-512x512.png` | 512×512 | Android用、スプラッシュスクリーン |
-| `apple-touch-icon.png` | 180×180 | iOS用 |
+| ファイル名             | サイズ  | 用途                              |
+| ---------------------- | ------- | --------------------------------- |
+| `icon-192x192.png`     | 192×192 | Android用                         |
+| `icon-512x512.png`     | 512×512 | Android用、スプラッシュスクリーン |
+| `apple-touch-icon.png` | 180×180 | iOS用                             |
 
 **前提条件**:
 
@@ -190,7 +192,46 @@ node scripts/generate-pwa-icons.mjs
 
 ---
 
-### 5. `chars.txt`
+### 5. `convert-ogp-image.mjs`
+
+**目的**: 正方形の画像を1200×630pxのOGP推奨サイズにクロップし、WebP形式に変換します。
+
+**処理内容**:
+
+1. 元画像のアスペクト比を計算
+2. OGP推奨サイズ（1200×630）に合わせて中央クロップ
+3. WebP形式（品質85%）で出力
+
+**前提条件**:
+
+- Node.js
+- `sharp` パッケージ（画像処理ライブラリ）
+
+**使用方法**:
+
+```bash
+node scripts/convert-ogp-image.mjs <入力ファイル> [出力ファイル]
+
+# 例
+node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-image.webp
+```
+
+**入力**:
+
+- 任意のPNG/JPEG/WebP画像（正方形推奨）
+
+**出力**:
+
+- 1200×630pxのWebP画像（OGP推奨サイズ）
+
+**用途**:
+
+- noteやX、Facebookなどでリンク共有時にサムネイル画像として表示される
+- `apps/web/src/app/layout.tsx` のOGPメタデータで参照
+
+---
+
+### 6. `chars.txt`
 
 **目的**: フォントサブセット化に使用する文字リストファイルです。
 

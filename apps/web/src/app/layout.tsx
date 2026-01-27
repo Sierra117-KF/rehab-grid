@@ -51,6 +51,23 @@ export const metadata: Metadata = {
       "Wordより圧倒的に速い自主トレ指導箋の作成体験。完全ローカル動作で安心。",
     type: "website",
     locale: "ja_JP",
+    url: "https://rehaguri.com",
+    siteName: "リハぐり",
+    images: [
+      {
+        url: "https://rehaguri.com/images/og-image.webp",
+        width: 1200,
+        height: 630,
+        alt: "リハぐり - 自主トレーニング指導箋作成アプリ",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "リハぐり - 自主トレーニング指導箋作成アプリ",
+    description:
+      "Wordより圧倒的に速い自主トレ指導箋の作成体験。完全ローカル動作で安心。",
+    images: ["https://rehaguri.com/images/og-image.webp"],
   },
 };
 
