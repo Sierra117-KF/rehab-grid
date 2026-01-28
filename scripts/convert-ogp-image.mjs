@@ -1,13 +1,15 @@
 /**
  * OGP画像変換スクリプト
  *
- * 正方形の画像を1200×630pxにクロップし、WebP形式に変換します。
+ * 正方形の画像を1200×630pxにクロップし、PNG形式に変換します。
+ * X（Twitter）やnoteなどのSNSでOGP画像を正しく表示するため、
+ * WebPではなくPNG形式を使用しています。
  *
  * 使用方法:
  *   node scripts/convert-ogp-image.mjs <入力ファイル> [出力ファイル]
  *
  * 例:
- *   node scripts/convert-ogp-image.mjs ogp_image.png apps/web/public/images/og-image.webp
+ *   node scripts/convert-ogp-image.mjs ogp_image.png apps/web/public/images/og-image.png
  */
 
 import sharp from "sharp";
@@ -57,7 +59,7 @@ async function convertOgpImage(inputPath, outputPath) {
   await sharp(absoluteInputPath)
     .extract({ left, top, width: cropWidth, height: cropHeight })
     .resize(OGP_WIDTH, OGP_HEIGHT)
-    .webp({ quality: 85 })
+    .png({ compressionLevel: 9 })
     .toFile(absoluteOutputPath);
 
   // 出力ファイルのサイズを確認
@@ -77,13 +79,13 @@ if (args.length < 1) {
     "使用方法: node scripts/convert-ogp-image.mjs <入力ファイル> [出力ファイル]",
   );
   console.log(
-    "例: node scripts/convert-ogp-image.mjs ogp_image.png apps/web/public/images/og-image.webp",
+    "例: node scripts/convert-ogp-image.mjs ogp_image.png apps/web/public/images/og-image.png",
   );
   process.exit(1);
 }
 
 const inputFile = args[0];
-const outputFile = args[1] || "og-image.webp";
+const outputFile = args[1] || "og-image.png";
 
 convertOgpImage(inputFile, outputFile).catch((err) => {
   console.error("❌ エラー:", err.message);

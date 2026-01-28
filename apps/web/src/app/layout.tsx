@@ -15,7 +15,7 @@ const APP_TITLE = "リハぐり - 自主トレーニング指導箋作成アプ�
 const OGP_DESCRIPTION =
   "Wordより圧倒的に速い自主トレ指導箋の作成体験。完全ローカル動作で安心。";
 /** OGP画像URL */
-const OGP_IMAGE_URL = `${SITE_URL}/images/og-image.webp`;
+const OGP_IMAGE_URL = `${SITE_URL}/images/og-image.png`;
 
 /**
  * Noto Sans JP ローカルフォント設定
