@@ -13,19 +13,24 @@
 
 ## エクスポート一覧
 
-| エクスポートパス | ファイル | 用途 |
-|-----------------|---------|------|
-| `@rehab-grid/pages` | `src/index.ts` | 全ページのバレルエクスポート |
-| `@rehab-grid/pages/training` | `src/training/TrainingPage.tsx` | エディタページ |
-| `@rehab-grid/pages/privacy` | `src/privacy/PrivacyPage.tsx` | プライバシーポリシー |
-| `@rehab-grid/pages/terms` | `src/terms/TermsPage.tsx` | 利用規約 |
-| `@rehab-grid/pages/changelog` | `src/changelog/ChangelogPage.tsx` | 更新履歴 |
+| エクスポートパス              | ファイル                          | 用途                         |
+| ----------------------------- | --------------------------------- | ---------------------------- |
+| `@rehab-grid/pages`           | `src/index.ts`                    | 全ページのバレルエクスポート |
+| `@rehab-grid/pages/training`  | `src/training/TrainingPage.tsx`   | エディタページ               |
+| `@rehab-grid/pages/privacy`   | `src/privacy/PrivacyPage.tsx`     | プライバシーポリシー         |
+| `@rehab-grid/pages/terms`     | `src/terms/TermsPage.tsx`         | 利用規約                     |
+| `@rehab-grid/pages/changelog` | `src/changelog/ChangelogPage.tsx` | 更新履歴                     |
 
 ### 使用例
 
 ```typescript
 // メインエクスポート
-import { TrainingPage, ChangelogPage, PrivacyPage, TermsPage } from "@rehab-grid/pages";
+import {
+  TrainingPage,
+  ChangelogPage,
+  PrivacyPage,
+  TermsPage,
+} from "@rehab-grid/pages";
 
 // サブパスエクスポート
 import { TrainingPage } from "@rehab-grid/pages/training";
@@ -61,12 +66,12 @@ packages/pages/
 
 ## ページ一覧
 
-| ページ | レンダリング | URL（Web版） | URL（Desktop版） |
-|-------|-------------|-------------|-----------------|
-| TrainingPage | クライアント | `/training` | `/` |
-| ChangelogPage | サーバー | `/changelog` | `/changelog` |
-| PrivacyPage | サーバー | `/privacy` | `/privacy` |
-| TermsPage | サーバー | `/terms` | `/terms` |
+| ページ        | レンダリング | URL（Web版） | URL（Desktop版） |
+| ------------- | ------------ | ------------ | ---------------- |
+| TrainingPage  | クライアント | `/training`  | `/`              |
+| ChangelogPage | サーバー     | `/changelog` | `/changelog`     |
+| PrivacyPage   | サーバー     | `/privacy`   | `/privacy`       |
+| TermsPage     | サーバー     | `/terms`     | `/terms`         |
 
 ---
 
@@ -79,41 +84,43 @@ packages/pages/
 #### レイアウト構成
 
 **デスクトップ（3カラム）**:
+
 - **左サイドバー（240px）**: 画像ライブラリパネル
 - **中央**: キャンバス（ドラッグ&ドロップグリッド）
 - **右サイドバー（288px）**: プロパティパネル（選択カード編集）
 
 **モバイル（シングルカラム）**:
+
 - 中央にキャンバスのみ表示
 - 画像ライブラリ・プロパティパネルはスライドインサイドバーで表示
 
 #### 主要機能
 
-| 機能 | 説明 |
-|------|------|
-| カード追加 | 新規カードの作成（最大数制限あり） |
-| 画像アップロード | ファイル選択・ドラッグ&ドロップ・クリップボード貼り付け |
-| ドラッグ&ドロップ | カードの並び替え、画像のカードへのドロップ |
-| プロパティ編集 | タイトル、説明、回数/セット、注意事項の編集 |
+| 機能              | 説明                                                    |
+| ----------------- | ------------------------------------------------------- |
+| カード追加        | 新規カードの作成（最大数制限あり）                      |
+| 画像アップロード  | ファイル選択・ドラッグ&ドロップ・クリップボード貼り付け |
+| ドラッグ&ドロップ | カードの並び替え、画像のカードへのドロップ              |
+| プロパティ編集    | タイトル、説明、回数/セット、注意事項の編集             |
 
 #### 使用するフック
 
 ```typescript
 // @rehab-grid/core から
-useEditorStore()       // Zustand ストア（状態管理）
-useCanvasImages()      // 画像URL生成（IndexedDB + サンプル画像）
-useIsMobile()          // モバイル判定
-usePasteImage()        // クリップボード貼り付け
+useEditorStore(); // Zustand ストア（状態管理）
+useCanvasImages(); // 画像URL生成（IndexedDB + サンプル画像）
+useIsMobile(); // モバイル判定
+usePasteImage(); // クリップボード貼り付け
 ```
 
 #### 使用するUIコンポーネント
 
 ```typescript
 // @rehab-grid/ui から
-Canvas              // ドラッグ&ドロップグリッド
-ImageLibraryPanel   // 画像ライブラリ
-PropertyPanel       // プロパティ編集パネル
-MobileSidebar       // モバイル用スライドインサイドバー
+Canvas; // ドラッグ&ドロップグリッド
+ImageLibraryPanel; // 画像ライブラリ
+PropertyPanel; // プロパティ編集パネル
+MobileSidebar; // モバイル用スライドインサイドバー
 ```
 
 ---
@@ -185,24 +192,24 @@ MobileSidebar       // モバイル用スライドインサイドバー
 
 ### 内部パッケージ
 
-| パッケージ | 用途 |
-|-----------|------|
-| `@rehab-grid/ui` | UIコンポーネント（Canvas, Panel等） |
-| `@rehab-grid/core` | ストア、フック、定数、型定義 |
+| パッケージ         | 用途                                |
+| ------------------ | ----------------------------------- |
+| `@rehab-grid/ui`   | UIコンポーネント（Canvas, Panel等） |
+| `@rehab-grid/core` | ストア、フック、定数、型定義        |
 
 ### 外部ライブラリ
 
-| ライブラリ | バージョン | 用途 |
-|-----------|-----------|------|
-| `lucide-react` | 0.563.0 | アイコン（ChangelogPageで使用） |
-| `sonner` | 2.0.7 | トースト通知（TrainingPageで使用） |
+| ライブラリ     | バージョン | 用途                               |
+| -------------- | ---------- | ---------------------------------- |
+| `lucide-react` | 0.563.0    | アイコン（ChangelogPageで使用）    |
+| `sonner`       | 2.0.7      | トースト通知（TrainingPageで使用） |
 
 ### peerDependencies
 
 ```json
 {
-  "react": "19.2.3",
-  "react-dom": "19.2.3"
+  "react": "19.2.4",
+  "react-dom": "19.2.4"
 }
 ```
 
@@ -268,14 +275,14 @@ export default function InfoLayout({ children }) {
 
 ## 関連ファイル
 
-| ファイルパス | 説明 |
-|-------------|------|
+| ファイルパス                                 | 説明                        |
+| -------------------------------------------- | --------------------------- |
 | `packages/core/src/lib/store/editorStore.ts` | エディタ状態管理（Zustand） |
-| `packages/core/src/hooks/useCanvasImages.ts` | 画像URL生成フック |
-| `packages/core/src/lib/changelog/entries.ts` | 更新履歴データ定義 |
-| `packages/core/src/lib/constants/urls.ts` | 外部URL定数 |
-| `packages/ui/src/components/editor/` | エディタUIコンポーネント群 |
-| `packages/ui/src/components/layout/` | レイアウトコンポーネント群 |
+| `packages/core/src/hooks/useCanvasImages.ts` | 画像URL生成フック           |
+| `packages/core/src/lib/changelog/entries.ts` | 更新履歴データ定義          |
+| `packages/core/src/lib/constants/urls.ts`    | 外部URL定数                 |
+| `packages/ui/src/components/editor/`         | エディタUIコンポーネント群  |
+| `packages/ui/src/components/layout/`         | レイアウトコンポーネント群  |
 
 ---
 
@@ -291,11 +298,11 @@ export default function InfoLayout({ children }) {
 
 ### コンポーネントの配置基準
 
-| 種類 | 配置先 |
-|------|--------|
-| 複数ページで共有するUI | `packages/ui/` |
-| 特定ページ専用のUI | 該当ページファイル内 or `packages/ui/` |
-| アプリ固有のUI（Desktop専用ヘッダー等） | `apps/*/src/components/` |
+| 種類                                    | 配置先                                 |
+| --------------------------------------- | -------------------------------------- |
+| 複数ページで共有するUI                  | `packages/ui/`                         |
+| 特定ページ専用のUI                      | 該当ページファイル内 or `packages/ui/` |
+| アプリ固有のUI（Desktop専用ヘッダー等） | `apps/*/src/components/`               |
 
 ### サーバーコンポーネント vs クライアントコンポーネント
 
