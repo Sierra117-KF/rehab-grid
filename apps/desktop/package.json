@@ -35,13 +35,13 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "@tauri-apps/cli": "^2.9.6",
+    "@tauri-apps/cli": "^2.10.0",
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "typescript": "^5",
     "tailwindcss": "^4",
     "@tailwindcss/postcss": "^4",
-    "eslint": "^9"
+    "eslint": "^10"
   }
 }

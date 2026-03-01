@@ -23,11 +23,11 @@
     "typescript-eslint": "^8.54.0"
   },
   "peerDependencies": {
-    "eslint": "^9",
+    "eslint": "^10",
     "typescript": "^5"
   },
   "devDependencies": {
-    "eslint": "^9",
+    "eslint": "^10",
     "typescript": "^5"
   }
 }
