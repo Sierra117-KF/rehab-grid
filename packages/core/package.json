@@ -21,15 +21,15 @@
     "@react-pdf/renderer": "4.3.2",
     "browser-image-compression": "2.0.2",
     "clsx": "2.1.1",
-    "dexie": "4.3.0",
-    "dexie-react-hooks": "4.2.0",
-    "dompurify": "3.3.2",
+    "dexie": "4.4.2",
+    "dexie-react-hooks": "4.4.0",
+    "dompurify": "3.3.3",
     "jszip": "3.10.1",
-    "lucide-react": "0.563.0",
-    "nanoid": "5.1.6",
-    "tailwind-merge": "3.4.0",
+    "lucide-react": "1.7.0",
+    "nanoid": "5.1.7",
+    "tailwind-merge": "3.5.0",
     "zod": "4.3.6",
-    "zustand": "5.0.10"
+    "zustand": "5.0.12"
   },
   "peerDependencies": {
     "react": "19.2.4",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "@tauri-apps/plugin-shell": "2.3.4",
+    "@tauri-apps/plugin-shell": "2.3.5",
     "eslint": "^9",
     "typescript": "^5"
   }
