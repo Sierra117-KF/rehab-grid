@@ -24,7 +24,7 @@
     "@rehab-grid/core": "workspace:*",
     "@rehab-grid/ui": "workspace:*",
     "@rehab-grid/pages": "workspace:*",
-    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/api": "2.9.1",
     "lucide-react": "0.563.0",
     "@tauri-apps/plugin-dialog": "2.6.0",
     "@tauri-apps/plugin-fs": "2.4.5",
@@ -35,13 +35,13 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "@tauri-apps/cli": "^2.9.6",
-    "@types/node": "^25",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "typescript": "^5",
-    "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4",
-    "eslint": "^9"
+    "@tauri-apps/cli": "2.9.6",
+    "@types/node": "25",
+    "@types/react": "19",
+    "@types/react-dom": "19",
+    "typescript": "5",
+    "tailwindcss": "4",
+    "@tailwindcss/postcss": "4",
+    "eslint": "9"
   }
 }

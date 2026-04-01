@@ -12,11 +12,11 @@
 
 ## エクスポート一覧
 
-| エクスポートパス | ファイル | 用途 |
-|-----------------|---------|------|
-| `@rehab-grid/config/eslint` | `eslint/base.mjs` | ESLint共有設定 |
-| `@rehab-grid/config/typescript` | `typescript/base.json` | TypeScript基本設定 |
-| `@rehab-grid/config/postcss` | `postcss/postcss.config.mjs` | PostCSS設定 |
+| エクスポートパス                | ファイル                     | 用途               |
+| ------------------------------- | ---------------------------- | ------------------ |
+| `@rehab-grid/config/eslint`     | `eslint/base.mjs`            | ESLint共有設定     |
+| `@rehab-grid/config/typescript` | `typescript/base.json`       | TypeScript基本設定 |
+| `@rehab-grid/config/postcss`    | `postcss/postcss.config.mjs` | PostCSS設定        |
 
 ---
 
@@ -52,23 +52,23 @@ dependencies:
 
 `eslint/base.mjs`は以下の13セクションで構成されています：
 
-| # | セクション名 | 概要 |
-|---|-------------|------|
-| 1 | global-ignores | 除外パターン（.next, node_modules等） |
-| 2 | ベース設定 | JS推奨 + Next.js Core Web Vitals |
-| 3 | TypeScript Strict | strictTypeChecked + stylisticTypeChecked |
-| 4 | global-settings | グローバル変数、parserOptions |
-| 5 | plugins-setup | 共通プラグイン登録（react, react-hooks含む） |
-| 6 | main-rules | プロジェクト共通ルール |
-| 6.1 | nextjs-app-rules | Next.js専用ルール（apps/**のみ） |
-| 7 | jsdoc-rules | JSDoc/TSDoc要件 |
-| 8 | javascript-overrides | JSファイルの型チェック無効化 |
-| 9 | type-definition-files | .d.ts用設定 |
-| 10 | nextjs-special-files | page.tsx等でdefault export許可 |
-| 10.1 | pwa-manifest | manifest.tsの命名規則緩和 |
-| 11 | test-environment | テストファイル用設定 |
-| 12 | browser-mode-tests | ブラウザテスト専用設定 |
-| 13 | Prettier | eslint-config-prettier |
+| #    | セクション名          | 概要                                         |
+| ---- | --------------------- | -------------------------------------------- |
+| 1    | global-ignores        | 除外パターン（.next, node_modules等）        |
+| 2    | ベース設定            | JS推奨 + Next.js Core Web Vitals             |
+| 3    | TypeScript Strict     | strictTypeChecked + stylisticTypeChecked     |
+| 4    | global-settings       | グローバル変数、parserOptions                |
+| 5    | plugins-setup         | 共通プラグイン登録（react, react-hooks含む） |
+| 6    | main-rules            | プロジェクト共通ルール                       |
+| 6.1  | nextjs-app-rules      | Next.js専用ルール（apps/\*\*のみ）           |
+| 7    | jsdoc-rules           | JSDoc/TSDoc要件                              |
+| 8    | javascript-overrides  | JSファイルの型チェック無効化                 |
+| 9    | type-definition-files | .d.ts用設定                                  |
+| 10   | nextjs-special-files  | page.tsx等でdefault export許可               |
+| 10.1 | pwa-manifest          | manifest.tsの命名規則緩和                    |
+| 11   | test-environment      | テストファイル用設定                         |
+| 12   | browser-mode-tests    | ブラウザテスト専用設定                       |
+| 13   | Prettier              | eslint-config-prettier                       |
 
 ### 主要ルール詳細
 
@@ -191,13 +191,13 @@ export default baseConfig.map((config) => {
 
 ### 主要オプション解説
 
-| オプション | 値 | 説明 |
-|-----------|-----|------|
-| `strict` | `true` | 厳格モード有効（strictNullChecks等含む） |
-| `noUncheckedIndexedAccess` | `true` | 配列/オブジェクトアクセスで`undefined`を考慮 |
-| `verbatimModuleSyntax` | `true` | type importの明示的記述を強制 |
-| `moduleResolution` | `bundler` | バンドラー向け解決方式 |
-| `noEmit` | `true` | 型チェックのみ（Next.jsがトランスパイル） |
+| オプション                 | 値        | 説明                                         |
+| -------------------------- | --------- | -------------------------------------------- |
+| `strict`                   | `true`    | 厳格モード有効（strictNullChecks等含む）     |
+| `noUncheckedIndexedAccess` | `true`    | 配列/オブジェクトアクセスで`undefined`を考慮 |
+| `verbatimModuleSyntax`     | `true`    | type importの明示的記述を強制                |
+| `moduleResolution`         | `bundler` | バンドラー向け解決方式                       |
+| `noEmit`                   | `true`    | 型チェックのみ（Next.jsがトランスパイル）    |
 
 ### 各パッケージでの使用方法
 
@@ -263,11 +263,11 @@ export default defineConfig({
 
 ### テスト環境
 
-| パッケージ | 環境 | 用途 |
-|-----------|------|------|
-| `packages/core` | jsdom | ユーティリティ、フック、ストアのユニットテスト |
-| `packages/ui` | jsdom | UIコンポーネントのユニットテスト |
-| `apps/web` | playwright (browser) | 統合テスト、E2Eテスト |
+| パッケージ      | 環境                 | 用途                                           |
+| --------------- | -------------------- | ---------------------------------------------- |
+| `packages/core` | jsdom                | ユーティリティ、フック、ストアのユニットテスト |
+| `packages/ui`   | jsdom                | UIコンポーネントのユニットテスト               |
+| `apps/web`      | playwright (browser) | 統合テスト、E2Eテスト                          |
 
 ### 実行コマンド
 
@@ -294,8 +294,8 @@ pnpm test:coverage     # カバレッジ付き
 ```json
 {
   "peerDependencies": {
-    "eslint": "^9",
-    "typescript": "^5"
+    "eslint": "9",
+    "typescript": "5"
   }
 }
 ```
@@ -306,8 +306,8 @@ pnpm test:coverage     # カバレッジ付き
 {
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "eslint": "^9",
-    "typescript": "^5"
+    "eslint": "9",
+    "typescript": "5"
   }
 }
 ```

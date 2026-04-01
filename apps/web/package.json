@@ -26,13 +26,13 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "@types/node": "^25",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "typescript": "^5",
-    "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4",
-    "eslint": "^9",
+    "@types/node": "25",
+    "@types/react": "19",
+    "@types/react-dom": "19",
+    "typescript": "5",
+    "tailwindcss": "4",
+    "@tailwindcss/postcss": "4",
+    "eslint": "9",
     "jszip": "3.10.1"
   }
 }

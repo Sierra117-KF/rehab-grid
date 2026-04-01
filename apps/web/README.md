@@ -77,8 +77,8 @@ apps/web/
 | -------------- | ------------------- | ---------- |
 | フレームワーク | Next.js             | 16.1.4     |
 | UI             | React               | 19.2.4     |
-| 言語           | TypeScript          | ^5         |
-| スタイル       | Tailwind CSS        | ^4         |
+| 言語           | TypeScript          | 5          |
+| スタイル       | Tailwind CSS        | 4          |
 | アイコン       | lucide-react        | 0.562.0    |
 | テスト         | Vitest + Playwright | -          |
 
