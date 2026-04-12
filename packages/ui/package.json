@@ -43,9 +43,9 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "eslint": "9",
+    "eslint": "9.39.4",
     "next": "16.2.3",
-    "tailwindcss": "4",
-    "typescript": "5"
+    "tailwindcss": "4.2.2",
+    "typescript": "5.9.3"
   }
 }
