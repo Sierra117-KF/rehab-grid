@@ -5,6 +5,7 @@ pub fn run() {
     .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_shell::init())
     .setup(|app| {
+      // カスタム log::Log を入れる場合: ロガー内で rand を呼ばないこと（AGENTS.md「rand / GHSA-cq8v-f236-94qc」参照）。
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
