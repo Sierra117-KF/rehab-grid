@@ -208,7 +208,7 @@ async function createZIPWithoutProjectJSON(): Promise<File> {
 
 // ========== テストケース ==========
 
-describe.sequential("プロジェクトインポート（Browser Mode）", () => {
+describe("プロジェクトインポート（Browser Mode）", { concurrent: false }, () => {
   beforeEach(async () => {
     await resetDb();
     resetStore();
