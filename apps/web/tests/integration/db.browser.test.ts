@@ -32,7 +32,7 @@ async function resetDb(): Promise<void> {
   await db.open();
 }
 
-describe.sequential("lib/db（実IndexedDB）", () => {
+describe("lib/db（実IndexedDB）", { concurrent: false }, () => {
   beforeEach(async () => {
     await resetDb();
   });

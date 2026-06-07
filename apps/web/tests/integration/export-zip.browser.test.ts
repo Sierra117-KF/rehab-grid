@@ -19,7 +19,7 @@ async function resetDb(): Promise<void> {
   await db.open();
 }
 
-describe.sequential("utils/exportToZIP（IndexedDB画像と整合）", () => {
+describe("utils/exportToZIP（IndexedDB画像と整合）", { concurrent: false }, () => {
   beforeEach(async () => {
     await resetDb();
   });
