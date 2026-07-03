@@ -29,7 +29,7 @@ function createMockMediaQueryList(initialMatches: boolean): {
         listener: EventListenerOrEventListenerObject | null
       ): void => {
         if (listener && typeof listener === "function") {
-          listeners.add(listener as (event: MediaQueryListEvent) => void);
+          listeners.add(listener);
         }
       }
     ),
@@ -39,7 +39,7 @@ function createMockMediaQueryList(initialMatches: boolean): {
         listener: EventListenerOrEventListenerObject | null
       ): void => {
         if (listener && typeof listener === "function") {
-          listeners.delete(listener as (event: MediaQueryListEvent) => void);
+          listeners.delete(listener);
         }
       }
     ),
