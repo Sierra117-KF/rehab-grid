@@ -1,0 +1,10 @@
+[advisories]
+# quick-xml 0.38.x / 0.39.x vulnerabilities (fix requires >=0.41.0)
+# Transitive dependency via: plist -> tauri-utils -> tauri
+# Cannot be resolved until upstream (plist) updates to quick-xml >=0.41.0
+ignore = [
+    # Quadratic run time when checking a start tag for duplicate attribute names
+    "RUSTSEC-2026-0194",
+    # Unbounded namespace-declaration allocation in NsReader
+    "RUSTSEC-2026-0195",
+]
