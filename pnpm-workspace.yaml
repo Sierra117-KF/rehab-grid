@@ -16,14 +16,29 @@ overrides:
   "@types/react": "19.2.17"
   "minimatch@<3.1.4": "3.1.4"
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
-  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.13"
+  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.16"
   "rollup@>=4.0.0 <4.59.0": "4.59.0"
   "ajv@<6.14.0": "6.14.0"
   "flatted": "3.4.2"
-  "brace-expansion": "5.0.6"
+  "brace-expansion": "5.0.8"
   "picomatch": "4.0.4"
   "vite": "7.3.5"
-  "postcss": "8.5.14"
+  "postcss": "8.5.23"
   "ws": "8.21.0"
-  "js-yaml": "4.2.0"
+  "js-yaml": "4.3.0"
   "@babel/core": "7.29.7"
+  # next の optionalDependencies が sharp@^0.34.5（libvips 脆弱性あり）を要求するため上書き
+  # 本プロジェクトは output: "export" + images.unoptimized のため sharp は実行されない
+  "sharp": "0.35.3"
+
+# 修正版が存在せず、実害もないため監査から除外する脆弱性
+auditConfig:
+  ignoreGhsas:
+    # brace-expansion: 展開長が無制限で OOM クラッシュを起こす DoS
+    # 修正版は >=5.0.8 のみで 1.x 系には提供されない。
+    # 一方 minimatch@3.x は brace-expansion@1.x の CJS 単一関数エクスポートに依存しており
+    # （5.x は { expand } 形式）、5.0.8 への差し替えは ESLint 実行を破壊する。
+    # 対象は eslint-plugin-import / eslint-plugin-react 等の devDependency 経由のみで
+    # 本番バンドルには含まれず、glob パターンも開発者が記述する設定由来のため攻撃者制御外。
+    # minimatch 3.x への依存が上流から解消され次第、この除外を削除すること。
+    - GHSA-mh99-v99m-4gvg
