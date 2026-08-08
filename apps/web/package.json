@@ -19,7 +19,7 @@
     "@rehab-grid/core": "workspace:*",
     "@rehab-grid/pages": "workspace:*",
     "@rehab-grid/ui": "workspace:*",
-    "lucide-react": "0.563.0",
+    "lucide-react": "1.28.0",
     "next": "16.2.12",
     "react": "19.2.7",
     "react-dom": "19.2.7"
