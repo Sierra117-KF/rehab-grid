@@ -16,36 +16,22 @@ overrides:
   "@types/react": "19.2.17"
   "minimatch@<3.1.4": "3.1.4"
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
-  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.16"
+  # minimatch@3.x は brace-expansion@1.x の CJS 単一関数エクスポートに依存するため
+  # （5.x は { expand } 形式）、5.x へ上げず 1.x 系の修正版に固定する
+  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.18"
   "rollup@>=4.0.0 <4.59.0": "4.59.0"
   "ajv@<6.14.0": "6.14.0"
   "flatted": "3.4.2"
-  "brace-expansion": "5.0.8"
+  "brace-expansion": "5.0.9"
   "picomatch": "4.0.4"
   "vite": "7.3.5"
   "postcss": "8.5.23"
   "ws": "8.21.0"
-  "js-yaml": "4.3.0"
+  "js-yaml": "4.3.1"
+  # postcss が要求する nanoid@3.x のみを対象にする範囲指定
+  # （packages/core の直接依存 nanoid@5.x をダウングレードしないため）
+  "nanoid@<3.3.17": "3.3.17"
   "@babel/core": "7.29.7"
   # next の optionalDependencies が sharp@^0.34.5（libvips 脆弱性あり）を要求するため上書き
   # 本プロジェクトは output: "export" + images.unoptimized のため sharp は実行されない
   "sharp": "0.35.3"
-
-# 修正版が存在せず、実害もないため監査から除外する脆弱性
-auditConfig:
-  ignoreGhsas:
-    # brace-expansion: 展開長が無制限で OOM クラッシュを起こす DoS
-    # （GHSA-mh99-v99m-4gvg / CVE-2026-14257, High）
-    # 影響範囲 <=5.0.7・修正版 5.0.8 のみで、1.x 系にバックポートはない
-    # （1.x 最新の 1.1.16 は 5.0.8 より前のリリースで maxLength 未実装）。
-    # 一方 minimatch@3.x は brace-expansion@1.x の CJS 単一関数エクスポートに依存しており
-    # （5.x は { expand } 形式）、5.0.8 への差し替えは ESLint 実行を破壊する。
-    # 対象は @rehab-grid/config 経由の ESLint プラグインのみ（`pnpm audit --prod` は 0 件）で
-    # 本番バンドルには含まれず、glob パターンも開発者が記述する設定由来のため攻撃者制御外。
-    #
-    # 上流の解消状況（2026-07-27 再検証）:
-    #   解消済: @eslint/config-array@0.23.5 → minimatch@^10
-    #   未解消: eslint-plugin-import@2.32.0 / eslint-plugin-react@7.37.5 /
-    #           eslint-plugin-jsx-a11y@6.10.2 → minimatch@^3.1.2
-    # 上記プラグインが minimatch 3.x を手放し次第、この除外を削除すること。
-    - GHSA-mh99-v99m-4gvg
