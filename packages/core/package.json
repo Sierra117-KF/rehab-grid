@@ -38,7 +38,7 @@
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
     "@tauri-apps/plugin-shell": "2.3.5",
-    "eslint": "9.39.4",
-    "typescript": "5.9.3"
+    "eslint": "10.8.0",
+    "typescript": "7.0.2"
   }
 }
