@@ -28,9 +28,10 @@ overrides:
   "postcss": "8.5.23"
   "ws": "8.21.0"
   "js-yaml": "4.3.1"
+  "browserslist": "4.28.8"
   # postcss が要求する nanoid@3.x のみを対象にする範囲指定
   # （packages/core の直接依存 nanoid@5.x をダウングレードしないため）
-  "nanoid@<3.3.17": "3.3.17"
+  "nanoid@<3.3.18": "3.3.18"
   "@babel/core": "7.29.7"
   # next の optionalDependencies が sharp@^0.34.5（libvips 脆弱性あり）を要求するため上書き
   # 本プロジェクトは output: "export" + images.unoptimized のため sharp は実行されない
