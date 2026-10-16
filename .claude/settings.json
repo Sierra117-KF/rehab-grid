@@ -21,7 +21,6 @@
       "Bash(dd:*)",
       "Bash(rmdir:*)",
       "Bash(rd:*)",
-      "Bash(git push *)",
       "Bash(git reset --hard*)",
       "Bash(format:*)",
       "Bash(shutdown:*)",
