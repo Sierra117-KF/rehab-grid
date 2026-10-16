@@ -18,11 +18,11 @@ overrides:
   "minimatch@>=9.0.0 <9.0.7": "9.0.7"
   # minimatch@3.x は brace-expansion@1.x の CJS 単一関数エクスポートに依存するため
   # （5.x は { expand } 形式）、5.x へ上げず 1.x 系の修正版に固定する
-  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.18"
+  "minimatch@>=3.0.0 <4.0.0>brace-expansion": "1.1.21"
   "rollup@>=4.0.0 <4.59.0": "4.59.0"
   "ajv@<6.14.0": "6.14.0"
   "flatted": "3.4.2"
-  "brace-expansion": "5.0.9"
+  "brace-expansion": "5.0.12"
   "picomatch": "4.0.4"
   "vite": "7.3.5"
   "postcss": "8.5.23"
@@ -33,3 +33,11 @@ overrides:
   # （packages/core の直接依存 nanoid@5.x をダウングレードしないため）
   "nanoid@<3.3.18": "3.3.18"
   "@babel/core": "7.29.7"
+
+auditConfig:
+  ignoreGhsas:
+    # braces <=3.0.3 の深いネストによるスタック枯渇 DoS。修正版が未公開（first_patched_version: null）。
+    # 経路は eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces のみで、
+    # lint 時にリポジトリ内の固定 glob を展開するだけ（外部入力なし・成果物に含まれない）。
+    # braces の修正版が公開されたらこの除外を削除し、バージョンを上げること。
+    - GHSA-vfj7-8cjw-p6xm
