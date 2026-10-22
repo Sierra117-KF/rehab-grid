@@ -24,6 +24,14 @@ describe("ExternalLink", () => {
       expect(link).toHaveAttribute("href", GITHUB_REPO_URL);
     });
 
+    it("target 属性を持たない（Desktop 版で tauri-plugin-shell と二重に開かないため）", () => {
+      render(<ExternalLink href={GITHUB_REPO_URL}>GitHub</ExternalLink>);
+
+      expect(screen.getByRole("link", { name: "GitHub" })).not.toHaveAttribute(
+        "target"
+      );
+    });
+
     it("クリックすると新しいタブで一度だけ開く", async () => {
       const user = userEvent.setup();
       render(<ExternalLink href={GITHUB_REPO_URL}>GitHub</ExternalLink>);

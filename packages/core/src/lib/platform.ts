@@ -1,20 +1,25 @@
+import { isTauri } from "@tauri-apps/api/core";
+
 /**
  * プラットフォーム検出ユーティリティ
  *
  * Web版（ブラウザ）とTauri版（Desktop）を判別するための定数を提供します。
  * SSR時（typeof window === "undefined"）は全てfalseを返します。
  *
+ * Tauri の判定は `@tauri-apps/api/core` の `isTauri()` を使う。
+ * `window.__TAURI__` は `app.withGlobalTauri` 有効時にしか定義されないため使わない。
+ *
  * @example
  * ```ts
  * import { Platform } from "@rehab-grid/core/lib/platform";
  *
  * if (Platform.isTauri) {
- *   // Tauri固有の処理
- *   const { open } = await import("@tauri-apps/plugin-dialog");
- *   await open({ directory: true });
+ *   // Tauri環境: OSの既定ブラウザで開く
+ *   const { open } = await import("@tauri-apps/plugin-shell");
+ *   await open(url);
  * } else if (Platform.isWeb) {
- *   // Web版の処理
- *   const handle = await window.showDirectoryPicker();
+ *   // Web環境: 新しいタブで開く
+ *   window.open(url, "_blank", "noopener,noreferrer");
  * }
  * ```
  */
@@ -26,11 +31,11 @@ export const Platform = {
 
   /** Web版（Tauri以外のブラウザ）かどうか */
   get isWeb(): boolean {
-    return typeof window !== "undefined" && !("__TAURI__" in window);
+    return typeof window !== "undefined" && !isTauri();
   },
 
   /** Tauri（Desktop）版かどうか */
   get isTauri(): boolean {
-    return typeof window !== "undefined" && "__TAURI__" in window;
+    return typeof window !== "undefined" && isTauri();
   },
 } as const;

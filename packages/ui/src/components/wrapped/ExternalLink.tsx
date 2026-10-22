@@ -58,7 +58,8 @@ export function ExternalLink({
       // 許可外URLはhref自体を出さず、中クリック等でブラウザが直接開くのを防ぐ
       href={isAllowedExternalUrl(href) ? href : undefined}
       onClick={handleClick}
-      target="_blank"
+      // target="_blank" は付けない。Desktop 版では tauri-plugin-shell の注入スクリプトが
+      // target="_blank" のリンクを横取りして開くため、openExternalUrl と二重に開いてしまう
       rel="noopener noreferrer"
       className={className}
     >
