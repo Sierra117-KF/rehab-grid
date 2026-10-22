@@ -105,8 +105,7 @@ export default function RootLayout({
   const scriptSrc = isDev
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'";
-  // Tauri環境でのIPC通信を許可するため、connect-srcにipc:とtauri:を追加
-  const csp = `default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; ${scriptSrc}; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost tauri:; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';`;
+  const csp = `default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; ${scriptSrc}; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';`;
 
   return (
     <html lang="ja">

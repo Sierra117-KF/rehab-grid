@@ -449,12 +449,14 @@ worker-src 'self' blob:;
 frame-src 'self' blob:;
 object-src 'none';
 base-uri 'self';
+frame-ancestors 'none';
+form-action 'self';
 ```
 
 > **Implementation Location**:
 >
 > - `apps/web/public/_headers`: HTTP headers for hosting services like Cloudflare Pages (production)
-> - `packages/pages/src/training/layout.tsx`: `<meta>` tag fallback
+> - `apps/web/src/app/layout.tsx`: `<meta>` tag fallback (`frame-ancestors` is ignored in `<meta>`, so it is set only in `_headers`)
 > - **Desktop version additional CSP**: `connect-src 'self' ipc: http://ipc.localhost tauri:;`
 
 **Explanation of each setting:**

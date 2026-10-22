@@ -215,7 +215,11 @@ worker-src 'self' blob:;
 frame-src 'self' blob:;
 object-src 'none';
 base-uri 'self';
+frame-ancestors 'none';
+form-action 'self';
 ```
+
+`public/_headers`（HTTP ヘッダー）と `src/app/layout.tsx`（`<meta>` フォールバック）で同じ内容を設定しています。`frame-ancestors` は `<meta>` では無効なため `_headers` のみです。
 
 ### その他セキュリティヘッダー
 
