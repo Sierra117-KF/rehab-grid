@@ -1,6 +1,6 @@
 "use client";
 
-import { openExternalUrl } from "@rehab-grid/core";
+import { isAllowedExternalUrl, openExternalUrl } from "@rehab-grid/core";
 import { ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { type ReactNode, useCallback } from "react";
 
@@ -27,7 +27,7 @@ type ExternalLinkProps = {
  * @remarks
  * セキュリティのため、hrefに指定できるURLはALLOWED_EXTERNAL_URLSに
  * 含まれているものに限定される。許可されていないURLの場合、
- * クリックしても何も起こらない。
+ * href属性を出力せず、クリックしても何も起こらない。
  *
  * @example
  * ```tsx
@@ -48,18 +48,15 @@ export function ExternalLink({
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
-      const success = await openExternalUrl(href);
-      if (!success) {
-        // openExternalUrlが失敗した場合、フォールバックとしてネイティブの動作を使用
-        window.open(href, "_blank", "noopener,noreferrer");
-      }
+      await openExternalUrl(href);
     },
     [href],
   );
 
   return (
     <a
-      href={href}
+      // 許可外URLはhref自体を出さず、中クリック等でブラウザが直接開くのを防ぐ
+      href={isAllowedExternalUrl(href) ? href : undefined}
       onClick={handleClick}
       target="_blank"
       rel="noopener noreferrer"
