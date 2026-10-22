@@ -11,7 +11,6 @@
     "build": "next build",
     "tauri:dev": "tauri dev",
     "tauri:dev:fast": "tauri dev --config src-tauri/tauri.dev-fast.conf.json",
-    "tauri:dev:debug": "tauri dev --devtools",
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
     "lint": "eslint .",
