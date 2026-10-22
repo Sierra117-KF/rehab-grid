@@ -1,7 +1,9 @@
 "use client";
 
+import { GITHUB_REPO_URL } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
-import { ChevronDown, ExternalLink, HelpCircle } from "lucide-react";
+import { ExternalLink } from "@rehab-grid/ui/components/wrapped/ExternalLink";
+import { ChevronDown, HelpCircle } from "lucide-react";
 import React, { useState } from "react";
 
 /**
@@ -62,15 +64,12 @@ export const FAQ_ITEMS: FAQItem[] = [
     answer: (
       <>
         一切送信されません。また、本アプリをオープンソースソフトウェア（OSS）として公開することで、データを外部送信していないことを保証しています。詳しくは
-        <a
-          href="https://github.com/Sierra117-KF/rehab-grid"
-          target="_blank"
-          rel="noopener noreferrer"
+        <ExternalLink
+          href={GITHUB_REPO_URL}
           className="inline-flex items-center gap-1 text-primary hover:underline"
         >
           GitHub
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        </ExternalLink>
         をご覧ください。
       </>
     ),

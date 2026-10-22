@@ -5,13 +5,20 @@ import {
   APP_NAME,
   CTA_BUTTON_LABEL_CREATE,
   CTA_BUTTON_LABEL_RESUME,
+  FEEDBACK_FORM_URL,
+  GITHUB_REPO_URL,
 } from "@rehab-grid/core/lib/constants";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { NavLink } from "@rehab-grid/core/types";
 import { MobileSidebar } from "@rehab-grid/ui/components/layout/MobileSidebar";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
-import { ArrowRight, ExternalLink, Menu } from "lucide-react";
+import { ExternalLink } from "@rehab-grid/ui/components/wrapped/ExternalLink";
+import {
+  ArrowRight,
+  ExternalLink as ExternalLinkIcon,
+  Menu,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,11 +58,7 @@ const MOBILE_SIDEBAR_SECTIONS: MobileSidebarSection[] = [
     titleEn: "Support",
     links: [
       { href: "/changelog", label: "更新履歴" },
-      {
-        href: "https://docs.google.com/forms/d/e/1FAIpQLSfCEVpML2K8qPpOaCSapN6BiqUXqSC-jy0ynBK6E0g7eA01TA/viewform",
-        label: "ご意見箱",
-        external: true,
-      },
+      { href: FEEDBACK_FORM_URL, label: "ご意見箱", external: true },
     ],
   },
   {
@@ -68,11 +71,7 @@ const MOBILE_SIDEBAR_SECTIONS: MobileSidebarSection[] = [
   {
     titleEn: "Source",
     links: [
-      {
-        href: "https://github.com/Sierra117-KF/rehab-grid",
-        label: "GitHub",
-        external: true,
-      },
+      { href: GITHUB_REPO_URL, label: "GitHub", external: true },
     ],
   },
 ];
@@ -235,19 +234,18 @@ export function Header() {
               <div className="space-y-1">
                 {section.links.map((link) =>
                   link.external ? (
-                    <a
+                    <ExternalLink
                       key={link.href}
                       href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      showIcon={false}
                       className={cn(
                         "flex items-center gap-2 rounded-lg px-3 py-2.5 text-base text-foreground",
                         "transition-colors hover:bg-accent hover:text-primary"
                       )}
                     >
                       {link.label}
-                      <ExternalLink className="size-4 text-muted-foreground" />
-                    </a>
+                      <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                    </ExternalLink>
                   ) : (
                     <Link
                       key={link.href}

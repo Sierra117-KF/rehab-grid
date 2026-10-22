@@ -1,5 +1,11 @@
-import { APP_NAME, APP_NAME_EN } from "@rehab-grid/core/lib/constants";
-import { ExternalLink } from "lucide-react";
+import {
+  APP_NAME,
+  APP_NAME_EN,
+  FEEDBACK_FORM_URL,
+  GITHUB_LICENSE_URL,
+  GITHUB_REPO_URL,
+} from "@rehab-grid/core/lib/constants";
+import { ExternalLink } from "@rehab-grid/ui/components/wrapped/ExternalLink";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,7 +15,7 @@ import Link from "next/link";
 type FooterLink = {
   href: string;
   label: string;
-  /** 外部リンクの場合はtrue（セキュリティ属性を付与） */
+  /** 外部リンクの場合はtrue（ExternalLinkで開く） */
   external?: boolean;
 };
 
@@ -29,11 +35,7 @@ const FOOTER_SECTIONS: FooterLinkSection[] = [
     titleEn: "Support",
     links: [
       { href: "/changelog", label: "更新履歴" },
-      {
-        href: "https://docs.google.com/forms/d/e/1FAIpQLSfCEVpML2K8qPpOaCSapN6BiqUXqSC-jy0ynBK6E0g7eA01TA/viewform",
-        label: "ご意見箱",
-        external: true,
-      },
+      { href: FEEDBACK_FORM_URL, label: "ご意見箱", external: true },
     ],
   },
   {
@@ -46,11 +48,7 @@ const FOOTER_SECTIONS: FooterLinkSection[] = [
   {
     titleEn: "Source",
     links: [
-      {
-        href: "https://github.com/Sierra117-KF/rehab-grid",
-        label: "GitHub",
-        external: true,
-      },
+      { href: GITHUB_REPO_URL, label: "GitHub", external: true },
     ],
   },
 ];
@@ -104,16 +102,13 @@ export function Footer() {
                 <nav className="flex flex-col items-center md:items-start gap-4 md:gap-5">
                   {section.links.map((link) =>
                     link.external ? (
-                      <a
+                      <ExternalLink
                         key={link.href}
                         href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-base text-muted-foreground hover:text-primary transition-colors"
                       >
                         {link.label}
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      </ExternalLink>
                     ) : (
                       <Link
                         key={link.href}
@@ -134,14 +129,13 @@ export function Footer() {
         <div className="border-t border-border/40 pt-6 md:pt-8 flex flex-col md:flex-row justify-center items-center gap-4">
           <p className="text-sm text-muted-foreground font-mono text-center">
             &copy; {currentYear} REHAB-GRID SYSTEM. —{" "}
-            <a
-              href="https://github.com/Sierra117-KF/rehab-grid/blob/main/LICENSE"
-              target="_blank"
-              rel="noopener noreferrer"
+            <ExternalLink
+              href={GITHUB_LICENSE_URL}
+              showIcon={false}
               className="text-primary hover:underline"
             >
               AGPL-3.0
-            </a>
+            </ExternalLink>
           </p>
         </div>
       </div>
