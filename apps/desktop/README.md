@@ -83,14 +83,13 @@ apps/desktop/
 pnpm --filter @rehab-grid/desktop tauri:dev:fast
 ```
 
+開発起動（`tauri:dev` / `tauri:dev:fast`）はデバッグビルドのため、DevTools が常に有効です。アプリのウィンドウで `Ctrl+Shift+I`（macOS は `Cmd+Option+I`）を押すと開閉できます。
+
 ### その他のコマンド
 
 ```bash
 # 通常開発（Next.js + Tauri）
 pnpm --filter @rehab-grid/desktop tauri:dev
-
-# デバッグツール付き開発
-pnpm --filter @rehab-grid/desktop tauri:dev:debug
 
 # Next.jsサーバーのみ（ブラウザでプレビュー）
 pnpm --filter @rehab-grid/desktop dev
