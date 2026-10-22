@@ -449,12 +449,14 @@ worker-src 'self' blob:;
 frame-src 'self' blob:;
 object-src 'none';
 base-uri 'self';
+frame-ancestors 'none';
+form-action 'self';
 ```
 
 > **実装場所**:
 >
 > - `apps/web/public/_headers`: Cloudflare Pages 等のホスティングサービス用 HTTP ヘッダー（本番環境）
-> - `packages/pages/src/training/layout.tsx`: `<meta>` タグによるフォールバック
+> - `apps/web/src/app/layout.tsx`: `<meta>` タグによるフォールバック（`frame-ancestors` は `<meta>` では無効なため `_headers` のみ）
 > - **Desktop版追加CSP**: `connect-src 'self' ipc: http://ipc.localhost tauri:;`
 
 **各設定の説明:**
