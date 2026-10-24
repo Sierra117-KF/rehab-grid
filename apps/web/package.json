@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-assets.mjs",
-    "prebuild": "node scripts/copy-assets.mjs",
+    "predev": "node scripts/copy-assets.mjs && node scripts/generate-sw.mjs",
+    "prebuild": "node scripts/copy-assets.mjs && node scripts/generate-sw.mjs",
     "dev": "next dev",
     "dev:fast": "next dev --turbopack",
     "build": "next build",

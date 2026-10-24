@@ -30,7 +30,7 @@
 apps/web/
 ├── public/                         # 静的アセット
 │   ├── _headers                    # Cloudflare Pages用セキュリティヘッダー
-│   ├── sw.js                       # Service Worker（オフライン対応）
+│   ├── sw.js                       # Service Worker（自動生成・Git管理外）
 │   ├── sw-register.js              # Service Worker登録スクリプト
 │   ├── fonts/                      # 日本語フォント（自動コピー）
 │   ├── icons/                      # PWA/ロゴアイコン
@@ -60,7 +60,9 @@ apps/web/
 │   └── integration/                # 統合テストファイル
 │
 ├── scripts/
-│   └── copy-assets.mjs             # 共有アセット自動コピースクリプト
+│   ├── copy-assets.mjs             # 共有アセット自動コピースクリプト
+│   ├── generate-sw.mjs             # sw.js 生成スクリプト（CACHE_NAME にビルドIDを埋め込む）
+│   └── sw.template.js              # Service Worker の原本
 │
 ├── package.json
 ├── next.config.ts                  # Next.js設定（静的エクスポート）
@@ -189,8 +191,9 @@ pnpm --filter @rehab-grid/web test
 
 ```
 pnpm build
-  ├─ prebuild: アセット自動コピー
-  │   └─ packages/assets/ → public/
+  ├─ prebuild: アセット自動コピー + Service Worker 生成
+  │   ├─ packages/assets/ → public/
+  │   └─ scripts/sw.template.js → public/sw.js
   └─ next build
       └─ out/ に静的ファイル生成
 ```
@@ -238,8 +241,11 @@ form-action 'self';
 
 ### Service Worker
 
-- **キャッシュ戦略**: キャッシュ優先（Cache First）
+- **対象**: 同一オリジンの GET リクエストのみ（それ以外はブラウザに任せる）
+- **キャッシュ戦略**: `/_next/static/`（ハッシュ付き・不変）はキャッシュ優先、それ以外はネットワーク優先
+- **キャッシュ更新**: `CACHE_NAME` にビルドID（バージョン + ビルド日時）を含め、activate 時に旧ビルドのキャッシュを削除
 - **オフライン対応**: 静的ページとアセットをキャッシュ
+- **編集場所**: `scripts/sw.template.js`（`public/sw.js` は `generate-sw.mjs` が生成）
 - **データ永続化**: IndexedDB（Service Workerとは独立）
 
 ## 共有アセットの自動コピー
