@@ -21,6 +21,7 @@ import {
 import { getImages } from "@rehab-grid/core/lib/db";
 import { projectFileSchema } from "@rehab-grid/core/lib/schemas";
 import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
+import type { JSZipObject, JSZipStreamHelper } from "jszip";
 import { nanoid } from "nanoid";
 
 import {
@@ -28,6 +29,33 @@ import {
   isValidImageBlob,
   partitionImageIds,
 } from "./image";
+
+/**
+ * internalStream を持つ ZIP エントリ
+ *
+ * @remarks
+ * internalStream は JSZip の公開 API だが、同梱の型定義に含まれていないため補う
+ * @see https://stuk.github.io/jszip/documentation/api_zipobject/internal_stream.html
+ */
+type StreamableZipObject = JSZipObject & {
+  internalStream: (
+    type: "uint8array"
+  ) => JSZipStreamHelper<Uint8Array<ArrayBuffer>>;
+};
+
+/**
+ * ZIP エントリが internalStream を持つか判定
+ *
+ * @param entry - 判定対象のZIPエントリ
+ * @returns internalStream を持つ場合 true
+ */
+function isStreamableZipObject(
+  entry: JSZipObject
+): entry is StreamableZipObject {
+  return (
+    "internalStream" in entry && typeof entry.internalStream === "function"
+  );
+}
 
 /**
  * プロジェクトを軽量JSON形式に変換
@@ -349,6 +377,56 @@ async function importFromJSON(file: File): Promise<ImportResult> {
 }
 
 /**
+ * ZIPエントリを上限サイズまで展開する
+ *
+ * @remarks
+ * ZIP爆弾対策: 展開しながらバイト数を数え、上限を超えた時点で中断する
+ * （展開し終えてからサイズを確認すると、その前にメモリが尽きるため）
+ *
+ * @param entry - 展開するZIPエントリ
+ * @param maxBytes - 展開後サイズの上限（バイト）
+ * @returns 展開したデータ
+ * @throws 展開後サイズが上限を超えた場合
+ */
+async function extractWithLimit(
+  entry: JSZipObject,
+  maxBytes: number
+): Promise<Uint8Array<ArrayBuffer>> {
+  if (!isStreamableZipObject(entry)) {
+    throw new Error("JSZip の internalStream が利用できません");
+  }
+
+  return new Promise((resolve, reject) => {
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    let size = 0;
+    const stream = entry.internalStream("uint8array");
+
+    stream
+      .on("data", (chunk) => {
+        size += chunk.byteLength;
+        // 1チャンクから複数の data が同期的に発火するため、超過後のチャンクは保持しない
+        if (size > maxBytes) {
+          stream.pause();
+          reject(new Error(IMPORT_ERROR_EXTRACTED_TOO_LARGE));
+          return;
+        }
+        chunks.push(chunk);
+      })
+      .on("error", reject)
+      .on("end", () => {
+        const bytes = new Uint8Array(size);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        resolve(bytes);
+      })
+      .resume();
+  });
+}
+
+/**
  * ZIPファイルをインポート
  *
  * @param file - ZIPファイル
@@ -372,7 +450,9 @@ async function importFromZIP(file: File): Promise<ImportResult> {
     throw new Error(IMPORT_ERROR_NO_PROJECT);
   }
 
-  const projectJsonText = await projectJsonFile.async("string");
+  const projectJsonText = new TextDecoder().decode(
+    await extractWithLimit(projectJsonFile, MAX_IMPORT_JSON_SIZE)
+  );
   let parsed: unknown;
   try {
     parsed = JSON.parse(projectJsonText);
@@ -408,13 +488,13 @@ async function importFromZIP(file: File): Promise<ImportResult> {
     if (entry.dir) continue;
 
     try {
-      const blob = await entry.async("blob");
-
-      // ZIP爆弾対策: 展開後サイズの累積チェック
-      totalExtractedSize += blob.size;
-      if (totalExtractedSize > MAX_ZIP_EXTRACTED_SIZE) {
-        throw new Error(IMPORT_ERROR_EXTRACTED_TOO_LARGE);
-      }
+      // ZIP爆弾対策: 残りの許容量を上限に展開し、累積サイズを追跡
+      const bytes = await extractWithLimit(
+        entry,
+        MAX_ZIP_EXTRACTED_SIZE - totalExtractedSize
+      );
+      totalExtractedSize += bytes.byteLength;
+      const blob = new Blob([bytes]);
 
       // マジックバイト検証: 拡張子偽装を検出（無効な画像はサイレントにスキップ）
       if (!(await isValidImageBlob(blob))) {
