@@ -76,6 +76,33 @@ describe("lib/schemas/sanitize", () => {
       expect(result).toBe("10回 × 3セット / 1日2回");
     });
 
+    it("& を含むテキストはエスケープされずそのまま返る", () => {
+      const result = sanitizeText("A & B");
+
+      expect(result).toBe("A & B");
+    });
+
+    it("タグと & が混在してもタグのみ除去され & はそのまま返る", () => {
+      const result = sanitizeText("<b>A & B</b>");
+
+      expect(result).toBe("A & B");
+    });
+
+    it("タグではない < はエスケープされずそのまま返る", () => {
+      const result = sanitizeText("膝 < 90°");
+
+      expect(result).toBe("膝 < 90°");
+      expect(result).not.toContain("&lt;");
+    });
+
+    it("2回サニタイズしても結果が変わらない", () => {
+      const once = sanitizeText("膝 < 90° & A > B");
+      const twice = sanitizeText(once);
+
+      expect(once).toBe("膝 < 90° & A > B");
+      expect(twice).toBe(once);
+    });
+
     it("改行を含むテキストを処理する", () => {
       const input = "行1\n行2\n行3";
       const result = sanitizeText(input);
@@ -83,12 +110,12 @@ describe("lib/schemas/sanitize", () => {
       expect(result).toBe("行1\n行2\n行3");
     });
 
-    it("HTMLエンティティを含むテキストを処理する", () => {
-      const input = "&lt;script&gt;";
+    it("HTMLエンティティはデコードされ、タグではなく文字として返る", () => {
+      const input = "&lt;script&gt;alert(1)&lt;/script&gt;";
       const result = sanitizeText(input);
 
-      // DOMPurifyはHTMLエンティティをデコードして評価する
-      expect(result).not.toContain("<script>");
+      // 要素としては解釈されず文字列になる（表示時は React がエスケープする）
+      expect(result).toBe("<script>alert(1)</script>");
     });
   });
 });
