@@ -6,12 +6,14 @@
 import {
   APP_VERSION,
   IMPORT_ERROR_CORRUPTED_ZIP,
+  IMPORT_ERROR_EXTRACTED_TOO_LARGE,
   IMPORT_ERROR_FILE_TOO_LARGE,
   IMPORT_ERROR_INVALID_FORMAT,
   IMPORT_ERROR_NO_PROJECT,
   IMPORT_ERROR_VALIDATION,
   MAX_IMPORT_JSON_SIZE,
   MAX_IMPORT_ZIP_SIZE,
+  MAX_ZIP_EXTRACTED_SIZE,
 } from "@rehab-grid/core/lib/constants";
 import { type ProjectFile } from "@rehab-grid/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -959,6 +961,62 @@ describe("export.ts", () => {
         // imagesには有効な画像のみ含まれる
         expect(result.images.size).toBe(1);
       });
+    });
+
+    describe("ZIP爆弾対策", () => {
+      it("展開後に上限を超える project.json でエラーを投げる", async () => {
+        const JSZip = (await import("jszip")).default;
+        const zip = new JSZip();
+        // 末尾の空白は JSON として有効なので、サイズ以外の理由では失敗しない
+        zip.file(
+          "project.json",
+          createValidProjectJSON() + " ".repeat(MAX_IMPORT_JSON_SIZE)
+        );
+
+        const zipBlob = await zip.generateAsync({
+          type: "blob",
+          compression: "DEFLATE",
+        });
+        const file = new File([zipBlob], "project.zip", {
+          type: "application/zip",
+        });
+
+        // 圧縮後はファイルサイズ上限を大きく下回る
+        expect(file.size).toBeLessThan(MAX_IMPORT_ZIP_SIZE);
+        await expect(importProject(file)).rejects.toThrow(
+          IMPORT_ERROR_EXTRACTED_TOO_LARGE
+        );
+      });
+
+      it(
+        "展開後に上限を超える単一の画像でエラーを投げる",
+        // 100MB 超のデータを圧縮して ZIP を生成するため時間がかかる
+        { timeout: 60_000 },
+        async () => {
+          const JSZip = (await import("jszip")).default;
+          const zip = new JSZip();
+          zip.file("project.json", createValidProjectJSON());
+          zip.file(
+            "images/img_001.webp",
+            new Uint8Array(MAX_ZIP_EXTRACTED_SIZE + 1)
+          );
+
+          const zipBlob = await zip.generateAsync({
+            type: "blob",
+            compression: "DEFLATE",
+          });
+          const file = new File([zipBlob], "project.zip", {
+            type: "application/zip",
+          });
+
+          expect(file.size).toBeLessThan(MAX_IMPORT_ZIP_SIZE);
+          await expect(importProject(file)).rejects.toThrow(
+            IMPORT_ERROR_EXTRACTED_TOO_LARGE
+          );
+          // 画像の検証に進む前に中断される
+          expect(mockIsValidImageBlob).not.toHaveBeenCalled();
+        }
+      );
     });
   });
 });
