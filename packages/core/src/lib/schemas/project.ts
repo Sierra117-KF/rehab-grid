@@ -8,6 +8,7 @@
  */
 
 import {
+  DEFAULT_THEME_COLOR,
   MAX_ITEM_COUNT,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
@@ -15,6 +16,9 @@ import {
 import { z } from "zod";
 
 import { sanitizeText } from "./sanitize";
+
+/** テーマカラーとして受け付ける形式（#RRGGBB） */
+const THEME_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 /**
  * 負荷・回数設定スキーマ
@@ -99,11 +103,13 @@ export const projectMetaSchema = z.object({
   title: z
     .string()
     .transform((v) => sanitizeText(v).slice(0, TEXT_LIMITS.projectTitle)),
-  /** 作成者名（オプション、サニタイズ済み） */
+  /** 作成者名（オプション、サニタイズ後に最大文字数を超えた場合は自動カット） */
   author: z
     .string()
     .optional()
-    .transform((v) => (v !== undefined ? sanitizeText(v) : v)),
+    .transform((v) =>
+      v !== undefined ? sanitizeText(v).slice(0, TEXT_LIMITS.author) : v
+    ),
   /** プロジェクトタイプ（自主トレーニング指導箋に固定） */
   projectType: z.literal("training"),
 });
@@ -114,8 +120,10 @@ export const projectMetaSchema = z.object({
 export const projectSettingsSchema = z.object({
   /** グリッドレイアウトタイプ */
   layoutType: layoutTypeSchema,
-  /** テーマカラー（サニタイズ済み） */
-  themeColor: z.string().transform((v) => sanitizeText(v)),
+  /** テーマカラー（#RRGGBB 以外の値は DEFAULT_THEME_COLOR にフォールバック） */
+  themeColor: z
+    .string()
+    .transform((v) => (THEME_COLOR_PATTERN.test(v) ? v : DEFAULT_THEME_COLOR)),
 });
 
 /**

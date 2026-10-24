@@ -13,6 +13,8 @@ import { type LayoutType } from "@rehab-grid/core/types/editor";
 export const TEXT_LIMITS = {
   /** プロジェクトタイトルの最大文字数 */
   projectTitle: 20,
+  /** 作成者名の最大文字数 */
+  author: 20,
   /** 運動名の最大文字数 */
   title: 20,
   /** 説明の最大文字数 */

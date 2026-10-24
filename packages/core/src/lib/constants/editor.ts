@@ -19,6 +19,9 @@ export const IMAGE_DRAG_TYPE = "application/x-rehab-grid-image-id";
 /** デフォルトプロジェクト名（未設定時の表示） */
 export const DEFAULT_PROJECT_TITLE = "無題のプロジェクト";
 
+/** デフォルトのテーマカラー（新規作成時・インポート値が不正な場合に使用） */
+export const DEFAULT_THEME_COLOR = "#3b82f6";
+
 /** アイテム表示時のアニメーション遅延間隔（秒） */
 export const ANIMATION_STAGGER_DELAY = 0.05;
 

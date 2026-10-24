@@ -1,4 +1,5 @@
 import {
+  DEFAULT_THEME_COLOR,
   MAX_ITEM_COUNT,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
@@ -393,6 +394,15 @@ describe("lib/schemas/project", () => {
       expect(result.success).toBeTruthy();
       expect(result.data?.title).toHaveLength(TEXT_LIMITS.projectTitle);
     });
+
+    it("TEXT_LIMITS.author を超える文字列が自動カットされる", () => {
+      const longAuthor = generateString(TEXT_LIMITS.author + 10);
+      const data = { ...createValidProjectMeta(), author: longAuthor };
+      const result = projectMetaSchema.safeParse(data);
+
+      expect(result.success).toBeTruthy();
+      expect(result.data?.author).toHaveLength(TEXT_LIMITS.author);
+    });
   });
 
   describe("projectSettingsSchema", () => {
@@ -436,16 +446,31 @@ describe("lib/schemas/project", () => {
       expect(result.success).toBeFalsy();
     });
 
-    it("themeColor からHTMLタグが除去される", () => {
-      const data = {
-        ...createValidProjectSettings(),
-        themeColor: "<script>alert('xss')</script>#3b82f6",
-      };
+    it.each(["#10b981", "#FFAA00"])(
+      "themeColor '%s'（#RRGGBB 形式）はそのまま保持される",
+      (themeColor) => {
+        const data = { ...createValidProjectSettings(), themeColor };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.themeColor).toBe(themeColor);
+      }
+    );
+
+    it.each([
+      "<script>alert('xss')</script>#10b981",
+      "red",
+      "#fff",
+      "#10b98100",
+      "#zzzzzz",
+      "url(javascript:alert(1))",
+      "",
+    ])("themeColor '%s' は既定値にフォールバックする", (themeColor) => {
+      const data = { ...createValidProjectSettings(), themeColor };
       const result = projectSettingsSchema.safeParse(data);
 
       expect(result.success).toBeTruthy();
-      expect(result.data?.themeColor).toBe("#3b82f6");
-      expect(result.data?.themeColor).not.toContain("<script>");
+      expect(result.data?.themeColor).toBe(DEFAULT_THEME_COLOR);
     });
   });
 
@@ -645,6 +670,17 @@ describe("lib/schemas/project", () => {
 
       expect(result.success).toBeTruthy();
       expect(result.data?.author).toBe("作成者");
+    });
+
+    it("記号を含むテキストはエスケープされずインポートを繰り返しても変わらない", () => {
+      const description = "<b>膝 < 90°</b> & 痛みなし";
+      const first = editorItemSchema.parse(
+        createValidEditorItem({ description })
+      );
+      const second = editorItemSchema.parse(first);
+
+      expect(first.description).toBe("膝 < 90° & 痛みなし");
+      expect(second.description).toBe("膝 < 90° & 痛みなし");
     });
 
     it("サニタイズ後に文字数制限が適用される", () => {

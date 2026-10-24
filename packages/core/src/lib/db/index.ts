@@ -8,6 +8,7 @@ import {
   APP_VERSION,
   CURRENT_PROJECT_ID,
   DEFAULT_PROJECT_TITLE,
+  DEFAULT_THEME_COLOR,
 } from "@rehab-grid/core/lib/constants";
 import {
   type ImageRecord,
@@ -90,7 +91,7 @@ export function createNewProject(title = DEFAULT_PROJECT_TITLE): ProjectFile {
     },
     settings: {
       layoutType: "grid2",
-      themeColor: "#3b82f6",
+      themeColor: DEFAULT_THEME_COLOR,
     },
     items: [],
   };
