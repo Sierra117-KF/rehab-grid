@@ -15,8 +15,8 @@ import { isTauri } from "@tauri-apps/api/core";
  *
  * if (Platform.isTauri) {
  *   // Tauri環境: OSの既定ブラウザで開く
- *   const { open } = await import("@tauri-apps/plugin-shell");
- *   await open(url);
+ *   const { openUrl } = await import("@tauri-apps/plugin-opener");
+ *   await openUrl(url);
  * } else if (Platform.isWeb) {
  *   // Web環境: 新しいタブで開く
  *   window.open(url, "_blank", "noopener,noreferrer");

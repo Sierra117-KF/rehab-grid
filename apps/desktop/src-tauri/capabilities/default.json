@@ -7,8 +7,14 @@
   ],
   "permissions": [
     "core:default",
-    "dialog:default",
-    "fs:default",
-    "shell:allow-open"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://github.com/Sierra117-KF/rehab-grid" },
+        { "url": "https://github.com/Sierra117-KF/rehab-grid/issues" },
+        { "url": "https://github.com/Sierra117-KF/rehab-grid/blob/main/LICENSE" },
+        { "url": "https://docs.google.com/forms/d/e/1FAIpQLSfCEVpML2K8qPpOaCSapN6BiqUXqSC-jy0ynBK6E0g7eA01TA/viewform" }
+      ]
+    }
   ]
 }

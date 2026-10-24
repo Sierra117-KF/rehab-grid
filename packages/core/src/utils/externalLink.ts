@@ -45,9 +45,10 @@ export async function openExternalUrl(url: string): Promise<boolean> {
 
   try {
     if (Platform.isTauri) {
-      // Tauri環境: plugin-shellのopen関数でデフォルトブラウザを起動
-      const { open } = await import("@tauri-apps/plugin-shell");
-      await open(url);
+      // Tauri環境: plugin-openerのopenUrl関数でデフォルトブラウザを起動
+      // （capabilities/default.json の opener:allow-open-url スコープでも同じURLに限定している）
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
       return true;
     }
 

@@ -27,6 +27,8 @@ export const FEEDBACK_FORM_URL =
  * セキュリティのため、外部リンクを開く際はこのリストに含まれるURLのみを許可する。
  * Desktop版（Tauri）ではこのホワイトリストを使用して、
  * 意図しないURLがデフォルトブラウザで開かれることを防止する。
+ * URL を追加・変更したら apps/desktop/src-tauri/capabilities/default.json の
+ * opener:allow-open-url スコープも同じ内容に更新すること。
  */
 export const ALLOWED_EXTERNAL_URLS: readonly string[] = [
   GITHUB_REPO_URL,
