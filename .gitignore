@@ -58,5 +58,8 @@ apps/desktop/public/icons/logo.png
 apps/desktop/public/images/samples/
 apps/desktop/public/templates/
 
+# Generated Service Worker (built from scripts/sw.template.js by generate-sw.mjs)
+apps/web/public/sw.js
+
 # Claude Code Local Settings
 .claude\settings.local.json
