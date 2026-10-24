@@ -33,11 +33,3 @@ overrides:
   # （packages/core の直接依存 nanoid@5.x をダウングレードしないため）
   "nanoid@<3.3.18": "3.3.18"
   "@babel/core": "7.29.7"
-
-auditConfig:
-  ignoreGhsas:
-    # braces <=3.0.3 の深いネストによるスタック枯渇 DoS。修正版が未公開（first_patched_version: null）。
-    # 経路は eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces のみで、
-    # lint 時にリポジトリ内の固定 glob を展開するだけ（外部入力なし・成果物に含まれない）。
-    # braces の修正版が公開されたらこの除外を削除し、バージョンを上げること。
-    - GHSA-vfj7-8cjw-p6xm
