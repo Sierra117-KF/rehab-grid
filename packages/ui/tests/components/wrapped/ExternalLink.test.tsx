@@ -24,7 +24,7 @@ describe("ExternalLink", () => {
       expect(link).toHaveAttribute("href", GITHUB_REPO_URL);
     });
 
-    it("target 属性を持たない（Desktop 版で tauri-plugin-shell と二重に開かないため）", () => {
+    it("target 属性を持たない（開く処理を openExternalUrl に一本化するため）", () => {
       render(<ExternalLink href={GITHUB_REPO_URL}>GitHub</ExternalLink>);
 
       expect(screen.getByRole("link", { name: "GitHub" })).not.toHaveAttribute(

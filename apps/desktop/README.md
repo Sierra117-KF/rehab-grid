@@ -171,11 +171,16 @@ const nextConfig: NextConfig = {
 {
   "permissions": [
     "core:default", // Tauri コアAPI
-    "dialog:default", // ファイル開く/保存ダイアログ
-    "fs:default" // ファイルシステムアクセス
+    {
+      // 外部リンクをOSの既定ブラウザで開く。許可するURLは完全一致で列挙する
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/Sierra117-KF/rehab-grid" } /* ... */]
+    }
   ]
 }
 ```
+
+`opener:allow-open-url` のスコープは `packages/core/src/lib/constants/externalLinks.ts` の `ALLOWED_EXTERNAL_URLS` と同じ内容にする（JS 側と Rust 側の二重チェック）。`url` は glob パターンとして生の URL 文字列に照合されるため、`*` `?` `[` を含まない URL は完全一致になる。
 
 ## Desktop専用コンポーネント
 
@@ -269,8 +274,12 @@ connect-src 'self' ipc: http://ipc.localhost tauri:;
 ```rust
 pub fn run() {
   tauri::Builder::default()
-    .plugin(tauri_plugin_dialog::init())  // ファイルダイアログ
-    .plugin(tauri_plugin_fs::init())      // ファイルシステム
+    // 外部リンクを開く。<a> クリックを横取りする注入スクリプトは無効化
+    .plugin(
+      tauri_plugin_opener::Builder::new()
+        .open_js_links_on_click(false)
+        .build(),
+    )
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -288,11 +297,10 @@ pub fn run() {
 
 ### 使用プラグイン
 
-| プラグイン            | 用途                         |
-| --------------------- | ---------------------------- |
-| `tauri-plugin-dialog` | ネイティブファイルダイアログ |
-| `tauri-plugin-fs`     | ファイルシステムアクセス     |
-| `tauri-plugin-log`    | デバッグ時ログ出力           |
+| プラグイン            | 用途                           |
+| --------------------- | ------------------------------ |
+| `tauri-plugin-opener` | 外部リンクを既定ブラウザで開く |
+| `tauri-plugin-log`    | デバッグ時ログ出力             |
 
 ## アセット管理
 
@@ -322,7 +330,7 @@ packages/assets/
 ├── @rehab-grid/ui        # UIコンポーネント
 ├── @rehab-grid/pages     # ページコンポーネント
 ├── @tauri-apps/api       # Tauri JavaScript API
-├── @tauri-apps/plugin-*  # Tauriプラグイン
+├── @tauri-apps/plugin-opener  # 外部リンクを開く
 ├── next                  # Next.js 16.x
 ├── react / react-dom     # React 19.x
 └── typescript            # TypeScript 5.x
@@ -333,8 +341,7 @@ packages/assets/
 ```
 app
 ├── tauri                 # Tauri 2.x
-├── tauri-plugin-dialog   # ダイアログ
-├── tauri-plugin-fs       # ファイルシステム
+├── tauri-plugin-opener   # 外部リンク
 ├── tauri-plugin-log      # ログ
 ├── serde / serde_json    # シリアライズ
 └── log                   # ログユーティリティ
