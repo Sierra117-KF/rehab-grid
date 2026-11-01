@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@rehab-grid/config": "workspace:*",
-    "eslint": "9.39.4",
-    "typescript": "5.9.3"
+    "eslint": "10.13.0",
+    "typescript": "7.0.2"
   }
 }
