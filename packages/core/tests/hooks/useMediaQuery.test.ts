@@ -1,4 +1,7 @@
-import { useIsMobile, useMediaQuery } from "@rehab-grid/core/hooks/useMediaQuery";
+import {
+  useIsMobile,
+  useMediaQuery,
+} from "@rehab-grid/core/hooks/useMediaQuery";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,37 +20,36 @@ function createMockMediaQueryList(initialMatches: boolean): {
   let matches = initialMatches;
   const listeners = new Set<(event: MediaQueryListEvent) => void>();
 
-  const mediaQueryList: MediaQueryList = {
-    get matches() {
-      return matches;
-    },
-    media: "",
-    onchange: null,
-    addEventListener: vi.fn(
-      (
-        _type: string,
-        listener: EventListenerOrEventListenerObject | null
-      ): void => {
-        if (listener && typeof listener === "function") {
-          listeners.add(listener);
-        }
-      }
-    ),
-    removeEventListener: vi.fn(
-      (
-        _type: string,
-        listener: EventListenerOrEventListenerObject | null
-      ): void => {
-        if (listener && typeof listener === "function") {
-          listeners.delete(listener);
-        }
-      }
-    ),
-    dispatchEvent: vi.fn(() => true),
-    // 非推奨だが MediaQueryList インターフェースの一部
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-  };
+  // 非推奨の addListener / removeListener はフックが使わないためモックしない
+  const mediaQueryList: Omit<MediaQueryList, "addListener" | "removeListener"> =
+    {
+      get matches() {
+        return matches;
+      },
+      media: "",
+      onchange: null,
+      addEventListener: vi.fn(
+        (
+          _type: string,
+          listener: EventListenerOrEventListenerObject | null,
+        ): void => {
+          if (listener && typeof listener === "function") {
+            listeners.add(listener);
+          }
+        },
+      ),
+      removeEventListener: vi.fn(
+        (
+          _type: string,
+          listener: EventListenerOrEventListenerObject | null,
+        ): void => {
+          if (listener && typeof listener === "function") {
+            listeners.delete(listener);
+          }
+        },
+      ),
+      dispatchEvent: vi.fn(() => true),
+    };
 
   /**
    * matches 値を更新し、登録されたリスナーに通知する
@@ -56,11 +58,15 @@ function createMockMediaQueryList(initialMatches: boolean): {
     matches = newMatches;
     const event: Pick<MediaQueryListEvent, "matches"> = { matches: newMatches };
     listeners.forEach((listener) =>
-      listener(event as unknown as MediaQueryListEvent)
+      listener(event as unknown as MediaQueryListEvent),
     );
   };
 
-  return { mediaQueryList, listeners, setMatches };
+  return {
+    mediaQueryList: mediaQueryList as MediaQueryList,
+    listeners,
+    setMatches,
+  };
 }
 
 describe("useMediaQuery", () => {
@@ -153,7 +159,7 @@ describe("useMediaQuery", () => {
 
       expect(mediaQueryList.addEventListener).toHaveBeenCalledWith(
         "change",
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -167,7 +173,7 @@ describe("useMediaQuery", () => {
 
       expect(mediaQueryList.removeEventListener).toHaveBeenCalledWith(
         "change",
-        expect.any(Function)
+        expect.any(Function),
       );
     });
   });
@@ -203,7 +209,7 @@ describe("useIsMobile", () => {
    */
   function setupMediaQueryMocks(
     narrowScreen: boolean,
-    touchDevice: boolean
+    touchDevice: boolean,
   ): void {
     queryMocks = new Map();
 
