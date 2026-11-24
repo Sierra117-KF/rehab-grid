@@ -199,8 +199,6 @@ export const PDF_COLORS = {
   cardBackground: "#ffffff",
   /** 画像プレースホルダー背景色 */
   imagePlaceholder: "#f1f5f9",
-  /** 画像プレースホルダーテキスト色 */
-  imagePlaceholderText: "#94a3b8",
   /** 注意点背景色（アンバー系: 穏やかな警告色） */
   precautionBackground: "#fef3c7", // amber-100
   /** 注意点タイトル色（アンバー系: 印刷時の視認性向上） */
@@ -218,8 +216,6 @@ export const PDF_COLORS = {
  * shared.ts の LABELS を使用
  */
 export const PDF_LABELS = {
-  /** デフォルトヘッダータイトル */
-  defaultTitle: "自主トレーニング指導箋",
   /** 患者ラベル */
   patientLabel: "氏名:",
 } as const;
@@ -228,14 +224,8 @@ export const PDF_LABELS = {
  * PDFのスペーシング定数（ポイント単位）
  */
 export const PDF_SPACING = {
-  /** ヘッダー下マージン */
-  headerMarginBottom: 16,
   /** ヘッダー下パディング */
   headerPaddingBottom: 4,
-  /** タイトル下マージン */
-  titleMarginBottom: 4,
-  /** 患者情報上マージン */
-  patientInfoMarginTop: 8,
   /** 患者ラベル右マージン */
   patientLabelMarginRight: 8,
   /** カード画像角丸 */
@@ -276,8 +266,18 @@ export const PDF_SPACING = {
   patientNameBoxBorderRadius: 4,
   /** 患者ラベルフォントサイズ */
   patientLabelFontSize: 10,
-  /** 患者名フォントサイズ */
-  patientNameFontSize: 10,
+} as const;
+
+/**
+ * 1行あたりの概算文字数を求めるための、フォントサイズに対する1文字幅の係数
+ *
+ * 日本語の全角文字幅を経験的に近似した値
+ */
+export const PDF_CHAR_WIDTH_RATIO = {
+  /** タイトル（太字） */
+  title: 0.6,
+  /** 説明文・注意点 */
+  body: 0.55,
 } as const;
 
 /**

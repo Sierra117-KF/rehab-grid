@@ -55,13 +55,3 @@ export type PdfGenerationState = {
   /** エラーメッセージ */
   error: string | null;
 };
-
-/**
- * PDFヘッダー情報
- */
-export type PdfHeaderInfo = {
-  /** 病院名 */
-  hospitalName?: string;
-  /** 氏名 */
-  patientName?: string;
-};
