@@ -1,6 +1,9 @@
 import {
+  APPLY_DOSAGES_TO_ALL_TOOLTIP,
+  APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
+  DUPLICATE_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
@@ -472,6 +475,116 @@ describe("PropertyPanel", () => {
       await user.click(deleteConfirmButton);
 
       expect(mockOnItemDelete).toHaveBeenCalledWith("delete-me");
+    });
+  });
+
+  describe("複製機能", () => {
+    it("onItemDuplicate が渡された場合、複製ボタンで選択中カードの ID が渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnItemDuplicate = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({ id: "copy-me" }),
+        onItemDuplicate: mockOnItemDuplicate,
+      });
+
+      await user.click(
+        screen.getByRole("button", { name: DUPLICATE_BUTTON_LABEL })
+      );
+
+      expect(mockOnItemDuplicate).toHaveBeenCalledWith("copy-me");
+    });
+
+    it("onItemDuplicate が渡されない場合、複製ボタンが表示されない", () => {
+      setupPropertyPanel({ selectedItem: createTestItem() });
+
+      expect(
+        screen.queryByRole("button", { name: DUPLICATE_BUTTON_LABEL })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("全カードに反映", () => {
+    const getDosagesButton = () =>
+      screen.getByRole("button", { name: APPLY_DOSAGES_TO_ALL_TOOLTIP });
+    const getPrecautionsButton = () =>
+      screen.getByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP });
+
+    it("コールバックが渡されない場合（カード 1 枚）はボタンを表示しない", () => {
+      setupPropertyPanel({ selectedItem: createTestItem() });
+
+      expect(
+        screen.queryByRole("button", { name: APPLY_DOSAGES_TO_ALL_TOOLTIP })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP })
+      ).not.toBeInTheDocument();
+    });
+
+    it("用量の 3 項目がすべて空（空白のみ含む）のときは用量の反映ボタンが無効になる", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "", sets: " ", frequency: "" },
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      expect(getDosagesButton()).toBeDisabled();
+    });
+
+    it("用量の反映ボタンで選択中カードの用量が渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnApply = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "10回", sets: "", frequency: "" },
+        }),
+        onApplyDosagesToAll: mockOnApply,
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      await user.click(getDosagesButton());
+
+      expect(mockOnApply).toHaveBeenCalledWith({
+        reps: "10回",
+        sets: "",
+        frequency: "",
+      });
+    });
+
+    it("空でない注意点がないときは注意点の反映ボタンが無効になる", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          precautions: [{ id: "p1", value: "  " }],
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      expect(getPrecautionsButton()).toBeDisabled();
+    });
+
+    it("注意点の反映ボタンで空欄を除いた文言が渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnApply = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          precautions: [
+            { id: "p1", value: "痛みが出たら中止" },
+            { id: "p2", value: "" },
+            { id: "p3", value: "呼吸を止めない" },
+          ],
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: mockOnApply,
+      });
+
+      await user.click(getPrecautionsButton());
+
+      expect(mockOnApply).toHaveBeenCalledWith([
+        "痛みが出たら中止",
+        "呼吸を止めない",
+      ]);
     });
   });
 });

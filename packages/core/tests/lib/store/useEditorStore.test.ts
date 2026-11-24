@@ -454,6 +454,276 @@ describe("useEditorStore", () => {
     });
   });
 
+  describe("duplicateItem", () => {
+    const source = createTestItem({
+      id: "source",
+      order: 0,
+      title: "スクワット",
+      imageSource: "sample_standing_01",
+      description: "膝を曲げる",
+      dosages: { reps: "10回", sets: "3セット", frequency: "1日2回" },
+      precautions: [
+        { id: "p1", value: "痛みが出たら中止" },
+        { id: "p2", value: "呼吸を止めない" },
+      ],
+    });
+
+    it("元カードの直後に同じ内容で挿入し、order を連番に振り直す", () => {
+      useEditorStore.setState({
+        items: [source, createTestItem({ id: "next", order: 1 })],
+      });
+
+      const newId = useEditorStore.getState().duplicateItem("source");
+
+      const { items } = useEditorStore.getState();
+      expect(items.map((item) => item.id)).toEqual(["source", newId, "next"]);
+      expect(items.map((item) => item.order)).toEqual([0, 1, 2]);
+      expect(items[1]).toMatchObject({
+        title: "スクワット",
+        imageSource: "sample_standing_01",
+        description: "膝を曲げる",
+        dosages: { reps: "10回", sets: "3セット", frequency: "1日2回" },
+        precautions: [
+          { value: "痛みが出たら中止" },
+          { value: "呼吸を止めない" },
+        ],
+      });
+    });
+
+    it("カードと注意点の ID がすべて新しくなり、複製が選択される", () => {
+      useEditorStore.setState({ items: [source] });
+
+      const newId = useEditorStore.getState().duplicateItem("source");
+
+      const { items, selectedItemId } = useEditorStore.getState();
+      const copy = items[1];
+      expect(newId).not.toBeNull();
+      expect(newId).not.toBe("source");
+      expect(copy?.id).toBe(newId);
+      expect(selectedItemId).toBe(newId);
+      const copyPrecautionIds = copy?.precautions?.map((p) => p.id) ?? [];
+      expect(copyPrecautionIds).toHaveLength(2);
+      expect(copyPrecautionIds).not.toContain("p1");
+      expect(copyPrecautionIds).not.toContain("p2");
+    });
+
+    it("元カードを編集しても複製には影響しない", () => {
+      useEditorStore.setState({ items: [source] });
+      const newId = useEditorStore.getState().duplicateItem("source");
+
+      useEditorStore.getState().updateItem("source", {
+        dosages: { reps: "20回", sets: "3セット", frequency: "1日2回" },
+      });
+
+      const copy = useEditorStore
+        .getState()
+        .items.find((item) => item.id === newId);
+      expect(copy?.dosages?.reps).toBe("10回");
+      expect(copy?.dosages).not.toBe(source.dosages);
+      expect(copy?.precautions).not.toBe(source.precautions);
+    });
+
+    it("最大数に達している場合は null を返し、何も変更しない", () => {
+      const items = Array.from({ length: MAX_ITEM_COUNT }, (_, i) =>
+        createTestItem({ id: `item-${String(i)}`, order: i })
+      );
+      useEditorStore.setState({ items });
+
+      expect(useEditorStore.getState().duplicateItem("item-0")).toBeNull();
+      expect(useEditorStore.getState().items).toBe(items);
+      expect(useEditorStore.getState().past).toHaveLength(0);
+    });
+
+    it("存在しない ID の場合は null を返す", () => {
+      useEditorStore.setState({ items: [source] });
+
+      expect(useEditorStore.getState().duplicateItem("missing")).toBeNull();
+      expect(useEditorStore.getState().items).toHaveLength(1);
+    });
+
+    it("Undo 1 回で複製前に戻る", () => {
+      useEditorStore.setState({ items: [source] });
+      useEditorStore.getState().duplicateItem("source");
+
+      useEditorStore.getState().undo();
+
+      expect(useEditorStore.getState().items).toEqual([source]);
+      expect(useEditorStore.getState().selectedItemId).toBeNull();
+    });
+  });
+
+  describe("applyDosagesToAll", () => {
+    const dosages = { reps: "10回", sets: "3セット", frequency: "1日2回" };
+
+    it("全カードの用量を上書きし、変わった枚数を返す", () => {
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", order: 0, dosages }),
+          createTestItem({ id: "b", order: 1 }),
+          createTestItem({
+            id: "c",
+            order: 2,
+            dosages: { reps: "5回", sets: "", frequency: "" },
+          }),
+        ],
+      });
+
+      const updatedCount = useEditorStore.getState().applyDosagesToAll(dosages);
+
+      expect(updatedCount).toBe(2);
+      const { items } = useEditorStore.getState();
+      for (const item of items) {
+        expect(item.dosages).toEqual(dosages);
+      }
+      // カード間で同じオブジェクトを共有しない
+      expect(items[1]?.dosages).not.toBe(items[2]?.dosages);
+    });
+
+    it("空欄もそのままコピーする", () => {
+      const partial = { reps: "10回", sets: "", frequency: "" };
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", order: 0, dosages: partial }),
+          createTestItem({ id: "b", order: 1, dosages }),
+        ],
+      });
+
+      useEditorStore.getState().applyDosagesToAll(partial);
+
+      expect(useEditorStore.getState().items[1]?.dosages).toEqual(partial);
+    });
+
+    it("変わるカードがなければ 0 を返し、履歴を積まない", () => {
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", order: 0, dosages }),
+          createTestItem({ id: "b", order: 1, dosages: { ...dosages } }),
+        ],
+      });
+
+      expect(useEditorStore.getState().applyDosagesToAll(dosages)).toBe(0);
+      expect(useEditorStore.getState().past).toHaveLength(0);
+    });
+
+    it("Undo 1 回で全カードが元に戻る", () => {
+      const items = [
+        createTestItem({ id: "a", order: 0, dosages }),
+        createTestItem({ id: "b", order: 1 }),
+        createTestItem({ id: "c", order: 2 }),
+      ];
+      useEditorStore.setState({ items });
+      useEditorStore.getState().applyDosagesToAll(dosages);
+
+      useEditorStore.getState().undo();
+
+      expect(useEditorStore.getState().items).toBe(items);
+    });
+  });
+
+  describe("appendPrecautionsToAll", () => {
+    it("全カードに注意点を追加し、カードごとに別の ID を振る", () => {
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", order: 0 }),
+          createTestItem({ id: "b", order: 1 }),
+        ],
+      });
+
+      const result = useEditorStore
+        .getState()
+        .appendPrecautionsToAll(["痛みが出たら中止"]);
+
+      expect(result).toEqual({ updatedCount: 2, skippedCount: 0 });
+      const [a, b] = useEditorStore.getState().items;
+      expect(a?.precautions?.map((p) => p.value)).toEqual(["痛みが出たら中止"]);
+      expect(b?.precautions?.map((p) => p.value)).toEqual(["痛みが出たら中止"]);
+      expect(a?.precautions?.[0]?.id).not.toBe(b?.precautions?.[0]?.id);
+    });
+
+    it("同じ文言（前後の空白は無視）と空文字は追加しない", () => {
+      useEditorStore.setState({
+        items: [
+          createTestItem({
+            id: "a",
+            order: 0,
+            precautions: [{ id: "p1", value: " 痛みが出たら中止 " }],
+          }),
+          createTestItem({ id: "b", order: 1 }),
+        ],
+      });
+
+      const result = useEditorStore
+        .getState()
+        .appendPrecautionsToAll(["痛みが出たら中止", "", "   ", "痛みが出たら中止"]);
+
+      expect(result).toEqual({ updatedCount: 1, skippedCount: 0 });
+      const [a, b] = useEditorStore.getState().items;
+      expect(a?.precautions).toHaveLength(1);
+      expect(b?.precautions?.map((p) => p.value)).toEqual(["痛みが出たら中止"]);
+    });
+
+    it("上限を超える分は捨て、その件数を返す", () => {
+      const existing = ["A", "B", "C", "D"].map((value, i) => ({
+        id: `e${String(i)}`,
+        value,
+      }));
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", order: 0, precautions: existing }),
+          createTestItem({ id: "b", order: 1 }),
+        ],
+      });
+
+      const result = useEditorStore
+        .getState()
+        .appendPrecautionsToAll(["X", "Y", "Z"]);
+
+      // a は残り 1 枠なので X だけ入り、Y・Z の 2 件が切り捨て
+      expect(result).toEqual({ updatedCount: 2, skippedCount: 2 });
+      const [a, b] = useEditorStore.getState().items;
+      expect(a?.precautions?.map((p) => p.value)).toEqual([
+        "A",
+        "B",
+        "C",
+        "D",
+        "X",
+      ]);
+      expect(b?.precautions?.map((p) => p.value)).toEqual(["X", "Y", "Z"]);
+    });
+
+    it("追加するカードがなければ履歴を積まない", () => {
+      useEditorStore.setState({
+        items: [
+          createTestItem({
+            id: "a",
+            order: 0,
+            precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+          }),
+        ],
+      });
+
+      const result = useEditorStore
+        .getState()
+        .appendPrecautionsToAll(["痛みが出たら中止"]);
+
+      expect(result).toEqual({ updatedCount: 0, skippedCount: 0 });
+      expect(useEditorStore.getState().past).toHaveLength(0);
+    });
+
+    it("Undo 1 回で全カードが元に戻る", () => {
+      const items = [
+        createTestItem({ id: "a", order: 0 }),
+        createTestItem({ id: "b", order: 1 }),
+      ];
+      useEditorStore.setState({ items });
+      useEditorStore.getState().appendPrecautionsToAll(["痛みが出たら中止"]);
+
+      useEditorStore.getState().undo();
+
+      expect(useEditorStore.getState().items).toBe(items);
+    });
+  });
+
   describe("reorderItems", () => {
     it("アイテムを並び替えできる", () => {
       const reorderedItems = [

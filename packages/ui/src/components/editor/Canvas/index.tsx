@@ -58,6 +58,8 @@ export type CanvasProps = {
   onAddCardWithImage?: (imageId: string) => void;
   /** カード追加が可能かどうか（最大数チェック用） */
   canAddCard?: boolean;
+  /** カードの複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onItemDuplicate?: (itemId: string) => void;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -96,6 +98,7 @@ export function Canvas({
   imageUrls,
   onAddCardWithImage,
   canAddCard = true,
+  onItemDuplicate,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -320,6 +323,11 @@ export function Canvas({
                           : undefined
                       }
                       onCanvasDragEnd={handleCanvasDragEnd}
+                      onDuplicate={
+                        onItemDuplicate
+                          ? () => onItemDuplicate(item.id)
+                          : undefined
+                      }
                       onImageAreaClick={onImageAreaClick}
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}

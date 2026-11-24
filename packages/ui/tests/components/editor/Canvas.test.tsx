@@ -2,6 +2,7 @@ import {
   BUTTON_ADD_CARD,
   CANVAS_EMPTY_DESCRIPTION,
   CANVAS_EMPTY_TITLE,
+  DUPLICATE_TOOLTIP,
   LABELS,
   LAYOUT_COLUMNS,
   MOBILE_TAP_TO_SELECT_IMAGE,
@@ -248,6 +249,57 @@ describe("Canvas", () => {
       // 実装詳細（Tailwindクラス）ではなく、外部から観測できるシグナルで検証する
       expect(selectedCard).toHaveAttribute("data-selected", "true");
       expect(unselectedCard).toHaveAttribute("data-selected", "false");
+    });
+  });
+
+  describe("複製ボタン（ホバーアクション）", () => {
+    it("クリックで onItemDuplicate(itemId) が呼ばれ、カードの選択は起きない", async () => {
+      const user = userEvent.setup();
+      const onItemDuplicate = vi.fn();
+      const props = setupCanvas({
+        items: [createTestItem({ id: "item-1" })],
+        onItemDuplicate,
+      });
+
+      await user.click(screen.getByRole("button", { name: DUPLICATE_TOOLTIP }));
+
+      expect(onItemDuplicate).toHaveBeenCalledWith("item-1");
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("Enter キーで押しても onItemDuplicate が呼ばれ、選択は起きない", async () => {
+      const user = userEvent.setup();
+      const onItemDuplicate = vi.fn();
+      const props = setupCanvas({
+        items: [createTestItem({ id: "item-1" })],
+        onItemDuplicate,
+      });
+
+      screen.getByRole("button", { name: DUPLICATE_TOOLTIP }).focus();
+      await user.keyboard("{Enter}");
+
+      expect(onItemDuplicate).toHaveBeenCalledWith("item-1");
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("onItemDuplicate が渡されない場合は表示しない", () => {
+      setupCanvas({ items: [createTestItem()] });
+
+      expect(
+        screen.queryByRole("button", { name: DUPLICATE_TOOLTIP })
+      ).not.toBeInTheDocument();
+    });
+
+    it("モバイルでは表示しない", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        onItemDuplicate: vi.fn(),
+        isMobile: true,
+      });
+
+      expect(
+        screen.queryByRole("button", { name: DUPLICATE_TOOLTIP })
+      ).not.toBeInTheDocument();
     });
   });
 

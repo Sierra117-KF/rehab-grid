@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   CANVAS_DROP_HERE,
+  DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_DRAG_TYPE,
@@ -15,7 +16,7 @@ import {
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
 import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
-import { GripVertical, ImagePlus, Pencil } from "lucide-react";
+import { Copy, GripVertical, ImagePlus, Pencil } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 
@@ -37,6 +38,8 @@ export type SortableCardProps = {
   imageUrl?: string;
   /** キャンバスのドラッグオーバー状態をリセットするコールバック */
   onCanvasDragEnd?: () => void;
+  /** 複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onDuplicate?: () => void;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -64,6 +67,7 @@ export function SortableCard({
   onImageDrop,
   imageUrl,
   onCanvasDragEnd,
+  onDuplicate,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -212,6 +216,32 @@ export function SortableCard({
           aria-label="ドラッグして並べ替え"
         >
           <GripVertical className="size-5" />
+        </button>
+      ) : null}
+
+      {/* デスクトップ用: 複製ボタン（ホバー・フォーカス時に右上へ表示） */}
+      {!isMobile && onDuplicate ? (
+        <button
+          type="button"
+          className={cn(
+            "absolute right-2 top-2 z-20",
+            "flex size-8 items-center justify-center rounded-full border border-border",
+            "bg-background/90 text-muted-foreground shadow-sm",
+            "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+            "hover:text-primary"
+          )}
+          // カードのルート要素には dnd-kit の listeners（ドラッグ開始）と選択用の onClick が付いている。
+          // ボタン操作でドラッグや選択が起きないよう、ポインター・キー・クリックの伝播を止める。
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+          title={DUPLICATE_TOOLTIP}
+          aria-label={DUPLICATE_TOOLTIP}
+        >
+          <Copy className="size-4" />
         </button>
       ) : null}
 

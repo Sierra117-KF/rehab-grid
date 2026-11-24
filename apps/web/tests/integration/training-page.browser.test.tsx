@@ -5,11 +5,15 @@
  * 実ブラウザ環境で検証する結合テスト
  */
 import {
+  APPLY_DOSAGES_TO_ALL_TOOLTIP,
+  APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   BUTTON_ADD_CARD,
   CANVAS_EMPTY_DESCRIPTION,
   CANVAS_EMPTY_TITLE,
+  createApplyToAllSuccessMessage,
   DELETE_CONFIRM_TITLE,
   DELETE_SUCCESS_MESSAGE,
+  DUPLICATE_BUTTON_LABEL,
   MAX_ITEM_COUNT,
   UNDO_LABEL,
   UNDO_STALE_MESSAGE,
@@ -512,6 +516,98 @@ describe("TrainingEditorPage", () => {
 
       // エディタの履歴は消費されない（ブラウザ標準の取り消しに任せる）
       expect(useEditorStore.getState().past).toHaveLength(1);
+    });
+
+    it("用量の「全カードに反映」はトーストの「元に戻す」で全カードが元に戻る", async () => {
+      const dosages = { reps: "10回", sets: "3セット", frequency: "1日2回" };
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({ id: "item-1", title: "スクワット", dosages }),
+          createTestItem({ id: "item-2", order: 1, title: "腕立て伏せ" }),
+          createTestItem({ id: "item-3", order: 2, title: "ブリッジ" }),
+        ],
+        selectedItemId: "item-1",
+      });
+      await renderPageWithToaster();
+
+      await userEvent.click(
+        page.getByRole("button", { name: APPLY_DOSAGES_TO_ALL_TOOLTIP })
+      );
+      await expect
+        .element(page.getByText(createApplyToAllSuccessMessage(2)))
+        .toBeInTheDocument();
+      expect(
+        useEditorStore.getState().items.map((item) => item.dosages)
+      ).toEqual([dosages, dosages, dosages]);
+
+      await userEvent.click(page.getByRole("button", { name: UNDO_LABEL }));
+
+      await expect
+        .poll(() => useEditorStore.getState().items.map((item) => item.dosages))
+        .toEqual([dosages, undefined, undefined]);
+    });
+
+    it("反映後に別の操作をしていたら、トーストの「元に戻す」は何も取り消さない", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({
+            id: "item-1",
+            title: "スクワット",
+            precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+          }),
+          createTestItem({ id: "item-2", order: 1, title: "腕立て伏せ" }),
+        ],
+        selectedItemId: "item-1",
+      });
+      await renderPageWithToaster();
+
+      await userEvent.click(
+        page.getByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP })
+      );
+      await userEvent.click(getImageLibraryAddButton());
+      await userEvent.click(page.getByRole("button", { name: UNDO_LABEL }));
+
+      await expect
+        .element(page.getByText(UNDO_STALE_MESSAGE))
+        .toBeInTheDocument();
+      const { items } = useEditorStore.getState();
+      expect(items).toHaveLength(3);
+      expect(items[1]?.precautions?.map((p) => p.value)).toEqual([
+        "痛みが出たら中止",
+      ]);
+    });
+
+    it("「このカードを複製」で直後に同じ内容のカードが入り、Ctrl+Z で消える", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({ id: "item-1", title: "スクワット" }),
+          createTestItem({ id: "item-2", order: 1, title: "腕立て伏せ" }),
+        ],
+        selectedItemId: "item-1",
+      });
+      await renderPage();
+
+      await userEvent.click(
+        page.getByRole("button", { name: DUPLICATE_BUTTON_LABEL })
+      );
+
+      expect(useEditorStore.getState().items.map((i) => i.title)).toEqual([
+        "スクワット",
+        "スクワット",
+        "腕立て伏せ",
+      ]);
+      await expect
+        .element(page.getByRole("button", { name: DUPLICATE_BUTTON_LABEL }))
+        .toBeInTheDocument();
+
+      await userEvent.keyboard("{Control>}z{/Control}");
+      expect(useEditorStore.getState().items.map((i) => i.title)).toEqual([
+        "スクワット",
+        "腕立て伏せ",
+      ]);
     });
   });
 

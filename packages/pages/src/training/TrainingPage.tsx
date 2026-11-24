@@ -1,8 +1,11 @@
 "use client";
 
 import {
+  APPLY_TO_ALL_NO_TARGET_MESSAGE,
+  createApplyToAllSuccessMessage,
   createMaxItemCountReachedMessage,
   DELETE_SUCCESS_MESSAGE,
+  type Dosages,
   MAX_ITEM_COUNT,
   UNDO_LABEL,
   UNDO_STALE_MESSAGE,
@@ -69,6 +72,11 @@ export function TrainingPage() {
   const addNewItem = useEditorStore((state) => state.addNewItem);
   const updateItem = useEditorStore((state) => state.updateItem);
   const deleteItem = useEditorStore((state) => state.deleteItem);
+  const duplicateItem = useEditorStore((state) => state.duplicateItem);
+  const applyDosagesToAll = useEditorStore((state) => state.applyDosagesToAll);
+  const appendPrecautionsToAll = useEditorStore(
+    (state) => state.appendPrecautionsToAll
+  );
   const reorderItems = useEditorStore((state) => state.reorderItems);
   const setSelectedItemId = useEditorStore((state) => state.setSelectedItemId);
 
@@ -170,6 +178,53 @@ export function TrainingPage() {
     [deleteItem]
   );
 
+  /**
+   * カードを複製（上限に達していれば案内を表示）
+   */
+  const handleItemDuplicate = useCallback(
+    (id: string) => {
+      if (duplicateItem(id) === null) {
+        toast.info(createMaxItemCountReachedMessage(MAX_ITEM_COUNT));
+      }
+    },
+    [duplicateItem]
+  );
+
+  /**
+   * 選択中カードの用量を全カードに反映し、「元に戻す」付きのトーストを表示
+   */
+  const handleApplyDosagesToAll = useCallback(
+    (dosages: Dosages) => {
+      const updatedCount = applyDosagesToAll(dosages);
+      if (updatedCount === 0) {
+        toast.info(APPLY_TO_ALL_NO_TARGET_MESSAGE);
+        return;
+      }
+      showUndoableToast(createApplyToAllSuccessMessage(updatedCount));
+    },
+    [applyDosagesToAll]
+  );
+
+  /**
+   * 選択中カードの注意点を全カードに追加し、「元に戻す」付きのトーストを表示
+   */
+  const handleApplyPrecautionsToAll = useCallback(
+    (values: string[]) => {
+      const { updatedCount, skippedCount } = appendPrecautionsToAll(values);
+      if (updatedCount === 0) {
+        toast.info(APPLY_TO_ALL_NO_TARGET_MESSAGE);
+        return;
+      }
+      showUndoableToast(
+        createApplyToAllSuccessMessage(updatedCount, skippedCount)
+      );
+    },
+    [appendPrecautionsToAll]
+  );
+
+  // 反映先となる他のカードがあるときだけ「全カードに反映」を出す
+  const canApplyToAll = items.length > 1;
+
   // 最大数チェック（MAX_ITEM_COUNT に達したらカード追加を無効化）
   const canAddCard = items.length < MAX_ITEM_COUNT;
 
@@ -247,6 +302,7 @@ export function TrainingPage() {
           imageUrls={cardImageUrls}
           onAddCardWithImage={handleAddCardWithImage}
           canAddCard={canAddCard}
+          onItemDuplicate={handleItemDuplicate}
           onImageAreaClick={handleMobileImageAreaClick}
           onSettingsClick={handleMobileSettingsClick}
           isMobile={isMobile}
@@ -259,6 +315,13 @@ export function TrainingPage() {
           selectedItem={selectedItem}
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
+          onItemDuplicate={handleItemDuplicate}
+          onApplyDosagesToAll={
+            canApplyToAll ? handleApplyDosagesToAll : undefined
+          }
+          onApplyPrecautionsToAll={
+            canApplyToAll ? handleApplyPrecautionsToAll : undefined
+          }
         />
       </aside>
 
@@ -290,6 +353,13 @@ export function TrainingPage() {
           selectedItem={selectedItem}
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
+          onItemDuplicate={handleItemDuplicate}
+          onApplyDosagesToAll={
+            canApplyToAll ? handleApplyDosagesToAll : undefined
+          }
+          onApplyPrecautionsToAll={
+            canApplyToAll ? handleApplyPrecautionsToAll : undefined
+          }
         />
       </MobileSidebar>
     </div>
