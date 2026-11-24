@@ -204,8 +204,7 @@ const {
   // 状態
   items,
   meta,
-  layoutType,
-  themeColor,
+  settings, // { layoutType, themeColor }（resolveProjectSettings でデフォルト値を補完済み）
   past, // Undo で戻れる状態（最大 HISTORY_LIMIT 件、永続化しない）
   future, // Redo で進める状態
 
@@ -217,7 +216,7 @@ const {
   applyDosagesToAll, // 全カードの用量を上書き（変わった枚数を返す）
   appendPrecautionsToAll, // 全カードに注意点を追記（{ updatedCount, skippedCount }）
   reorderItems,
-  setLayoutType,
+  updateSettings, // updateSettings({ layoutType?, themeColor? }, { mergeKey? })
   setProjectTitle,
   undo,
   redo,
@@ -231,14 +230,16 @@ const canUndo = useEditorStore((state) => state.past.length > 0);
 
 #### useModalStore
 
-セキュリティ免責モーダルの状態管理。2 層キャッシュ（SessionStorage + LocalStorage）を使用。
+複数のコンポーネントから開くモーダルの状態管理。セキュリティ免責モーダルは 2 層キャッシュ（SessionStorage + LocalStorage）を使用。
 
 ```typescript
 const {
-  isOpen,
-  openModal,
-  closeModal,
-  checkShouldShow,
+  isSecurityDisclaimerOpen,
+  openSecurityDisclaimer,
+  closeSecurityDisclaimer,
+  checkDisclaimerRequired,
+  isDesignSettingsOpen, // デザイン設定ダイアログ（ヘッダー以外からも開けるようストアで持つ）
+  setDesignSettingsOpen,
 } = useModalStore();
 ```
 
@@ -473,8 +474,8 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 ```
 lib/pdf/
 ├── index.ts      # buildPdfDocument を export
-├── document.ts   # buildPdfDocument, isLayoutType
-├── card.ts       # createCard（画像・タイトル・説明・用量・注意点）
+├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う）
+├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）
 ├── header.ts     # createHeader（タイトル・氏名欄）
 ├── metrics.ts    # 画像サイズ・フォントサイズ・1行あたり文字数の計算
 └── styles.ts     # StyleSheet 定義

@@ -72,7 +72,7 @@ const TEST_DATA: PdfGenerationData = {
     title: "テスト",
     projectType: "training",
   },
-  layoutType: "grid2",
+  settings: { layoutType: "grid2", themeColor: "#3b82f6" },
   items: [],
   images: {},
 };

@@ -4,6 +4,7 @@
 
 import { Image, Text, View } from "@react-pdf/renderer";
 import {
+  DOSAGE_DIVIDER_OPACITY,
   LABELS,
   LINE_CLAMP,
   PDF_CHAR_WIDTH_RATIO,
@@ -11,11 +12,14 @@ import {
   PDF_SUPPORTED_IMAGE_PREFIXES,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import {
   type BadgeType,
   type EditorItem,
   type LayoutType,
+  type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
+import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import { truncateToLines } from "@rehab-grid/core/utils/pdf";
 import { createElement, type ReactElement } from "react";
@@ -29,19 +33,29 @@ import {
 import { pdfStyles as styles } from "./styles";
 
 /**
+ * 用量の描画に使う値
+ */
+type DosageStyle = {
+  /** カード内のフォントサイズ */
+  fontSizes: PdfCardFontSizes;
+  /** 数値とラベルの間の区切り線の色 */
+  dividerColor: string;
+};
+
+/**
  * 用量の数値とラベルの Text 要素を生成する
  *
  * 数値強調型デザイン: 数値を大きく表示し、ラベルは区切り線の下に小さく配置
  *
  * @param type - 用量の種類
  * @param value - 表示値
- * @param fontSizes - カード内のフォントサイズ
+ * @param dosageStyle - フォントサイズと区切り線の色
  * @returns [数値, ラベル] の Text 要素
  */
 function createDosageTexts(
   type: BadgeType,
   value: string,
-  fontSizes: PdfCardFontSizes
+  { fontSizes, dividerColor }: DosageStyle
 ): ReactElement[] {
   return [
     // 数値（大きく強調）
@@ -58,7 +72,11 @@ function createDosageTexts(
       Text,
       {
         key: `${type}-label`,
-        style: { ...styles.dosageLabel, fontSize: fontSizes.dosageLabel },
+        style: {
+          ...styles.dosageLabel,
+          fontSize: fontSizes.dosageLabel,
+          borderTopColor: dividerColor,
+        },
       },
       LABELS[type]
     ),
@@ -73,14 +91,14 @@ function createDosageTexts(
  * @param type - 用量の種類
  * @param value - 表示値
  * @param hasValue - 値が設定されているか
- * @param fontSizes - カード内のフォントサイズ
+ * @param dosageStyle - フォントサイズと区切り線の色
  * @returns 用量要素
  */
 function createDosageElement(
   type: BadgeType,
   value: string,
   hasValue: boolean,
-  fontSizes: PdfCardFontSizes
+  dosageStyle: DosageStyle
 ): ReactElement {
   if (!hasValue) {
     return createElement(View, { key: type, style: styles.dosageItem });
@@ -89,7 +107,7 @@ function createDosageElement(
   return createElement(
     View,
     { key: type, style: styles.dosageItem },
-    createDosageTexts(type, value, fontSizes)
+    createDosageTexts(type, value, dosageStyle)
   );
 }
 
@@ -98,13 +116,13 @@ function createDosageElement(
  *
  * @param item - エディタアイテム
  * @param layoutType - レイアウトタイプ（4列時は頻度を横幅いっぱいの行に分ける）
- * @param fontSizes - カード内のフォントサイズ
+ * @param dosageStyle - フォントサイズと区切り線の色
  * @returns 用量セクション。表示する用量がなければ null
  */
 function createDosageSection(
   item: EditorItem,
   layoutType: LayoutType,
-  fontSizes: PdfCardFontSizes
+  dosageStyle: DosageStyle
 ): ReactElement | null {
   const badgeLayout = getDosageBadgeLayout(item.dosages, layoutType);
   if (badgeLayout.length === 0) return null;
@@ -124,13 +142,13 @@ function createDosageSection(
             key: rowKey,
             style: { ...styles.dosageItem, flex: undefined, width: "100%" },
           },
-          createDosageTexts(badge.type, badge.value, fontSizes)
+          createDosageTexts(badge.type, badge.value, dosageStyle)
         )
       );
     } else {
       // 通常の用量行
       const rowDosages = row.badges.map((badge) =>
-        createDosageElement(badge.type, badge.value, badge.hasValue, fontSizes)
+        createDosageElement(badge.type, badge.value, badge.hasValue, dosageStyle)
       );
       dosageRows.push(
         createElement(
@@ -158,17 +176,20 @@ function createDosageSection(
  * @param item - カードに表示するエディタアイテム
  * @param width - カードの幅（ポイント単位）
  * @param imageUrl - 画像のBase64 data URL（省略可）
- * @param layoutType - レイアウトタイプ（1列時の拡大表示・4列時の用量レイアウト変更用）
+ * @param settings - プロジェクト設定（1列時の拡大表示・4列時の用量レイアウト・区切り線の色。省略時はデフォルト値）
  * @returns カード要素
  */
 export function createCard(
   item: EditorItem,
   width: number,
   imageUrl?: string,
-  layoutType?: LayoutType
+  settings?: ResolvedProjectSettings
 ): ReactElement {
+  const { layoutType, themeColor } = resolveProjectSettings(settings);
   const { width: imageWidth, height: imageHeight } = getPdfCardImageSize(width);
   const fontSizes = getPdfCardFontSizes(layoutType);
+  // react-pdf では半透明の線の色味が変わることがあるため、白地と合成した不透明色で描く
+  const dividerColor = mixWithWhite(themeColor, DOSAGE_DIVIDER_OPACITY);
 
   const children: ReactElement[] = [];
 
@@ -258,11 +279,10 @@ export function createCard(
   }
 
   // 用量（回数・セット数・頻度）
-  const dosageSection = createDosageSection(
-    item,
-    layoutType ?? "grid2",
-    fontSizes
-  );
+  const dosageSection = createDosageSection(item, layoutType, {
+    fontSizes,
+    dividerColor,
+  });
   if (dosageSection) {
     children.push(dosageSection);
   }

@@ -28,5 +28,6 @@ export type {
   ProjectMeta,
   ProjectRecord,
   ProjectSettings,
+  ResolvedProjectSettings,
 } from "./project";
 export type { TemplateMetadata } from "./template";

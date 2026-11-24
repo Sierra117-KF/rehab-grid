@@ -61,7 +61,8 @@
   --dosage-value: #1e293b; /* slate-800: 数値 */
   --dosage-label: #94a3b8; /* slate-400: ラベル */
   --dosage-accent: #3b82f6; /* blue-500: アクセント */
-  --dosage-accent-light: rgba(59, 130, 246, 0.3); /* blue-500/30: 下線 */
+  /* 下線（既定のテーマカラー blue-500 を白地に 30% 重ねた色）。Canvas がテーマカラーから上書きする */
+  --dosage-accent-light: #c4dafc;
 
   /* 注意事項（アンバー系: 穏やかな警告色） */
   --precaution-bg: #fef3c7; /* amber-100 */

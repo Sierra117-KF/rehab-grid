@@ -4,9 +4,9 @@ import {
   BUTTON_CONTINUE,
   BUTTON_DELETE,
   DEFAULT_PROJECT_TITLE,
+  DESIGN_SETTINGS_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
-  GRID_SELECT_BUTTON_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_CONFIRM_DESCRIPTION,
   IMPORT_CONFIRM_TITLE,
@@ -23,6 +23,7 @@ import {
   TEMPLATE_BUTTON_LABEL,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
+import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import type { EditorItem, LayoutType, ProjectMeta } from "@rehab-grid/core/types";
 import { EditorHeader } from "@rehab-grid/ui/components/editor/EditorHeader";
 import {
@@ -51,7 +52,7 @@ const {
   mockToastInfo,
   mockInitializeFromDB,
   mockDeleteProject,
-  mockSetLayoutType,
+  mockUpdateSettings,
   mockSetProjectTitle,
   mockUndo,
   mockRedo,
@@ -67,7 +68,7 @@ const {
   mockToastInfo: vi.fn(),
   mockInitializeFromDB: vi.fn(),
   mockDeleteProject: vi.fn().mockResolvedValue(undefined),
-  mockSetLayoutType: vi.fn(),
+  mockUpdateSettings: vi.fn(),
   mockSetProjectTitle: vi.fn(),
   mockUndo: vi.fn(),
   mockRedo: vi.fn(),
@@ -91,8 +92,7 @@ const {
 let mockStoreState: {
   meta: ProjectMeta;
   items: EditorItem[];
-  layoutType: LayoutType;
-  themeColor: string;
+  settings: { layoutType: LayoutType; themeColor: string };
   past: unknown[];
   future: unknown[];
 };
@@ -145,7 +145,7 @@ vi.mock("@/lib/store/useEditorStore", () => ({
       state: typeof mockStoreState & {
         initializeFromDB: typeof mockInitializeFromDB;
         deleteProject: typeof mockDeleteProject;
-        setLayoutType: typeof mockSetLayoutType;
+        updateSettings: typeof mockUpdateSettings;
         setProjectTitle: typeof mockSetProjectTitle;
         undo: typeof mockUndo;
         redo: typeof mockRedo;
@@ -156,13 +156,18 @@ vi.mock("@/lib/store/useEditorStore", () => ({
       ...mockStoreState,
       initializeFromDB: mockInitializeFromDB,
       deleteProject: mockDeleteProject,
-      setLayoutType: mockSetLayoutType,
+      updateSettings: mockUpdateSettings,
       setProjectTitle: mockSetProjectTitle,
       undo: mockUndo,
       redo: mockRedo,
     };
     return selector(fullState);
   },
+  stateToProjectFile: (state: typeof mockStoreState) => ({
+    meta: state.meta,
+    settings: state.settings,
+    items: state.items,
+  }),
 }));
 
 /**
@@ -189,8 +194,6 @@ vi.mock("@/utils/export", () => ({
  */
 vi.mock("@/utils/project", () => ({
   applyImportResult: mockApplyImportResult,
-  createProjectFile: vi.fn(() => ({})),
-  createProjectSettings: vi.fn(() => ({})),
 }));
 
 /**
@@ -224,20 +227,25 @@ vi.mock("@/utils/download", () => ({
 }));
 
 /**
- * GridSelectDialog のモック
+ * DesignSettingsDialog のモック
  */
-vi.mock("@/components/editor/GridSelectDialog", () => ({
-  GridSelectDialog: ({
+vi.mock("@/components/editor/DesignSettingsDialog", () => ({
+  DesignSettingsDialog: ({
     open,
     onLayoutChange,
+    onThemeColorChange,
   }: {
     open: boolean;
     onLayoutChange: (layout: LayoutType) => void;
+    onThemeColorChange: (color: string) => void;
   }) =>
     open ? (
-      <div data-testid="grid-select-dialog">
+      <div data-testid="design-settings-dialog">
         <button type="button" onClick={() => onLayoutChange("grid3")}>
           grid3を選択
+        </button>
+        <button type="button" onClick={() => onThemeColorChange("#059669")}>
+          エメラルドを選択
         </button>
       </div>
     ) : null,
@@ -284,8 +292,7 @@ function createDefaultMockStoreState(): typeof mockStoreState {
       projectType: "training",
     },
     items: [],
-    layoutType: "grid2",
-    themeColor: "#3B82F6",
+    settings: { layoutType: "grid2", themeColor: "#3B82F6" },
     past: [],
     future: [],
   };
@@ -306,8 +313,9 @@ function createTestItem(overrides: Partial<EditorItem> = {}): EditorItem {
 }
 
 beforeEach(() => {
-  // ストア状態をリセット
+  // ストア状態をリセット（ダイアログの開閉は実ストアで持つため、こちらも閉じておく）
   mockStoreState = createDefaultMockStoreState();
+  useModalStore.setState({ isDesignSettingsOpen: false });
   // 全モック関数をクリア
   vi.clearAllMocks();
 });
@@ -728,7 +736,7 @@ describe("EditorHeader", () => {
 
       expect(
         screen.getByRole("button", {
-          name: new RegExp(GRID_SELECT_BUTTON_LABEL),
+          name: new RegExp(DESIGN_SETTINGS_LABEL),
         })
       ).toBeInTheDocument();
     });
@@ -799,32 +807,38 @@ describe("EditorHeader", () => {
     });
   });
 
-  describe("グリッド選択", () => {
-    it("グリッド選択ボタンをクリックするとダイアログが表示される", async () => {
+  describe("デザイン設定", () => {
+    it("デザイン設定ボタンをクリックするとダイアログが表示される", async () => {
       const user = userEvent.setup();
       render(<EditorHeader />);
 
       await user.click(
         screen.getByRole("button", {
-          name: new RegExp(GRID_SELECT_BUTTON_LABEL),
+          name: new RegExp(DESIGN_SETTINGS_LABEL),
         })
       );
 
-      expect(screen.getByTestId("grid-select-dialog")).toBeInTheDocument();
+      expect(screen.getByTestId("design-settings-dialog")).toBeInTheDocument();
     });
 
-    it("グリッド選択で setLayoutType が呼ばれる", async () => {
+    it("列数・テーマカラーの選択で updateSettings が呼ばれる", async () => {
       const user = userEvent.setup();
       render(<EditorHeader />);
 
       await user.click(
         screen.getByRole("button", {
-          name: new RegExp(GRID_SELECT_BUTTON_LABEL),
+          name: new RegExp(DESIGN_SETTINGS_LABEL),
         })
       );
       await user.click(screen.getByRole("button", { name: "grid3を選択" }));
 
-      expect(mockSetLayoutType).toHaveBeenCalledWith("grid3");
+      await user.click(screen.getByRole("button", { name: "エメラルドを選択" }));
+
+      expect(mockUpdateSettings).toHaveBeenCalledWith({ layoutType: "grid3" });
+      expect(mockUpdateSettings).toHaveBeenCalledWith(
+        { themeColor: "#059669" },
+        { mergeKey: "settings:themeColor" }
+      );
     });
   });
 

@@ -68,6 +68,16 @@ export function extractTextContent(element: unknown): string[] {
 }
 
 /**
+ * 要素ツリー内の Text 要素に指定された区切り線（borderTopColor）の色を出現順に取り出す
+ */
+export function extractDividerColors(element: unknown): string[] {
+  return findElementsByType(element, "Text").flatMap((el) => {
+    const style = el.props?.style as { borderTopColor?: string } | undefined;
+    return style?.borderTopColor === undefined ? [] : [style.borderTopColor];
+  });
+}
+
+/**
  * テスト用の EditorItem を生成
  */
 export function createTestItem(overrides: Partial<EditorItem> = {}): EditorItem {

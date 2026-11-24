@@ -2,9 +2,9 @@
 
 import {
   BUTTON_BACKUP,
+  DESIGN_SETTINGS_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
-  GRID_SELECT_BUTTON_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
@@ -24,10 +24,10 @@ import {
   FileJson,
   FolderArchive,
   FolderOpen,
-  Grid3x3,
   Home,
   LayoutTemplate,
   Loader2,
+  Palette,
   Redo2,
   Trash2,
   Undo2,
@@ -49,8 +49,8 @@ type MobileEditorMenuProps = {
   onRedo: () => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
-  /** グリッド選択ダイアログを開く */
-  onGridSelectClick: () => void;
+  /** デザイン設定ダイアログを開く */
+  onDesignSettingsClick: () => void;
   /** テンプレートモーダルを開く */
   onTemplateClick: () => void;
   /** ファイルを開くダイアログを開く */
@@ -130,7 +130,7 @@ function MenuItem(props: MenuItemProps) {
  * モバイルエディタメニューコンポーネント
  *
  * エディタ用のドロップダウンメニューコンテンツ。
- * グリッド選択、テンプレート、ファイル操作、エクスポート、削除の機能を提供。
+ * デザイン設定、テンプレート、ファイル操作、エクスポート、削除の機能を提供。
  */
 export function MobileEditorMenu({
   canUndo,
@@ -138,7 +138,7 @@ export function MobileEditorMenu({
   onUndo,
   onRedo,
   layoutType,
-  onGridSelectClick,
+  onDesignSettingsClick,
   onTemplateClick,
   onOpenClick,
   isImporting,
@@ -167,12 +167,12 @@ export function MobileEditorMenu({
   }, [onClose, onRedo]);
 
   /**
-   * グリッド選択クリックハンドラ
+   * デザイン設定クリックハンドラ
    */
-  const handleGridSelectClick = useCallback(() => {
+  const handleDesignSettingsClick = useCallback(() => {
     onClose();
-    onGridSelectClick();
-  }, [onClose, onGridSelectClick]);
+    onDesignSettingsClick();
+  }, [onClose, onDesignSettingsClick]);
 
   /**
    * テンプレートクリックハンドラ
@@ -240,11 +240,11 @@ export function MobileEditorMenu({
       {/* 区切り線 */}
       <div className="my-2 h-px bg-border/40" aria-hidden="true" />
 
-      {/* グリッド選択 */}
+      {/* デザイン設定（列数バッジ付き） */}
       <MenuItem
-        icon={Grid3x3}
-        label={GRID_SELECT_BUTTON_LABEL}
-        onClick={handleGridSelectClick}
+        icon={Palette}
+        label={DESIGN_SETTINGS_LABEL}
+        onClick={handleDesignSettingsClick}
         iconColor="text-sky-500"
         rightContent={
           <span className="flex items-center gap-1 text-sm text-muted-foreground">

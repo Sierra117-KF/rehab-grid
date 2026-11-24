@@ -36,6 +36,9 @@ import {
   getInitialEditorState,
 } from "@/tests/mocks/browser-common";
 
+/** ストアの初期設定（getInitialEditorState の既定値）と同じ値 */
+const TEST_SETTINGS = getInitialEditorState().settings;
+
 // =============================================================================
 // モック設定（Browser Mode）
 // =============================================================================
@@ -231,7 +234,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     const blob = new Blob(["PDF"], { type: "application/pdf" });
     mockPreparePdfGenerationData.mockResolvedValueOnce({
       meta,
-      layoutType: "grid2",
+      settings: TEST_SETTINGS,
       items,
       images: {},
     });
@@ -250,7 +253,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     expect(mockPreparePdfGenerationData).toHaveBeenCalledWith(
       items,
       meta,
-      "grid2"
+      TEST_SETTINGS
     );
     expect(mockGeneratePdf).toHaveBeenCalledTimes(1);
 
@@ -271,7 +274,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     const blob = new Blob(["PDF"], { type: "application/pdf" });
     mockPreparePdfGenerationData.mockResolvedValueOnce({
       meta,
-      layoutType: "grid2",
+      settings: TEST_SETTINGS,
       items,
       images: {},
     });
@@ -313,7 +316,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     const blob = new Blob(["PDF"], { type: "application/pdf" });
     mockPreparePdfGenerationData.mockResolvedValueOnce({
       meta,
-      layoutType: "grid2",
+      settings: TEST_SETTINGS,
       items,
       images: {},
     });
@@ -361,7 +364,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     const blob = new Blob(["PDF"], { type: "application/pdf" });
     mockPreparePdfGenerationData.mockResolvedValueOnce({
       meta,
-      layoutType: "grid2",
+      settings: TEST_SETTINGS,
       items,
       images: {}, // 画像取得/変換に失敗したケースを想定
     });
@@ -375,7 +378,7 @@ describe("PDF出力（EditorHeader経由）", () => {
     expect(mockPreparePdfGenerationData).toHaveBeenCalledWith(
       items,
       meta,
-      "grid2"
+      TEST_SETTINGS
     );
     expect(mockGeneratePdf).toHaveBeenCalledTimes(1);
     expect(mockDownloadBlob).toHaveBeenCalledWith(blob, "test.pdf");

@@ -1,21 +1,23 @@
 /**
- * グリッドテンプレート切り替え機能 結合テスト（ブラウザモード）
+ * デザイン設定ダイアログ 結合テスト（ブラウザモード）
  *
  * @remarks
- * 実ブラウザ（Vitest Browser Mode）上で、ヘッダーからグリッド選択ダイアログを開き、
- * 各レイアウト（grid1/grid2/grid3/grid4）へ切り替えた際に以下が成立することを検証する。
+ * 実ブラウザ（Vitest Browser Mode）上で、ヘッダーからデザイン設定ダイアログを開き、
+ * 以下が成立することを検証する。
  * - ダイアログが表示される
- * - レイアウトオプションを選択できる
- * - 選択後にストア（layoutType）が更新される
- * - Canvas の表示（gridTemplateColumns）が更新される
+ * - 列数（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
+ *   ダイアログは開いたまま（「閉じる」で閉じる）
+ * - テーマカラーを選ぶと Canvas の用量の区切り線の色が変わり、元に戻すで戻る
  */
 
 import {
-  GRID_SELECT_BUTTON_LABEL,
-  GRID_SELECT_MODAL_DESCRIPTION,
-  GRID_SELECT_MODAL_TITLE,
+  BUTTON_CLOSE,
+  DESIGN_SETTINGS_DESCRIPTION,
+  DESIGN_SETTINGS_LABEL,
+  UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
+import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { EditorHeader } from "@rehab-grid/ui/components/editor/EditorHeader";
 import type { ReactNode } from "react";
@@ -67,7 +69,7 @@ vi.mock("next/link", async () => {
   return mod;
 });
 
-// デスクトップUIに固定（ヘッダーの「グリッド選択」ボタンを確実に表示）
+// デスクトップUIに固定（ヘッダーの「デザイン設定」ボタンを確実に表示）
 vi.mock("@/hooks/useMediaQuery", () => ({
   useMediaQuery: () => false,
   useIsMobile: () => false,
@@ -149,8 +151,22 @@ async function renderEditor() {
   );
 }
 
-function getGridSelectButton() {
-  return page.getByRole("button", { name: GRID_SELECT_BUTTON_LABEL });
+function getDesignSettingsButton() {
+  return page.getByRole("button", { name: DESIGN_SETTINGS_LABEL });
+}
+
+/**
+ * Canvas が上書きした用量の区切り線の色（CSS 変数）を取得する
+ *
+ * @remarks
+ * ブラウザテストでは globals.css（Tailwind）を読み込まないため、線の描画色ではなく
+ * カードの祖先要素に設定された CSS 変数の値を見る。
+ */
+function getDividerColor() {
+  return page
+    .getByTestId("canvas-scroll")
+    .element()
+    .style.getPropertyValue("--dosage-accent-light");
 }
 
 async function expectCanvasColumns(expectedColumns: number) {
@@ -165,37 +181,38 @@ async function expectCanvasColumns(expectedColumns: number) {
     .toHaveAttribute("style", expectedStyle);
 }
 
-describe("グリッドテンプレート切り替え（browser）", () => {
+describe("デザイン設定（browser）", () => {
   beforeEach(() => {
     // アイテムが0件だと canvas-grid が存在しないため、最低1件は入れておく
     useEditorStore.setState(
       getInitialEditorState({
-        layoutType: "grid2",
         items: [
           createTestItem({ id: "item-1", title: "テスト運動", order: 0 }),
         ],
       })
     );
+    useModalStore.setState({ isDesignSettingsOpen: false });
 
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     useEditorStore.setState(getInitialEditorState());
+    useModalStore.setState({ isDesignSettingsOpen: false });
     vi.clearAllMocks();
   });
 
-  it("グリッド選択ダイアログが表示できる", async () => {
+  it("デザイン設定ダイアログが表示できる", async () => {
     await renderEditor();
 
-    await userEvent.click(getGridSelectButton());
+    await userEvent.click(getDesignSettingsButton());
 
     await expect.element(page.getByRole("dialog")).toBeInTheDocument();
     await expect
-      .element(page.getByRole("heading", { name: GRID_SELECT_MODAL_TITLE }))
+      .element(page.getByRole("heading", { name: DESIGN_SETTINGS_LABEL }))
       .toBeInTheDocument();
     await expect
-      .element(page.getByText(GRID_SELECT_MODAL_DESCRIPTION))
+      .element(page.getByText(DESIGN_SETTINGS_DESCRIPTION))
       .toBeInTheDocument();
 
     // 4つのレイアウトオプション（ラベル）を確認
@@ -226,19 +243,43 @@ describe("グリッドテンプレート切り替え（browser）", () => {
       // 初期状態（grid2）
       await expectCanvasColumns(2);
 
-      await userEvent.click(getGridSelectButton());
+      await userEvent.click(getDesignSettingsButton());
       await userEvent.click(page.getByRole("button", { name: label }));
-
-      // ダイアログは閉じる
-      await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
 
       // ストアが更新される
       await expect
-        .poll(() => useEditorStore.getState().layoutType, { timeout: 5000 })
+        .poll(() => useEditorStore.getState().settings.layoutType, {
+          timeout: 5000,
+        })
         .toBe(layoutType);
 
       // Canvas 表示が更新される
       await expectCanvasColumns(columns);
+
+      // 設定は即時反映し、ダイアログは「閉じる」まで開いたまま
+      await expect.element(page.getByRole("dialog")).toBeInTheDocument();
+      await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+      await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
     }
   );
+
+  it("テーマカラーを選ぶと Canvas の区切り線の色が変わり、元に戻すで戻る", async () => {
+    await renderEditor();
+
+    // 既定（blue-500 を白地に 30% 重ねた色）
+    await expect.poll(getDividerColor).toBe("#c4dafc");
+
+    await userEvent.click(getDesignSettingsButton());
+    await userEvent.click(page.getByRole("button", { name: "エメラルド" }));
+
+    // #059669 を白地に 30% 重ねた色（#b4e0d2）
+    await expect.poll(getDividerColor).toBe("#b4e0d2");
+    expect(useEditorStore.getState().settings.themeColor).toBe("#059669");
+
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await userEvent.click(page.getByRole("button", { name: UNDO_TOOLTIP }));
+
+    await expect.poll(getDividerColor).toBe("#c4dafc");
+    expect(useEditorStore.getState().settings.themeColor).toBe("#3b82f6");
+  });
 });

@@ -123,8 +123,8 @@ export const pdfStyles = StyleSheet.create({
     color: PDF_DOSAGE_COLORS.label,
     marginTop: PDF_SPACING.dosageLabelMarginTop,
     paddingTop: PDF_SPACING.dosageLabelPaddingTop,
+    // 線の色はテーマカラーから求めるため、カード生成時に指定する（card.ts）
     borderTopWidth: PDF_SPACING.dosageBorderWidth,
-    borderTopColor: PDF_DOSAGE_COLORS.accentLight,
   },
   precautionContainer: {
     marginTop: PDF_SPACING.precautionMarginTop,

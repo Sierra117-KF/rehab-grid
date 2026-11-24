@@ -12,13 +12,11 @@ import {
   MAX_ITEM_COUNT,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
+  THEME_COLOR_PATTERN,
 } from "@rehab-grid/core/lib/constants";
 import { z } from "zod";
 
 import { sanitizeText } from "./sanitize";
-
-/** テーマカラーとして受け付ける形式（#RRGGBB） */
-const THEME_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 /**
  * 負荷・回数設定スキーマ

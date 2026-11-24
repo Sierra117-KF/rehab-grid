@@ -99,8 +99,7 @@ const getInitialState = () => ({
   isLoaded: false,
   meta: createTestMeta({ title: "無題のプロジェクト" }),
   items: [],
-  layoutType: "grid2" as LayoutType,
-  themeColor: "#3b82f6",
+  settings: { layoutType: "grid2" as LayoutType, themeColor: "#3b82f6" },
   selectedItemId: null,
   past: [],
   future: [],
@@ -132,12 +131,11 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().items).toEqual([]);
     });
 
-    it("layoutType が 'grid2' である", () => {
-      expect(useEditorStore.getState().layoutType).toBe("grid2");
-    });
-
-    it("themeColor が '#3b82f6' である", () => {
-      expect(useEditorStore.getState().themeColor).toBe("#3b82f6");
+    it("settings が既定値（grid2・#3b82f6）である", () => {
+      expect(useEditorStore.getState().settings).toEqual({
+        layoutType: "grid2",
+        themeColor: "#3b82f6",
+      });
     });
 
     it("selectedItemId が null である", () => {
@@ -174,8 +172,10 @@ describe("useEditorStore", () => {
       expect(state.meta.title).toBe("読み込みテスト");
       expect(state.items).toHaveLength(1);
       expect(state.items[0]?.title).toBe("運動A");
-      expect(state.layoutType).toBe("grid3");
-      expect(state.themeColor).toBe("#ff0000");
+      expect(state.settings).toEqual({
+        layoutType: "grid3",
+        themeColor: "#ff0000",
+      });
     });
 
     it("初期化後に isLoaded が true になる", () => {
@@ -184,6 +184,30 @@ describe("useEditorStore", () => {
       useEditorStore.getState().initializeFromDB(createTestProjectFile());
 
       expect(useEditorStore.getState().isLoaded).toBeTruthy();
+    });
+
+    it("IndexedDB の古い・壊れた設定はデフォルト値で補う（Zod を通らない経路）", () => {
+      useEditorStore.getState().initializeFromDB(
+        createTestProjectFile({
+          // @ts-expect-error - 旧バージョンや破損データで設定が欠けている場合を想定
+          settings: { layoutType: "grid5" },
+        })
+      );
+
+      expect(useEditorStore.getState().settings).toEqual({
+        layoutType: "grid2",
+        themeColor: "#3b82f6",
+      });
+    });
+
+    it("選択中のカードの選択を解除する（別のプロジェクトに切り替わるため）", () => {
+      useEditorStore.setState({ selectedItemId: "item-1" });
+
+      useEditorStore.getState().initializeFromDB(
+        createTestProjectFile({ items: [createTestItem({ id: "item-1" })] })
+      );
+
+      expect(useEditorStore.getState().selectedItemId).toBeNull();
     });
   });
 
@@ -737,15 +761,24 @@ describe("useEditorStore", () => {
     });
   });
 
-  describe("setLayoutType", () => {
+  describe("updateSettings", () => {
     it.each([["grid1"], ["grid2"], ["grid3"], ["grid4"]] as const)(
       "layoutType を '%s' に設定できる",
       (layout) => {
-        useEditorStore.getState().setLayoutType(layout);
+        useEditorStore.getState().updateSettings({ layoutType: layout });
 
-        expect(useEditorStore.getState().layoutType).toBe(layout);
+        expect(useEditorStore.getState().settings.layoutType).toBe(layout);
       }
     );
+
+    it("指定した項目だけを更新し、他の項目は保つ", () => {
+      useEditorStore.getState().updateSettings({ themeColor: "#059669" });
+
+      expect(useEditorStore.getState().settings).toEqual({
+        layoutType: "grid2",
+        themeColor: "#059669",
+      });
+    });
   });
 
   describe("setSelectedItemId", () => {
@@ -800,7 +833,7 @@ describe("useEditorStore", () => {
       // 状態を変更
       useEditorStore.setState({
         items: [createTestItem()],
-        layoutType: "grid3",
+        settings: { layoutType: "grid3", themeColor: "#7c3aed" },
         selectedItemId: "some-id",
       });
       mockDeleteProject.mockResolvedValue(undefined);
@@ -810,7 +843,10 @@ describe("useEditorStore", () => {
       const state = useEditorStore.getState();
       expect(state.isLoaded).toBeTruthy();
       expect(state.items).toEqual([]);
-      expect(state.layoutType).toBe("grid2");
+      expect(state.settings).toEqual({
+        layoutType: "grid2",
+        themeColor: "#3b82f6",
+      });
       expect(state.selectedItemId).toBeNull();
     });
   });
@@ -960,18 +996,37 @@ describe("useEditorStore", () => {
       expect(titles()).toEqual(["運動A", "運動B"]);
     });
 
-    it("setLayoutType と setProjectTitle を取り消せる", () => {
-      const { setLayoutType, setProjectTitle, undo } =
+    it("updateSettings と setProjectTitle を取り消せる", () => {
+      const { updateSettings, setProjectTitle, undo } =
         useEditorStore.getState();
-      setLayoutType("grid4");
+      updateSettings({ layoutType: "grid4" });
+      updateSettings({ themeColor: "#059669" });
       setProjectTitle("新しい名前");
 
       undo();
       expect(useEditorStore.getState().meta.title).toBe("無題のプロジェクト");
-      expect(useEditorStore.getState().layoutType).toBe("grid4");
+      expect(useEditorStore.getState().settings.themeColor).toBe("#059669");
 
       undo();
-      expect(useEditorStore.getState().layoutType).toBe("grid2");
+      expect(useEditorStore.getState().settings).toEqual({
+        layoutType: "grid4",
+        themeColor: "#3b82f6",
+      });
+
+      undo();
+      expect(useEditorStore.getState().settings.layoutType).toBe("grid2");
+    });
+
+    it("同じ mergeKey での連続した設定変更（カラーピッカーのドラッグ等）は 1 件にまとまる", () => {
+      const { updateSettings } = useEditorStore.getState();
+      const options = { mergeKey: "settings:themeColor" };
+      updateSettings({ themeColor: "#111111" }, options);
+      updateSettings({ themeColor: "#222222" }, options);
+      updateSettings({ themeColor: "#333333" }, options);
+
+      expect(useEditorStore.getState().past).toHaveLength(1);
+      useEditorStore.getState().undo();
+      expect(useEditorStore.getState().settings.themeColor).toBe("#3b82f6");
     });
 
     it("画像付きのカード追加は履歴 1 件になる", () => {
@@ -1069,12 +1124,17 @@ describe("useEditorStore", () => {
         expect(useEditorStore.getState().past).toEqual([]);
       });
 
-      it("同じ値での setLayoutType / setProjectTitle は履歴を積まない", () => {
-        const { setLayoutType, setProjectTitle } = useEditorStore.getState();
-        setLayoutType("grid2");
+      it("同じ値での updateSettings / setProjectTitle は履歴を積まない", () => {
+        const { updateSettings, setProjectTitle } = useEditorStore.getState();
+        const before = useEditorStore.getState().settings;
+        updateSettings({ layoutType: "grid2" });
+        updateSettings({ layoutType: "grid2", themeColor: "#3b82f6" });
+        updateSettings({});
         setProjectTitle("無題のプロジェクト");
 
         expect(useEditorStore.getState().past).toEqual([]);
+        // オートセーブを起こさないよう、設定オブジェクトも差し替えない
+        expect(useEditorStore.getState().settings).toBe(before);
       });
 
       it("選択状態の変更は履歴を積まない", () => {
@@ -1192,8 +1252,7 @@ describe("useEditorStore", () => {
         isLoaded: true,
         meta: createTestMeta({ title: "テスト" }),
         items: [createTestItem({ id: "1", title: "運動A" })],
-        layoutType: "grid3" as LayoutType,
-        themeColor: "#ff0000",
+        settings: { layoutType: "grid3" as LayoutType, themeColor: "#ff0000" },
         selectedItemId: null,
         mobileImageLibraryOpen: false,
         mobilePropertyPanelOpen: false,
@@ -1213,8 +1272,7 @@ describe("useEditorStore", () => {
         isLoaded: true,
         meta: createTestMeta(),
         items: [],
-        layoutType: "grid2" as LayoutType,
-        themeColor: "#3b82f6",
+        settings: { layoutType: "grid2" as LayoutType, themeColor: "#3b82f6" },
         selectedItemId: "some-id",
         mobileImageLibraryOpen: true,
         mobilePropertyPanelOpen: true,

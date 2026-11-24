@@ -48,4 +48,13 @@ export type ModalState = {
    * @param router - ルーターオブジェクト（Next.js の useRouter()）
    */
   tryNavigateToEditor: (router: RouterLike) => void;
+  /** デザイン設定ダイアログの開閉状態 */
+  isDesignSettingsOpen: boolean;
+  /**
+   * デザイン設定ダイアログの開閉を設定
+   *
+   * @remarks
+   * ヘッダー以外（Canvas 等）からも開けるよう、ローカル state ではなくストアで持つ
+   */
+  setDesignSettingsOpen: (open: boolean) => void;
 };

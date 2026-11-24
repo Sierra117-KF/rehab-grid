@@ -21,6 +21,13 @@ import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 
 /**
+ * 用量の区切り線の色（Canvas がテーマカラーから上書きする CSS 変数を参照する）
+ */
+const DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
+  borderTopColor: "var(--dosage-accent-light)",
+};
+
+/**
  * ソート可能なカードの Props
  */
 export type SortableCardProps = {
@@ -422,14 +429,17 @@ export function SortableCard({
                             ? badge.value.slice(0, TEXT_LIMITS[badge.type])
                             : "-"}
                         </span>
-                        {/* ラベル（下線付き） */}
+                        {/* ラベル（下線付き）
+                            線の色はテーマカラー（Canvas が上書きする CSS 変数）。globals.css のレイヤー外の
+                            `* { border-color }` は Tailwind のユーティリティより強いため、インライン style で指定する */}
                         <span
                           className={cn(
                             layoutType === "grid1" && !isMobile
                               ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.dosageLabelSize
                               : EDITOR_TEXT_STYLE.dosageLabelSize,
-                            "text-dosage-label border-t border-dosage-accent-light pt-1 mt-1"
+                            "text-dosage-label border-t pt-1 mt-1"
                           )}
+                          style={DOSAGE_DIVIDER_STYLE}
                         >
                           {LABELS[badge.type]}
                         </span>

@@ -304,7 +304,7 @@ ui/src/
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー |
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 |
 | `PropertyPanel` | 選択カードの編集パネル |
-| `GridSelectDialog` | グリッドレイアウト選択（1-4列） |
+| `DesignSettingsDialog` | デザイン設定（列数 1-4・テーマカラー） |
 | `TemplateSelectModal` | テンプレート選択 |
 | `PdfPreviewModal` | PDFプレビュー |
 | `PrecautionSnippetDialog` | 注意点スニペット挿入 |

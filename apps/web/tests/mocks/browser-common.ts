@@ -24,7 +24,11 @@
  * vi.mock("next/image", () => createNextImageMock());
  * ```
  */
-import type { EditorItem, LayoutType, ProjectMeta } from "@rehab-grid/core/types";
+import type {
+  EditorItem,
+  ProjectMeta,
+  ResolvedProjectSettings,
+} from "@rehab-grid/core/types";
 import { vi } from "vitest";
 
 // ========== テスト用定数 ==========
@@ -170,6 +174,12 @@ export function createTestItem(
   };
 }
 
+/** EditorStore の初期状態で使うプロジェクト設定 */
+const DEFAULT_TEST_SETTINGS: ResolvedProjectSettings = {
+  layoutType: "grid2",
+  themeColor: "#3b82f6",
+};
+
 /**
  * EditorStore の初期状態を生成
  *
@@ -180,8 +190,7 @@ export function getInitialEditorState(
     isLoaded: boolean;
     meta: ProjectMeta;
     items: EditorItem[];
-    layoutType: LayoutType;
-    themeColor: string;
+    settings: ResolvedProjectSettings;
     selectedItemId: string | null;
     mobileImageLibraryOpen: boolean;
     mobilePropertyPanelOpen: boolean;
@@ -192,8 +201,7 @@ export function getInitialEditorState(
     isLoaded: true,
     meta: createTestMeta({ title: "無題のプロジェクト" }),
     items: [] as EditorItem[],
-    layoutType: "grid2" as LayoutType,
-    themeColor: "#3b82f6",
+    settings: DEFAULT_TEST_SETTINGS,
     selectedItemId: null,
     // 編集履歴はテストごとに空から始める
     past: [],
