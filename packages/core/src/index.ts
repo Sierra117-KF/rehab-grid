@@ -23,6 +23,7 @@ export * from "./utils/externalLink";
 export * from "./utils/image";
 export * from "./utils/pdf";
 export * from "./utils/project";
+export * from "./utils/search";
 export * from "./utils/template";
 
 // hooks はサブパスインポートを使用

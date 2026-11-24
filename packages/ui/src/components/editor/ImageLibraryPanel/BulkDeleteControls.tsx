@@ -115,7 +115,11 @@ export function BulkDeleteControls({
           {/* 表示中の画像を削除 / 全ての画像を削除 */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full gap-2">
+              <Button
+                variant="destructive"
+                className="w-full gap-2"
+                disabled={imageCount === 0}
+              >
                 <Trash2 className="size-4" />
                 {deleteAllLabel}
               </Button>

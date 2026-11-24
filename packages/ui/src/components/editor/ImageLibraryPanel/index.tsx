@@ -4,7 +4,7 @@
  * 画像ライブラリパネル（左サイドバー上部）
  *
  * 画像のアップロードとサムネイル一覧を表示し、
- * ドラッグ＆ドロップでキャンバスのカードに画像を配置できる
+ * ドラッグ＆ドロップまたはクリック（デスクトップ）でキャンバスのカードに画像を配置できる
  */
 
 import { useImageUpload } from "@rehab-grid/core/hooks/useImageUpload";
@@ -18,6 +18,8 @@ import {
   IMAGE_DRAG_TYPE,
   IMAGE_FILTER_CATEGORIES,
   IMAGE_LIBRARY_CAMERA_SUCCESS,
+  IMAGE_LIBRARY_CLICK_HINT_ADD,
+  IMAGE_LIBRARY_CLICK_HINT_SET,
   IMAGE_LIBRARY_CLIPBOARD_NOT_ALLOWED,
   IMAGE_LIBRARY_NO_IMAGE_IN_CLIPBOARD,
   IMAGE_LIBRARY_PASTE_FAILED,
@@ -30,7 +32,11 @@ import {
 import { db } from "@rehab-grid/core/lib/db";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { UnifiedImageRecord } from "@rehab-grid/core/types";
-import { filterImageFiles } from "@rehab-grid/core/utils/image";
+import {
+  filterImageFiles,
+  getDisplayFileName,
+} from "@rehab-grid/core/utils/image";
+import { matchesSearchQuery } from "@rehab-grid/core/utils/search";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlertCircle, AlertTriangle, Plus } from "lucide-react";
@@ -40,6 +46,7 @@ import { toast } from "sonner";
 import { BulkDeleteControls } from "./BulkDeleteControls";
 import { CategoryFilter } from "./CategoryFilter";
 import { ImageDropzone } from "./ImageDropzone";
+import { ImageSearchInput } from "./ImageSearchInput";
 import { MobileImageButtons } from "./MobileImageButtons";
 import { ThumbnailGrid } from "./ThumbnailGrid";
 
@@ -53,6 +60,14 @@ type ImageLibraryPanelProps = {
   canAddCard?: boolean;
   /** 画像選択時のコールバック（モバイル用） */
   onImageSelect?: (imageId: string) => void;
+  /**
+   * サムネイルクリック時のコールバック（デスクトップ用）
+   *
+   * 未指定ならクリックしても何もしない。選択中カードへの設定か新規カード追加かは呼び出し側で決める
+   */
+  onImageClick?: (imageId: string) => void;
+  /** キャンバスでカードが選択中かどうか（クリック操作のヒント表示用） */
+  hasSelectedCard?: boolean;
   /** モバイルモードかどうか */
   isMobile?: boolean;
 };
@@ -64,6 +79,8 @@ export function ImageLibraryPanel({
   onAddCard,
   canAddCard = true,
   onImageSelect,
+  onImageClick,
+  hasSelectedCard = false,
   isMobile = false,
 }: ImageLibraryPanelProps) {
   // Refs
@@ -79,6 +96,7 @@ export function ImageLibraryPanel({
   );
   const [filterValue, setFilterValue] = useState(DEFAULT_IMAGE_FILTER);
   const [previousFilter, setPreviousFilter] = useState(DEFAULT_IMAGE_FILTER);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Hooks
   const { uploadImages, isUploading, error, clearError } = useImageUpload();
@@ -139,27 +157,29 @@ export function ImageLibraryPanel({
     (cat) => cat.value === filterValue
   );
 
-  // 画像をフィルタリング
+  // 画像をフィルタリング（カテゴリとキーワードの AND 条件）
   const filteredImages = useMemo((): UnifiedImageRecord[] | undefined => {
     if (images === undefined) return undefined;
 
-    // 「取り込み画像」フィルター（サンプル画像を除外）
-    if (activeCategory?.isUserImported === true) {
-      return allImages.filter((img) => !img.isSample);
-    }
-
-    // 姿勢プレフィックスフィルター
-    const prefix = activeCategory?.prefix ?? "";
-    if (prefix === "") return allImages;
+    const prefix = activeCategory?.prefix.toLowerCase() ?? "";
 
     return allImages.filter((img) => {
-      const fileName = img.fileName.toLowerCase();
-      return fileName.startsWith(prefix.toLowerCase());
+      // 「取り込み画像」フィルター（サンプル画像を除外）
+      if (activeCategory?.isUserImported === true && img.isSample) {
+        return false;
+      }
+      // 姿勢プレフィックスフィルター
+      if (prefix !== "" && !img.fileName.toLowerCase().startsWith(prefix)) {
+        return false;
+      }
+      // キーワード検索（サンプル画像なら「足上げ（SLR）」のような表示名で比較）
+      return matchesSearchQuery(getDisplayFileName(img.fileName), searchQuery);
     });
-  }, [allImages, images, activeCategory]);
+  }, [allImages, images, activeCategory, searchQuery]);
 
   // 計算値
-  const isFiltered = filterValue !== DEFAULT_IMAGE_FILTER;
+  const isFiltered =
+    filterValue !== DEFAULT_IMAGE_FILTER || searchQuery.trim() !== "";
   const imageCount = filteredImages?.length ?? 0;
   const importedImageCount = images?.length ?? 0;
 
@@ -170,6 +190,16 @@ export function ImageLibraryPanel({
    */
   const handleFilterChange = useCallback((value: string) => {
     setFilterValue(value);
+  }, []);
+
+  /**
+   * 検索語変更
+   *
+   * まとめて削除モード中に非表示になった画像が選択に残らないよう、選択をクリアする
+   */
+  const handleSearchQueryChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setSelectedImageIds(new Set());
   }, []);
 
   /**
@@ -478,14 +508,22 @@ export function ImageLibraryPanel({
               onValueChange={handleFilterChange}
               disabled={isBulkDeleteMode}
             />
+            <ImageSearchInput
+              value={searchQuery}
+              onValueChange={handleSearchQueryChange}
+            />
           </>
         ) : (
           <>
-            {/* デスクトップ: フィルター → ドロップゾーン の順 */}
+            {/* デスクトップ: フィルター → 検索 → ドロップゾーン の順 */}
             <CategoryFilter
               value={filterValue}
               onValueChange={handleFilterChange}
               disabled={isBulkDeleteMode}
+            />
+            <ImageSearchInput
+              value={searchQuery}
+              onValueChange={handleSearchQueryChange}
             />
             <ImageDropzone
               isDragOver={isDragOver}
@@ -507,6 +545,15 @@ export function ImageLibraryPanel({
         ) : null}
       </div>
 
+      {/* クリック操作のヒント（デスクトップの通常モードのみ） */}
+      {!isMobile && !isBulkDeleteMode && onImageClick !== undefined && (
+        <p className="mt-4 shrink-0 text-center text-xs text-muted-foreground">
+          {hasSelectedCard
+            ? IMAGE_LIBRARY_CLICK_HINT_SET
+            : IMAGE_LIBRARY_CLICK_HINT_ADD}
+        </p>
+      )}
+
       {/* サムネイルグリッド */}
       <ThumbnailGrid
         images={filteredImages}
@@ -520,6 +567,7 @@ export function ImageLibraryPanel({
         onDragEnd={handleThumbnailDragEnd}
         onToggleSelection={handleToggleImageSelection}
         onImageSelect={handleImageSelect}
+        onImageClick={onImageClick}
         onDelete={(imageId) => void handleDeleteImage(imageId)}
       />
 
