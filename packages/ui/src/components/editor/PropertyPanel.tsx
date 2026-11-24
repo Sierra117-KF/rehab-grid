@@ -3,7 +3,6 @@
 import {
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
-  DELETE_SUCCESS_MESSAGE,
   MAX_PRECAUTIONS_COUNT,
   PROPERTY_PANEL_WARNING,
   SNIPPET_BUTTON_LABEL,
@@ -35,7 +34,6 @@ import {
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useState } from "react";
-import { toast } from "sonner";
 
 /**
  * プロパティパネルの Props
@@ -43,9 +41,18 @@ import { toast } from "sonner";
 export type PropertyPanelProps = {
   /** 選択中のアイテム */
   selectedItem: EditorItem | null;
-  /** アイテム変更時のコールバック */
-  onItemChange: (id: string, updates: Partial<EditorItem>) => void;
-  /** アイテム削除時のコールバック */
+  /**
+   * アイテム変更時のコールバック
+   *
+   * @remarks
+   * 入力欄の変更では options.mergeKey を渡す。同じキーの連続入力は 1 件の履歴にまとまる。
+   */
+  onItemChange: (
+    id: string,
+    updates: Partial<EditorItem>,
+    options?: { mergeKey?: string }
+  ) => void;
+  /** アイテム削除時のコールバック（完了トーストは呼び出し側で表示する） */
   onItemDelete?: (id: string) => void;
 };
 
@@ -80,7 +87,6 @@ export function PropertyPanel({
   const handleConfirmDelete = () => {
     if (selectedItem && onItemDelete) {
       onItemDelete(selectedItem.id);
-      toast.success(DELETE_SUCCESS_MESSAGE);
     }
     setShowDeleteDialog(false);
   };
@@ -106,14 +112,18 @@ export function PropertyPanel({
     value: string
   ) => {
     if (!selectedItem) return;
-    onItemChange(selectedItem.id, {
-      dosages: {
-        reps: selectedItem.dosages?.reps ?? "",
-        sets: selectedItem.dosages?.sets ?? "",
-        frequency: selectedItem.dosages?.frequency ?? "",
-        [field]: value,
+    onItemChange(
+      selectedItem.id,
+      {
+        dosages: {
+          reps: selectedItem.dosages?.reps ?? "",
+          sets: selectedItem.dosages?.sets ?? "",
+          frequency: selectedItem.dosages?.frequency ?? "",
+          [field]: value,
+        },
       },
-    });
+      { mergeKey: `${selectedItem.id}:dosages` }
+    );
   };
 
   /**
@@ -145,11 +155,15 @@ export function PropertyPanel({
   const handleUpdatePrecaution = (precautionId: string, value: string) => {
     if (!selectedItem) return;
     const currentPrecautions = selectedItem.precautions ?? [];
-    onItemChange(selectedItem.id, {
-      precautions: currentPrecautions.map((p) =>
-        p.id === precautionId ? { ...p, value } : p
-      ),
-    });
+    onItemChange(
+      selectedItem.id,
+      {
+        precautions: currentPrecautions.map((p) =>
+          p.id === precautionId ? { ...p, value } : p
+        ),
+      },
+      { mergeKey: `${selectedItem.id}:precaution:${precautionId}` }
+    );
   };
 
   /**
@@ -193,7 +207,11 @@ export function PropertyPanel({
                 id="item-title"
                 value={selectedItem.title}
                 onChange={(e) =>
-                  onItemChange(selectedItem.id, { title: e.target.value })
+                  onItemChange(
+                    selectedItem.id,
+                    { title: e.target.value },
+                    { mergeKey: `${selectedItem.id}:title` }
+                  )
                 }
                 placeholder="運動名を入力"
                 maxLength={TEXT_LIMITS.title}
@@ -210,7 +228,11 @@ export function PropertyPanel({
                 id="item-description"
                 value={selectedItem.description}
                 onChange={(e) =>
-                  onItemChange(selectedItem.id, { description: e.target.value })
+                  onItemChange(
+                    selectedItem.id,
+                    { description: e.target.value },
+                    { mergeKey: `${selectedItem.id}:description` }
+                  )
                 }
                 placeholder="手順や方法を入力"
                 rows={3}

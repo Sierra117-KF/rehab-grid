@@ -37,6 +37,18 @@ export const MAX_ITEM_COUNT = 10;
 /** ロングプレス判定の閾値（ミリ秒） */
 export const LONG_PRESS_DURATION = 500;
 
+/** 編集履歴（Undo）の最大保持件数。超えた分は古い方から捨てる */
+export const HISTORY_LIMIT = 50;
+
+/**
+ * 同じ入力欄への連続入力を 1 件の履歴にまとめる時間幅（ミリ秒）
+ *
+ * @remarks
+ * 前回の記録からこの時間以内に同じ mergeKey で更新されたら、新しい履歴を積まない。
+ * 時刻は入力のたびに更新するため、打ち続けている間は 1 件にまとまる。
+ */
+export const HISTORY_MERGE_WINDOW_MS = 800;
+
 /**
  * グリッドレイアウトオプション
  *

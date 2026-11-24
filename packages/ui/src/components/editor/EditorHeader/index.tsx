@@ -21,9 +21,11 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  REDO_TOOLTIP,
   TEMPLATE_APPLY_SUCCESS,
   TEMPLATE_BUTTON_LABEL,
   TEMPLATE_LOAD_ERROR,
+  UNDO_TOOLTIP,
   UNKNOWN_ERROR_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
@@ -65,7 +67,9 @@ import {
   LayoutTemplate,
   Loader2,
   Menu,
+  Redo2,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -112,6 +116,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const initializeFromDB = useEditorStore((state) => state.initializeFromDB);
   const deleteProject = useEditorStore((state) => state.deleteProject);
   const setLayoutType = useEditorStore((state) => state.setLayoutType);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  // 関数アクションではなくセレクタで購読し、履歴の増減でボタンを再描画する
+  const canUndo = useEditorStore((state) => state.past.length > 0);
+  const canRedo = useEditorStore((state) => state.future.length > 0);
 
   // インポート関連の状態
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -483,6 +492,10 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
             title="メニュー"
           >
             <MobileEditorMenu
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
               layoutType={layoutType}
               onGridSelectClick={handleOpenGridSelectDialog}
               onTemplateClick={handleTemplateButtonClick}
@@ -519,6 +532,30 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
             {/* 右側: プロジェクト情報 + アクションボタン */}
             <div className="ml-auto flex items-center gap-2">
+              {/* 元に戻す / やり直す */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={undo}
+                disabled={!canUndo}
+                title={UNDO_TOOLTIP}
+                aria-label={UNDO_TOOLTIP}
+              >
+                <Undo2 className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={redo}
+                disabled={!canRedo}
+                title={REDO_TOOLTIP}
+                aria-label={REDO_TOOLTIP}
+              >
+                <Redo2 className="size-4" />
+              </Button>
+
               {/* プロジェクト名 + 削除ボタン */}
               <ProjectInfo />
               <Button

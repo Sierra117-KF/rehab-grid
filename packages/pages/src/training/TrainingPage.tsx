@@ -2,10 +2,14 @@
 
 import {
   createMaxItemCountReachedMessage,
+  DELETE_SUCCESS_MESSAGE,
   MAX_ITEM_COUNT,
+  UNDO_LABEL,
+  UNDO_STALE_MESSAGE,
   useEditorStore,
 } from "@rehab-grid/core";
 import { useCanvasImages } from "@rehab-grid/core/hooks/useCanvasImages";
+import { useEditorShortcuts } from "@rehab-grid/core/hooks/useEditorShortcuts";
 import { useIsMobile } from "@rehab-grid/core/hooks/useMediaQuery";
 import { usePasteImage } from "@rehab-grid/core/hooks/usePasteImage";
 import {
@@ -16,6 +20,35 @@ import {
 } from "@rehab-grid/ui";
 import { useCallback } from "react";
 import { toast } from "sonner";
+
+/**
+ * 「元に戻す」付きの完了トーストを表示する
+ *
+ * @remarks
+ * 直前の操作を履歴に記録した直後に呼ぶ。
+ * トーストは数秒残るため、その間に別の操作をすると「元に戻す」が別の操作を取り消してしまう。
+ * 表示時点の past 末尾（スナップショットの参照）を控えておき、
+ * クリック時に末尾が同じときだけ undo する。
+ *
+ * @param message - トーストに表示するメッセージ
+ */
+function showUndoableToast(message: string) {
+  const recordedSnapshot = useEditorStore.getState().past.at(-1);
+
+  toast.success(message, {
+    action: {
+      label: UNDO_LABEL,
+      onClick: () => {
+        const { past, undo } = useEditorStore.getState();
+        if (recordedSnapshot !== undefined && past.at(-1) === recordedSnapshot) {
+          undo();
+        } else {
+          toast.info(UNDO_STALE_MESSAGE);
+        }
+      },
+    },
+  });
+}
 
 /**
  * 自主トレーニング指導箋エディタページ
@@ -70,17 +103,13 @@ export function TrainingPage() {
    */
   const tryAddCard = useCallback(
     (imageId?: string) => {
-      const newItemId = addNewItem();
+      // 画像付きの追加も 1 件の履歴になるよう、画像IDごと 1 回で追加する
+      const newItemId = addNewItem({ imageSource: imageId });
       if (newItemId === null) {
         toast.info(createMaxItemCountReachedMessage(MAX_ITEM_COUNT));
-        return;
-      }
-
-      if (imageId !== undefined && imageId !== "") {
-        updateItem(newItemId, { imageSource: imageId });
       }
     },
-    [addNewItem, updateItem]
+    [addNewItem]
   );
 
   /**
@@ -102,6 +131,9 @@ export function TrainingPage() {
 
   // クリップボード画像貼り付けフック
   usePasteImage({ onPaste: handlePasteImage });
+
+  // Undo / Redo のキーボードショートカット
+  useEditorShortcuts();
 
   /**
    * 画像がカードにドロップされたときの処理
@@ -126,7 +158,17 @@ export function TrainingPage() {
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
   const handleItemChange = updateItem;
-  const handleItemDelete = deleteItem;
+
+  /**
+   * カードを削除し、「元に戻す」付きのトーストを表示
+   */
+  const handleItemDelete = useCallback(
+    (id: string) => {
+      deleteItem(id);
+      showUndoableToast(DELETE_SUCCESS_MESSAGE);
+    },
+    [deleteItem]
+  );
 
   // 最大数チェック（MAX_ITEM_COUNT に達したらカード追加を無効化）
   const canAddCard = items.length < MAX_ITEM_COUNT;

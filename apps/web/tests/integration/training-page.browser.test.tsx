@@ -9,9 +9,13 @@ import {
   CANVAS_EMPTY_DESCRIPTION,
   CANVAS_EMPTY_TITLE,
   DELETE_CONFIRM_TITLE,
+  DELETE_SUCCESS_MESSAGE,
   MAX_ITEM_COUNT,
+  UNDO_LABEL,
+  UNDO_STALE_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
+import { Toaster } from "@rehab-grid/ui/components/wrapped/Toaster";
 import {
   afterEach,
   beforeEach,
@@ -405,6 +409,109 @@ describe("TrainingEditorPage", () => {
 
       // PropertyPanel には「カードを選択」が表示される
       await expect.element(page.getByText("カードを選択")).toBeInTheDocument();
+    });
+  });
+
+  describe("元に戻す（Undo）", () => {
+    /** トースト表示用の Toaster（本番はルートレイアウトに置かれる）と一緒に描画する */
+    async function renderPageWithToaster() {
+      await render(
+        <>
+          <TrainingEditorPage />
+          <Toaster />
+        </>
+      );
+    }
+
+    /** 選択中のカードを確認ダイアログ経由で削除する */
+    async function deleteSelectedCard() {
+      await userEvent.click(
+        page.getByRole("button", { name: /このカードを削除/ })
+      );
+      await userEvent.click(page.getByRole("button", { name: "削除" }));
+    }
+
+    it("削除トーストの「元に戻す」でカードが戻る", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [createTestItem({ id: "item-1", title: "スクワット" })],
+        selectedItemId: "item-1",
+      });
+      await renderPageWithToaster();
+
+      await deleteSelectedCard();
+      await expect
+        .element(page.getByText(DELETE_SUCCESS_MESSAGE))
+        .toBeInTheDocument();
+      await userEvent.click(page.getByRole("button", { name: UNDO_LABEL }));
+
+      await expect
+        .element(getCardByTitle("スクワット"))
+        .toBeInTheDocument();
+    });
+
+    it("削除後に別の操作をしていたら、トーストの「元に戻す」は何も取り消さず案内を出す", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({ id: "item-1", title: "スクワット" }),
+          createTestItem({ id: "item-2", order: 1, title: "腕立て伏せ" }),
+        ],
+        selectedItemId: "item-1",
+      });
+      await renderPageWithToaster();
+
+      await deleteSelectedCard();
+      await userEvent.click(getImageLibraryAddButton());
+      await userEvent.click(page.getByRole("button", { name: UNDO_LABEL }));
+
+      await expect
+        .element(page.getByText(UNDO_STALE_MESSAGE))
+        .toBeInTheDocument();
+      expect(useEditorStore.getState().items.map((i) => i.title)).toEqual([
+        "腕立て伏せ",
+        "新しい運動",
+      ]);
+    });
+
+    it("Ctrl+Z で直前の操作を取り消し、Ctrl+Shift+Z でやり直せる", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [createTestItem({ id: "item-1", title: "スクワット" })],
+        selectedItemId: "item-1",
+      });
+      await renderPage();
+
+      await deleteSelectedCard();
+      await expect
+        .element(page.getByText(CANVAS_EMPTY_TITLE))
+        .toBeInTheDocument();
+
+      await userEvent.keyboard("{Control>}z{/Control}");
+      await expect
+        .element(getCardByTitle("スクワット"))
+        .toBeInTheDocument();
+
+      await userEvent.keyboard("{Control>}{Shift>}Z{/Shift}{/Control}");
+      await expect
+        .element(page.getByText(CANVAS_EMPTY_TITLE))
+        .toBeInTheDocument();
+    });
+
+    it("入力欄にフォーカスがあるときの Ctrl+Z はエディタの履歴を戻さない", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [createTestItem({ id: "item-1", title: "スクワット" })],
+        selectedItemId: "item-1",
+      });
+      await renderPage();
+
+      const titleInput = page.getByLabelText("運動名");
+      await userEvent.fill(titleInput, "腕立て伏せ");
+      await userEvent.keyboard("{Control>}z{/Control}");
+
+      // エディタの履歴は消費されない（ブラウザ標準の取り消しに任せる）
+      expect(useEditorStore.getState().past).toHaveLength(1);
     });
   });
 

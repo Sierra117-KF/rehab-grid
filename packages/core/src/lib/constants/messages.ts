@@ -53,7 +53,24 @@ export const DELETE_CONFIRM_TITLE = "カードを削除";
 
 /** カード削除確認ダイアログの説明 */
 export const DELETE_CONFIRM_DESCRIPTION =
-  "このカードを削除してもよろしいですか？この操作は取り消せません。";
+  "このカードを削除してもよろしいですか？";
+
+// 編集履歴（Undo / Redo）関連メッセージ
+/** 元に戻すボタンのラベル */
+export const UNDO_LABEL = "元に戻す";
+
+/** やり直すボタンのラベル */
+export const REDO_LABEL = "やり直す";
+
+/** 元に戻すボタンのツールチップ */
+export const UNDO_TOOLTIP = "元に戻す（Ctrl+Z）";
+
+/** やり直すボタンのツールチップ */
+export const REDO_TOOLTIP = "やり直す（Ctrl+Shift+Z）";
+
+/** トーストの「元に戻す」を押したが、その後に別の操作が行われていた場合の案内 */
+export const UNDO_STALE_MESSAGE =
+  "他の操作が行われたため、ヘッダーの［元に戻す］を使ってください";
 
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */

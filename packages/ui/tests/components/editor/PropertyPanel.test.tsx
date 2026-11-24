@@ -14,16 +14,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 /**
- * sonner（トースト）のモック
- */
-vi.mock("sonner", () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-/**
  * nanoid のモック
  *
  * @remarks 注意点追加時にIDが必要なため、安定したIDを返す
@@ -178,9 +168,11 @@ describe("PropertyPanel", () => {
       // 1文字入力して検証（制御されたコンポーネントのため、モックでは状態が更新されない）
       await user.type(titleInput, "A");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        title: "既存A",
-      });
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        { title: "既存A" },
+        { mergeKey: "item-1:title" }
+      );
     });
 
     it("タイトル入力フィールドに maxLength が設定されている", () => {
@@ -209,9 +201,11 @@ describe("PropertyPanel", () => {
       const descriptionTextarea = screen.getByLabelText("説明");
       await user.type(descriptionTextarea, "追");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        description: "既存の説明追",
-      });
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        { description: "既存の説明追" },
+        { mergeKey: "item-1:description" }
+      );
     });
 
     it("説明テキストエリアに maxLength が設定されている", () => {
@@ -241,13 +235,17 @@ describe("PropertyPanel", () => {
       const repsInput = screen.getByDisplayValue("10");
       await user.type(repsInput, "回");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3セット",
-          frequency: "毎日",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3セット",
+            frequency: "毎日",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
 
     it("セット数を変更すると onItemChange が呼ばれる", async () => {
@@ -262,13 +260,17 @@ describe("PropertyPanel", () => {
       const setsInput = screen.getByDisplayValue("3");
       await user.type(setsInput, "回");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3回",
-          frequency: "",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3回",
+            frequency: "",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
 
     it("頻度を変更すると onItemChange が呼ばれる", async () => {
@@ -283,13 +285,17 @@ describe("PropertyPanel", () => {
       const frequencyInput = screen.getByDisplayValue("毎日");
       await user.type(frequencyInput, "2");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3セット",
-          frequency: "毎日2",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3セット",
+            frequency: "毎日2",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
   });
 
@@ -325,9 +331,12 @@ describe("PropertyPanel", () => {
       await user.type(precautionInput, "注意");
 
       // 1文字目の入力を検証
-      expect(props.onItemChange).toHaveBeenNthCalledWith(1, "item-1", {
-        precautions: [{ id: "p1", value: "痛み注" }],
-      });
+      expect(props.onItemChange).toHaveBeenNthCalledWith(
+        1,
+        "item-1",
+        { precautions: [{ id: "p1", value: "痛み注" }] },
+        { mergeKey: "item-1:precaution:p1" }
+      );
     });
 
     it("注意点の削除ボタンをクリックすると該当の注意点が削除される", async () => {
@@ -463,23 +472,6 @@ describe("PropertyPanel", () => {
       await user.click(deleteConfirmButton);
 
       expect(mockOnItemDelete).toHaveBeenCalledWith("delete-me");
-    });
-
-    it("削除成功時にトースト通知が表示される", async () => {
-      const user = userEvent.setup();
-      const { toast } = await import("sonner");
-
-      setupPropertyPanel({
-        selectedItem: createTestItem({ id: "delete-me" }),
-        onItemDelete: vi.fn(),
-      });
-
-      await user.click(
-        screen.getByRole("button", { name: /このカードを削除/ })
-      );
-      await user.click(screen.getByRole("button", { name: "削除" }));
-
-      expect(toast.success).toHaveBeenCalledWith("カードを削除しました");
     });
   });
 });
