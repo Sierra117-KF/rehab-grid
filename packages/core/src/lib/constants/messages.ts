@@ -290,6 +290,24 @@ export const IMAGE_LIBRARY_VIDEO_NOT_SUPPORTED = "動画ファイルは保存で
 /** 選択した画像を削除ボタンのラベル */
 export const IMAGE_LIBRARY_DELETE_SELECTED = "選択した画像を削除";
 
+/** 画像検索欄のラベル（aria-label） */
+export const IMAGE_LIBRARY_SEARCH_LABEL = "画像を検索";
+
+/** 画像検索欄のプレースホルダー */
+export const IMAGE_LIBRARY_SEARCH_PLACEHOLDER = "運動名で検索";
+
+/** 画像検索のクリアボタンのラベル */
+export const IMAGE_LIBRARY_SEARCH_CLEAR = "検索をクリア";
+
+/** サムネイルのクリック操作のヒント（カード選択中） */
+export const IMAGE_LIBRARY_CLICK_HINT_SET = "クリック：選択中のカードに設定";
+
+/** サムネイルのクリック操作のヒント（カード未選択） */
+export const IMAGE_LIBRARY_CLICK_HINT_ADD = "クリック：新しいカードを追加";
+
+/** 画像ライブラリのクリックで選択中のカードに画像を設定したときのメッセージ */
+export const IMAGE_SET_SUCCESS_MESSAGE = "画像を設定しました";
+
 // 画像削除ダイアログ関連
 /** 単一画像削除ダイアログのタイトル */
 export const IMAGE_DELETE_TITLE = "画像を削除";

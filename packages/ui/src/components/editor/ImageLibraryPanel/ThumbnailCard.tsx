@@ -50,7 +50,7 @@ type ThumbnailCardProps = {
   onDragStart: (e: React.DragEvent<HTMLDivElement>, imageId: string) => void;
   /** ドラッグ終了時のコールバック */
   onDragEnd: () => void;
-  /** クリック時のコールバック（選択/解除 または モバイル画像選択） */
+  /** クリック時のコールバック（選択/解除・モバイル画像選択・デスクトップのクリック配置） */
   onClick: (imageId: string) => void;
   /** 削除時のコールバック */
   onDelete: (imageId: string) => void;
@@ -74,8 +74,16 @@ export function ThumbnailCard({
 }: ThumbnailCardProps) {
   /**
    * カードのクリックハンドラ
+   *
+   * @remarks
+   * 削除確認ダイアログはポータルに描画されるが、React の合成イベントはポータル越しにも
+   * このカードへ伝播する。ダイアログ内の「削除」「キャンセル」やオーバーレイのクリックで
+   * 画像が配置されないよう、DOM 上でカード内にある要素のクリックだけを扱う。
    */
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) {
+      return;
+    }
     onClick(image.id);
   };
 

@@ -49,6 +49,8 @@ type ThumbnailGridProps = {
   onToggleSelection: (imageId: string) => void;
   /** モバイルで画像が選択されたときのコールバック */
   onImageSelect?: (imageId: string) => void;
+  /** デスクトップで画像がクリックされたときのコールバック */
+  onImageClick?: (imageId: string) => void;
   /** 画像削除時のコールバック */
   onDelete: (imageId: string) => void;
 };
@@ -68,6 +70,7 @@ export function ThumbnailGrid({
   onDragEnd,
   onToggleSelection,
   onImageSelect,
+  onImageClick,
   onDelete,
 }: ThumbnailGridProps) {
   const imageCount = images?.length ?? 0;
@@ -80,8 +83,10 @@ export function ThumbnailGrid({
   const handleCardClick = (imageId: string) => {
     if (isBulkDeleteMode) {
       onToggleSelection(imageId);
-    } else if (isMobile && onImageSelect) {
-      onImageSelect(imageId);
+    } else if (isMobile) {
+      onImageSelect?.(imageId);
+    } else {
+      onImageClick?.(imageId);
     }
   };
 
