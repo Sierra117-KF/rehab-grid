@@ -7,13 +7,14 @@
  * - ダイアログが表示される
  * - 列数（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
  *   ダイアログは開いたまま（「閉じる」で閉じる）
- * - テーマカラーを選ぶと Canvas の用量の区切り線の色が変わり、元に戻すで戻る
+ * - テーマカラーを選ぶと Canvas のカードの枠線と用量の区切り線の色が変わり、元に戻すで戻る
  */
 
 import {
   BUTTON_CLOSE,
   DESIGN_SETTINGS_DESCRIPTION,
   DESIGN_SETTINGS_LABEL,
+  LABELS,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
@@ -156,17 +157,19 @@ function getDesignSettingsButton() {
 }
 
 /**
- * Canvas が上書きした用量の区切り線の色（CSS 変数）を取得する
+ * 運動カードの枠線と用量の区切り線の実際の描画色を取得する
  *
  * @remarks
- * ブラウザテストでは globals.css（Tailwind）を読み込まないため、線の描画色ではなく
- * カードの祖先要素に設定された CSS 変数の値を見る。
+ * どちらもインライン style で CSS 変数を参照しているため、globals.css（Tailwind）を
+ * 読み込まないブラウザテストでも実際の色を検証できる。
  */
-function getDividerColor() {
-  return page
-    .getByTestId("canvas-scroll")
-    .element()
-    .style.getPropertyValue("--dosage-accent-light");
+function getThemeColors() {
+  const card = page.getByTestId("card-item-1").element();
+  const label = page.getByText(LABELS.reps, { exact: true }).element();
+  return {
+    cardBorder: getComputedStyle(card).borderTopColor,
+    divider: getComputedStyle(label).borderTopColor,
+  };
 }
 
 async function expectCanvasColumns(expectedColumns: number) {
@@ -263,23 +266,38 @@ describe("デザイン設定（browser）", () => {
     }
   );
 
-  it("テーマカラーを選ぶと Canvas の区切り線の色が変わり、元に戻すで戻る", async () => {
+  it("テーマカラーを選ぶと Canvas のカードの枠線と区切り線の色が変わり、元に戻すで戻る", async () => {
+    useEditorStore.setState({
+      items: [
+        createTestItem({
+          id: "item-1",
+          dosages: { reps: "10回", sets: "", frequency: "" },
+        }),
+      ],
+    });
     await renderEditor();
 
-    // 既定（blue-500 を白地に 30% 重ねた色）
-    await expect.poll(getDividerColor).toBe("#c4dafc");
+    // 既定のブルー（枠線は #3b82f6、区切り線は白地に 30% 重ねた #c4dafc）
+    const defaultColors = {
+      cardBorder: "rgb(59, 130, 246)",
+      divider: "rgb(196, 218, 252)",
+    };
+    await expect.poll(getThemeColors).toEqual(defaultColors);
 
     await userEvent.click(getDesignSettingsButton());
     await userEvent.click(page.getByRole("button", { name: "エメラルド" }));
 
-    // #059669 を白地に 30% 重ねた色（#b4e0d2）
-    await expect.poll(getDividerColor).toBe("#b4e0d2");
+    // エメラルド（枠線は #059669、区切り線は #b4e0d2）
+    await expect.poll(getThemeColors).toEqual({
+      cardBorder: "rgb(5, 150, 105)",
+      divider: "rgb(180, 224, 210)",
+    });
     expect(useEditorStore.getState().settings.themeColor).toBe("#059669");
 
     await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
     await userEvent.click(page.getByRole("button", { name: UNDO_TOOLTIP }));
 
-    await expect.poll(getDividerColor).toBe("#c4dafc");
+    await expect.poll(getThemeColors).toEqual(defaultColors);
     expect(useEditorStore.getState().settings.themeColor).toBe("#3b82f6");
   });
 });

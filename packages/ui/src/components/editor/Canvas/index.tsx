@@ -42,7 +42,12 @@ import { SortableCard } from "./SortableCard";
 type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
- * 用量の区切り線の色を持つ CSS 変数（globals.css の @theme で border-dosage-accent-light が参照する）
+ * 運動カードの枠線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ */
+const CARD_BORDER_CSS_VARIABLE = "--card-border-color";
+
+/**
+ * 用量の区切り線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
  */
 const DOSAGE_DIVIDER_CSS_VARIABLE = "--dosage-accent-light";
 
@@ -56,7 +61,7 @@ export type CanvasProps = {
   onItemsChange: (items: EditorItem[]) => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（#RRGGBB。用量の区切り線の色に使う。省略時は globals.css の既定色） */
+  /** テーマカラー（#RRGGBB。カードの枠線と用量の区切り線の色に使う。省略時は globals.css の既定色） */
   themeColor?: string;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
@@ -197,11 +202,12 @@ export function Canvas({
     [onItemSelect]
   );
 
-  // 用量の区切り線の色（PDF と同じく白地と合成した不透明色）
+  // テーマカラーをカードの枠線と用量の区切り線（PDF と同じく白地と合成した不透明色）に反映する
   const themeStyle: CssVariableStyle | undefined =
     themeColor === undefined
       ? undefined
       : {
+          [CARD_BORDER_CSS_VARIABLE]: themeColor,
           [DOSAGE_DIVIDER_CSS_VARIABLE]: mixWithWhite(
             themeColor,
             DOSAGE_DIVIDER_OPACITY

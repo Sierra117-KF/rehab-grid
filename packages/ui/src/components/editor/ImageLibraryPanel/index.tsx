@@ -18,8 +18,6 @@ import {
   IMAGE_DRAG_TYPE,
   IMAGE_FILTER_CATEGORIES,
   IMAGE_LIBRARY_CAMERA_SUCCESS,
-  IMAGE_LIBRARY_CLICK_HINT_ADD,
-  IMAGE_LIBRARY_CLICK_HINT_SET,
   IMAGE_LIBRARY_CLIPBOARD_NOT_ALLOWED,
   IMAGE_LIBRARY_NO_IMAGE_IN_CLIPBOARD,
   IMAGE_LIBRARY_PASTE_FAILED,
@@ -60,14 +58,6 @@ type ImageLibraryPanelProps = {
   canAddCard?: boolean;
   /** 画像選択時のコールバック（モバイル用） */
   onImageSelect?: (imageId: string) => void;
-  /**
-   * サムネイルクリック時のコールバック（デスクトップ用）
-   *
-   * 未指定ならクリックしても何もしない。選択中カードへの設定か新規カード追加かは呼び出し側で決める
-   */
-  onImageClick?: (imageId: string) => void;
-  /** キャンバスでカードが選択中かどうか（クリック操作のヒント表示用） */
-  hasSelectedCard?: boolean;
   /** モバイルモードかどうか */
   isMobile?: boolean;
 };
@@ -79,8 +69,6 @@ export function ImageLibraryPanel({
   onAddCard,
   canAddCard = true,
   onImageSelect,
-  onImageClick,
-  hasSelectedCard = false,
   isMobile = false,
 }: ImageLibraryPanelProps) {
   // Refs
@@ -545,15 +533,6 @@ export function ImageLibraryPanel({
         ) : null}
       </div>
 
-      {/* クリック操作のヒント（デスクトップの通常モードのみ） */}
-      {!isMobile && !isBulkDeleteMode && onImageClick !== undefined && (
-        <p className="mt-4 shrink-0 text-center text-xs text-muted-foreground">
-          {hasSelectedCard
-            ? IMAGE_LIBRARY_CLICK_HINT_SET
-            : IMAGE_LIBRARY_CLICK_HINT_ADD}
-        </p>
-      )}
-
       {/* サムネイルグリッド */}
       <ThumbnailGrid
         images={filteredImages}
@@ -567,7 +546,6 @@ export function ImageLibraryPanel({
         onDragEnd={handleThumbnailDragEnd}
         onToggleSelection={handleToggleImageSelection}
         onImageSelect={handleImageSelect}
-        onImageClick={onImageClick}
         onDelete={(imageId) => void handleDeleteImage(imageId)}
       />
 

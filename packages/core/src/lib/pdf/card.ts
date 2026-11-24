@@ -176,7 +176,7 @@ function createDosageSection(
  * @param item - カードに表示するエディタアイテム
  * @param width - カードの幅（ポイント単位）
  * @param imageUrl - 画像のBase64 data URL（省略可）
- * @param settings - プロジェクト設定（1列時の拡大表示・4列時の用量レイアウト・区切り線の色。省略時はデフォルト値）
+ * @param settings - プロジェクト設定（1列時の拡大表示・4列時の用量レイアウト・枠線と区切り線の色。省略時はデフォルト値）
  * @returns カード要素
  */
 export function createCard(
@@ -333,7 +333,11 @@ export function createCard(
 
   return createElement(
     View,
-    { key: item.id, wrap: false, style: { ...styles.card, width } },
+    {
+      key: item.id,
+      wrap: false,
+      style: { ...styles.card, width, borderColor: themeColor },
+    },
     ...children
   );
 }

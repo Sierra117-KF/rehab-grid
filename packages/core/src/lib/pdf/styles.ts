@@ -70,8 +70,8 @@ export const pdfStyles = StyleSheet.create({
   card: {
     backgroundColor: PDF_CARD_STYLE.backgroundColor,
     borderRadius: PDF_CARD_STYLE.borderRadius,
+    // 枠線の色はテーマカラーから求めるため、カード生成時に指定する（card.ts）
     borderWidth: PDF_CARD_STYLE.borderWidth,
-    borderColor: PDF_CARD_STYLE.borderColor,
     padding: PDF_CARD_STYLE.padding,
     marginBottom: PDF_GRID_GAP,
   },
