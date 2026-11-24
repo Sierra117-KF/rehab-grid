@@ -15,7 +15,12 @@
  *
  * @see tests/unit/utils/editor.test.ts - 並び替えロジックの単体テスト
  */
-import { IMAGE_DRAG_TYPE, MAX_ITEM_COUNT, SAMPLE_IMAGES } from "@rehab-grid/core/lib/constants";
+import {
+  DUPLICATE_TOOLTIP,
+  IMAGE_DRAG_TYPE,
+  MAX_ITEM_COUNT,
+  SAMPLE_IMAGES,
+} from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import {
   afterEach,
@@ -94,6 +99,12 @@ vi.mock("@/lib/db", () => ({
   saveImage: vi.fn().mockResolvedValue(undefined),
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
+}));
+
+// デスクトップUIに固定（カード上の複製ボタンはデスクトップのみ表示）
+vi.mock("@/hooks/useMediaQuery", () => ({
+  useMediaQuery: () => false,
+  useIsMobile: () => false,
 }));
 
 // next/image のモック（ブラウザモード用）
@@ -405,6 +416,37 @@ describe("D&D機能", () => {
       await expect.element(card1).toHaveAttribute("data-selected", "false");
       await expect.element(card2).toHaveAttribute("data-selected", "false");
       await expect.element(card3).toHaveAttribute("data-selected", "false");
+    });
+  });
+
+  describe("カード上の複製ボタン", () => {
+    it("押すとドラッグも元カードの選択も起きず、直後に複製が入って選択される", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({ id: "item-1", order: 0, title: "運動A" }),
+          createTestItem({ id: "item-2", order: 1, title: "運動B" }),
+        ],
+      });
+
+      await renderPage();
+
+      const card = page.getByTestId("card-item-1");
+      await card.hover();
+      // 実ブラウザの pointerdown → click が dnd-kit の PointerSensor・カードの onClick に届かないことを確認する
+      await card.getByRole("button", { name: DUPLICATE_TOOLTIP }).click();
+
+      // 並び替えが起きていれば順序が崩れる
+      await expect
+        .poll(() => useEditorStore.getState().items.map((item) => item.title))
+        .toEqual(["運動A", "運動A", "運動B"]);
+
+      const { items, selectedItemId } = useEditorStore.getState();
+      expect(items.map((item) => item.order)).toEqual([0, 1, 2]);
+      expect(selectedItemId).toBe(items[1]?.id);
+      await expect.element(card).toHaveAttribute("data-selected", "false");
+      // 記録された操作は複製の 1 件だけ（並び替えは記録されていない）
+      expect(useEditorStore.getState().past).toHaveLength(1);
     });
   });
 });

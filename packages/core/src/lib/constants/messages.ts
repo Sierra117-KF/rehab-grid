@@ -72,6 +72,44 @@ export const REDO_TOOLTIP = "やり直す（Ctrl+Shift+Z）";
 export const UNDO_STALE_MESSAGE =
   "他の操作が行われたため、ヘッダーの［元に戻す］を使ってください";
 
+// カード複製・一括適用関連メッセージ
+/** カード複製ボタンのラベル */
+export const DUPLICATE_BUTTON_LABEL = "このカードを複製";
+
+/** カード上の複製ボタンのツールチップ */
+export const DUPLICATE_TOOLTIP = "カードを複製";
+
+/** 全カードに反映ボタンのラベル */
+export const APPLY_TO_ALL_LABEL = "全カードに反映";
+
+/** 用量の全カード反映ボタンのツールチップ */
+export const APPLY_DOSAGES_TO_ALL_TOOLTIP =
+  "このカードの回数・セット・頻度を全カードに反映";
+
+/** 注意点の全カード反映ボタンのツールチップ */
+export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
+  "このカードの注意点を全カードに追加";
+
+/** 一括適用で値が変わるカードがなかった場合のメッセージ */
+export const APPLY_TO_ALL_NO_TARGET_MESSAGE = "反映するカードがありません";
+
+/**
+ * 一括適用が完了したときのメッセージを生成
+ *
+ * @param updatedCount - 値が変わったカードの枚数
+ * @param skippedCount - 上限を超えたため追加しなかった注意点の件数
+ * @returns 表示用メッセージ
+ */
+export function createApplyToAllSuccessMessage(
+  updatedCount: number,
+  skippedCount = 0
+): string {
+  const base = `${String(updatedCount)}枚のカードに反映しました`;
+  return skippedCount > 0
+    ? `${base}（上限を超える${String(skippedCount)}件は追加していません）`
+    : base;
+}
+
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */
 export const PROJECT_DELETE_TOOLTIP = "現在のプロジェクトを削除";

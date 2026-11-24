@@ -10,12 +10,14 @@ import {
   HISTORY_LIMIT,
   HISTORY_MERGE_WINDOW_MS,
   MAX_ITEM_COUNT,
+  MAX_PRECAUTIONS_COUNT,
 } from "@rehab-grid/core/lib/constants";
 import { createNewProject, loadProject, saveProject } from "@rehab-grid/core/lib/db";
 import {
   type Dosages,
   type EditorItem,
   type LayoutType,
+  type Precaution,
   type ProjectFile,
   type ProjectMeta,
 } from "@rehab-grid/core/types";
@@ -104,6 +106,16 @@ type AddNewItemOptions = {
 };
 
 /**
+ * appendPrecautionsToAll の結果
+ */
+type AppendPrecautionsResult = {
+  /** 注意点が追加されたカードの枚数 */
+  updatedCount: number;
+  /** 上限（MAX_PRECAUTIONS_COUNT）を超えたため追加しなかった注意点の件数（全カード合計） */
+  skippedCount: number;
+};
+
+/**
  * エディタストアのアクション
  */
 type EditorActions = {
@@ -123,6 +135,22 @@ type EditorActions = {
   ) => void;
   /** アイテムを削除 */
   deleteItem: (id: string) => void;
+  /**
+   * アイテムを複製して元の直後に挿入し、複製を選択する
+   *
+   * @returns 複製したアイテムのID（最大数に達している・元が存在しない場合は null）
+   */
+  duplicateItem: (id: string) => string | null;
+  /**
+   * 全アイテムの用量を上書きする
+   *
+   * @returns 値が変わったアイテムの枚数（0 なら履歴を積まない）
+   */
+  applyDosagesToAll: (dosages: Dosages) => number;
+  /**
+   * 全アイテムに注意点を追記する（同じ文言・空文字は追加しない）
+   */
+  appendPrecautionsToAll: (values: string[]) => AppendPrecautionsResult;
   /** アイテムを並び替え */
   reorderItems: (items: EditorItem[]) => void;
   /** レイアウトタイプを設定 */
@@ -207,6 +235,52 @@ function clearImageReferences(items: EditorItem[], imageId: string) {
   return items.map((item) =>
     item.imageSource === imageId ? { ...item, imageSource: "" } : item
   );
+}
+
+/**
+ * アイテムを複製する（ID・注意点ID は振り直し、参照も共有しない）
+ */
+function cloneItem(item: EditorItem): EditorItem {
+  return {
+    ...item,
+    id: nanoid(),
+    ...(item.dosages && { dosages: { ...item.dosages } }),
+    ...(item.precautions && {
+      precautions: item.precautions.map((precaution) => ({
+        ...precaution,
+        id: nanoid(),
+      })),
+    }),
+  };
+}
+
+/**
+ * 1 枚のカードに注意点を追記した結果を返す
+ *
+ * @remarks
+ * 前後の空白を除いて同じ文言はスキップする（values 内の重複も同様）。
+ * MAX_PRECAUTIONS_COUNT を超える分は捨て、その件数を skipped で返す。
+ * 注意点 ID は React の key に使われるため、カードごとに新しく振る。
+ */
+function appendPrecautions(item: EditorItem, values: string[]) {
+  const current = item.precautions ?? [];
+  const existing = new Set(current.map((precaution) => precaution.value.trim()));
+  const added: Precaution[] = [];
+  let skipped = 0;
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized === "" || existing.has(normalized)) continue;
+    existing.add(normalized);
+
+    if (current.length + added.length >= MAX_PRECAUTIONS_COUNT) {
+      skipped += 1;
+      continue;
+    }
+    added.push({ id: nanoid(), value });
+  }
+
+  return { precautions: [...current, ...added], added: added.length, skipped };
 }
 
 /**
@@ -349,6 +423,56 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             .map((item, index) => ({ ...item, order: index })),
           selectedItemId: selectedItemId === id ? null : selectedItemId,
         });
+      },
+
+      duplicateItem: (id) => {
+        const { items } = get();
+        const index = items.findIndex((item) => item.id === id);
+        const source = items[index];
+        if (source === undefined || items.length >= MAX_ITEM_COUNT) {
+          return null;
+        }
+
+        // PDF は order、Canvas は配列順で描画するため、挿入後に order を振り直して一致させる
+        const copy = cloneItem(source);
+        const nextItems = [
+          ...items.slice(0, index + 1),
+          copy,
+          ...items.slice(index + 1),
+        ].map((item, order) => ({ ...item, order }));
+
+        commit({ items: nextItems, selectedItemId: copy.id });
+        return copy.id;
+      },
+
+      applyDosagesToAll: (dosages) => {
+        const { items } = get();
+        let updatedCount = 0;
+        const nextItems = items.map((item) => {
+          if (isSameDosages(item.dosages, dosages)) return item;
+          updatedCount += 1;
+          // 参照を共有しないよう、カードごとに新しいオブジェクトにする
+          return { ...item, dosages: { ...dosages } };
+        });
+
+        if (updatedCount > 0) commit({ items: nextItems });
+        return updatedCount;
+      },
+
+      appendPrecautionsToAll: (values) => {
+        const { items } = get();
+        let updatedCount = 0;
+        let skippedCount = 0;
+        const nextItems = items.map((item) => {
+          const result = appendPrecautions(item, values);
+          skippedCount += result.skipped;
+          if (result.added === 0) return item;
+          updatedCount += 1;
+          return { ...item, precautions: result.precautions };
+        });
+
+        if (updatedCount > 0) commit({ items: nextItems });
+        return { updatedCount, skippedCount };
       },
 
       reorderItems: (items) => commit({ items }),

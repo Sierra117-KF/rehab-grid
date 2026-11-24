@@ -213,6 +213,9 @@ const {
   addNewItem, // addNewItem({ title?, imageSource? })
   updateItem, // updateItem(id, updates, { mergeKey? }) 同じキーの連続入力は 1 件にまとまる
   deleteItem,
+  duplicateItem, // 元カードの直後に複製を挿入して選択（上限時は null）
+  applyDosagesToAll, // 全カードの用量を上書き（変わった枚数を返す）
+  appendPrecautionsToAll, // 全カードに注意点を追記（{ updatedCount, skippedCount }）
   reorderItems,
   setLayoutType,
   setProjectTitle,
