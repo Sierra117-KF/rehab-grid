@@ -10,6 +10,7 @@
 import type { ChangelogEntry } from "@rehab-grid/core/types";
 
 import { entryV100 } from "./v1.0.0";
+import { entryV110 } from "./v1.1.0";
 
 /**
  * すべての更新エントリ（古い順）
@@ -22,4 +23,5 @@ import { entryV100 } from "./v1.0.0";
 // prettier-ignore
 export const entries: ChangelogEntry[] = [
   entryV100,
+  entryV110,
 ];
