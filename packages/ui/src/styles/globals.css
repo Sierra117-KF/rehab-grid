@@ -64,6 +64,9 @@
   /* 下線（既定のテーマカラー blue-500 を白地に 30% 重ねた色）。Canvas がテーマカラーから上書きする */
   --dosage-accent-light: #c4dafc;
 
+  /* 運動カードの枠線（既定のテーマカラー blue-500）。Canvas がテーマカラーで上書きする */
+  --card-border-color: #3b82f6;
+
   /* 注意事項（アンバー系: 穏やかな警告色） */
   --precaution-bg: #fef3c7; /* amber-100 */
   --precaution-title: #78350f; /* amber-900: 印刷時の視認性向上 */

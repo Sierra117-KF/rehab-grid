@@ -126,14 +126,14 @@ export const PDF_IMAGE_ASPECT_RATIO = 5 / 3;
 
 /**
  * カードのスタイル設定
+ *
+ * ボーダー色はテーマカラー（プロジェクト設定）を使う
  */
 export const PDF_CARD_STYLE = {
   /** 角丸の半径 */
   borderRadius: 8,
   /** ボーダー幅 */
   borderWidth: 1,
-  /** ボーダー色 */
-  borderColor: "#e5e7eb",
   /** 背景色 */
   backgroundColor: "#ffffff",
   /** 内側のパディング */

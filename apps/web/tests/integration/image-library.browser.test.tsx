@@ -2,7 +2,7 @@
  * 画像ライブラリ 結合テスト（ブラウザモード）
  *
  * 実際の ImageLibraryPanel をエディタページに組み込んだ状態で、
- * キーワード検索とクリック配置（デスクトップ）を実ブラウザ環境で検証する
+ * キーワード検索と、デスクトップでのサムネイルのクリックを実ブラウザ環境で検証する
  *
  * @remarks
  * training-page.browser.test.tsx は ImageLibraryPanel をスタブにモックしているため、
@@ -10,18 +10,10 @@
  */
 import type { SampleImage } from "@rehab-grid/core/lib/constants";
 import {
-  BUTTON_DELETE,
-  createMaxItemCountReachedMessage,
-  IMAGE_LIBRARY_CLICK_HINT_ADD,
-  IMAGE_LIBRARY_CLICK_HINT_SET,
   IMAGE_LIBRARY_SEARCH_LABEL,
-  IMAGE_SET_SUCCESS_MESSAGE,
-  MAX_ITEM_COUNT,
   SAMPLE_IMAGES,
-  UNDO_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
-import { Toaster } from "@rehab-grid/ui/components/wrapped/Toaster";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
@@ -89,7 +81,7 @@ vi.mock("@/lib/db", () => ({
   getImages: vi.fn().mockResolvedValue(new Map()),
 }));
 
-// デスクトップUIに固定（クリック配置はデスクトップのみ）
+// デスクトップUIに固定（デスクトップではサムネイルのクリックで何もしないことを確認する）
 vi.mock("@/hooks/useMediaQuery", () => ({
   useMediaQuery: () => false,
   useIsMobile: () => false,
@@ -115,14 +107,9 @@ vi.mock("next/image", async () => {
 
 // ========== ヘルパー ==========
 
-/** トースト表示用の Toaster（本番はルートレイアウトに置かれる）と一緒に描画する */
+/** エディタページを描画する */
 async function renderPage() {
-  await render(
-    <>
-      <TrainingEditorPage />
-      <Toaster />
-    </>
-  );
+  await render(<TrainingEditorPage />);
 }
 
 /** ファイル名からサンプル画像を取得する */
@@ -189,109 +176,28 @@ describe("画像ライブラリ（エディタページ結合）", () => {
     });
   });
 
-  describe("クリック配置", () => {
-    it("カード未選択でサムネイルを押すと、その画像付きのカードが追加される", async () => {
-      await renderPage();
+  describe("サムネイルのクリック（デスクトップ）", () => {
+    it.each([
+      { label: "カード未選択", selectedItemId: null },
+      { label: "カード選択中", selectedItemId: "item-1" },
+    ])(
+      "$label でサムネイルを押しても、カードの追加や画像の変更は起きない（配置は D&D で行う）",
+      async ({ selectedItemId }) => {
+        useEditorStore.setState({
+          ...getInitialEditorState(),
+          items: [createTestItem({ id: "item-1", imageSource: squat.id })],
+          selectedItemId,
+        });
+        await renderPage();
 
-      await expect
-        .element(page.getByText(IMAGE_LIBRARY_CLICK_HINT_ADD))
-        .toBeInTheDocument();
-      await clickThumbnail(squat.fileName);
+        await clickThumbnail(calfStretch.fileName);
+        await waitForNoStateChange();
 
-      await vi.waitFor(() => {
-        expect(useEditorStore.getState().items).toHaveLength(1);
-      });
-      const [added] = useEditorStore.getState().items;
-      expect(added?.imageSource).toBe(squat.id);
-
-      // 追加したカードが選択され、次のクリックは差し替えになる
-      await expect
-        .element(page.getByText(IMAGE_LIBRARY_CLICK_HINT_SET))
-        .toBeInTheDocument();
-    });
-
-    it("カード選択中にサムネイルを押すと画像が差し替わり、トーストから元に戻せる", async () => {
-      useEditorStore.setState({
-        ...getInitialEditorState(),
-        items: [
-          createTestItem({
-            id: "item-1",
-            title: "スクワット",
-            imageSource: squat.id,
-          }),
-        ],
-        selectedItemId: "item-1",
-      });
-      await renderPage();
-
-      await clickThumbnail(calfStretch.fileName);
-
-      await expect
-        .element(page.getByText(IMAGE_SET_SUCCESS_MESSAGE))
-        .toBeInTheDocument();
-      expect(useEditorStore.getState().items).toHaveLength(1);
-      expect(useEditorStore.getState().items[0]?.imageSource).toBe(
-        calfStretch.id
-      );
-
-      await userEvent.click(page.getByRole("button", { name: UNDO_LABEL }));
-
-      await vi.waitFor(() => {
-        expect(useEditorStore.getState().items[0]?.imageSource).toBe(squat.id);
-      });
-    });
-
-    it("選択中のカードと同じ画像を押しても履歴もトーストも増えない", async () => {
-      useEditorStore.setState({
-        ...getInitialEditorState(),
-        items: [createTestItem({ id: "item-1", imageSource: squat.id })],
-        selectedItemId: "item-1",
-      });
-      await renderPage();
-
-      await clickThumbnail(squat.fileName);
-      await waitForNoStateChange();
-
-      expect(useEditorStore.getState().past).toHaveLength(0);
-      await expect
-        .element(page.getByText(IMAGE_SET_SUCCESS_MESSAGE))
-        .not.toBeInTheDocument();
-    });
-
-    it("カード未選択で上限に達していると、追加せずに案内を表示する", async () => {
-      const maxItems = Array.from({ length: MAX_ITEM_COUNT }, (_, i) =>
-        createTestItem({ id: `item-${String(i)}`, order: i })
-      );
-      useEditorStore.setState({ ...getInitialEditorState(), items: maxItems });
-      await renderPage();
-
-      await clickThumbnail(squat.fileName);
-
-      await expect
-        .element(page.getByText(createMaxItemCountReachedMessage(MAX_ITEM_COUNT)))
-        .toBeInTheDocument();
-      expect(useEditorStore.getState().items).toHaveLength(MAX_ITEM_COUNT);
-    });
-
-    it("取り込み画像の削除確認ダイアログで「削除」を押しても、画像は配置されない", async () => {
-      mockUseLiveQuery.mockReturnValue([
-        {
-          id: "imported-1",
-          blob: new Blob(["dummy"], { type: "image/png" }),
-          createdAt: new Date(),
-          fileName: "my_exercise.png",
-        },
-      ]);
-      await renderPage();
-
-      await userEvent.click(page.getByRole("button", { name: "画像を削除" }));
-      await userEvent.click(
-        page.getByRole("alertdialog").getByRole("button", { name: BUTTON_DELETE })
-      );
-
-      await expect.element(page.getByRole("alertdialog")).not.toBeInTheDocument();
-      await waitForNoStateChange();
-      expect(useEditorStore.getState().items).toHaveLength(0);
-    });
+        const { items, past } = useEditorStore.getState();
+        expect(items).toHaveLength(1);
+        expect(items[0]?.imageSource).toBe(squat.id);
+        expect(past).toHaveLength(0);
+      }
+    );
   });
 });

@@ -6,7 +6,6 @@ import {
   createMaxItemCountReachedMessage,
   DELETE_SUCCESS_MESSAGE,
   type Dosages,
-  IMAGE_SET_SUCCESS_MESSAGE,
   MAX_ITEM_COUNT,
   UNDO_LABEL,
   UNDO_STALE_MESSAGE,
@@ -164,26 +163,6 @@ export function TrainingPage() {
     [tryAddCard]
   );
 
-  /**
-   * 画像ライブラリのサムネイルクリック（デスクトップ）
-   *
-   * 選択中のカードがあればその画像を差し替え、なければ画像付きの新規カードを追加する
-   */
-  const handleLibraryImageClick = useCallback(
-    (imageId: string) => {
-      if (selectedItem === null) {
-        tryAddCard(imageId);
-        return;
-      }
-      // 同じ画像なら履歴が積まれないため、トーストの「元に戻す」が直前の別操作を取り消さないよう何もしない
-      if (selectedItem.imageSource === imageId) return;
-
-      updateItem(selectedItem.id, { imageSource: imageId });
-      showUndoableToast(IMAGE_SET_SUCCESS_MESSAGE);
-    },
-    [selectedItem, tryAddCard, updateItem]
-  );
-
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
   const handleItemChange = updateItem;
@@ -306,8 +285,6 @@ export function TrainingPage() {
           <ImageLibraryPanel
             onAddCard={handleAddCard}
             canAddCard={canAddCard}
-            onImageClick={handleLibraryImageClick}
-            hasSelectedCard={selectedItem !== null}
           />
         </div>
       </aside>

@@ -241,4 +241,25 @@ describe("createCard", () => {
 
     expect(card.props).toMatchObject({ wrap: false });
   });
+
+  describe("枠線", () => {
+    it("テーマカラーで枠線を描く", () => {
+      const card = createCard(createTestItem(), 200, undefined, {
+        layoutType: "grid2",
+        themeColor: "#059669",
+      });
+
+      expect(card.props).toMatchObject({
+        style: { borderColor: "#059669", borderWidth: 1 },
+      });
+    });
+
+    it("設定を省略した場合は既定のテーマカラーで枠線を描く", () => {
+      const card = createCard(createTestItem(), 200);
+
+      expect(card.props).toMatchObject({
+        style: { borderColor: DEFAULT_THEME_COLOR },
+      });
+    });
+  });
 });

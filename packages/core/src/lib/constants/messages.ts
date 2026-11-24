@@ -299,15 +299,6 @@ export const IMAGE_LIBRARY_SEARCH_PLACEHOLDER = "運動名で検索";
 /** 画像検索のクリアボタンのラベル */
 export const IMAGE_LIBRARY_SEARCH_CLEAR = "検索をクリア";
 
-/** サムネイルのクリック操作のヒント（カード選択中） */
-export const IMAGE_LIBRARY_CLICK_HINT_SET = "クリック：選択中のカードに設定";
-
-/** サムネイルのクリック操作のヒント（カード未選択） */
-export const IMAGE_LIBRARY_CLICK_HINT_ADD = "クリック：新しいカードを追加";
-
-/** 画像ライブラリのクリックで選択中のカードに画像を設定したときのメッセージ */
-export const IMAGE_SET_SUCCESS_MESSAGE = "画像を設定しました";
-
 // 画像削除ダイアログ関連
 /** 単一画像削除ダイアログのタイトル */
 export const IMAGE_DELETE_TITLE = "画像を削除";
@@ -478,7 +469,7 @@ export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
 
 /** テーマカラーの説明（どこに反映されるか） */
-export const THEME_COLOR_DESCRIPTION = "用量の区切り線の色に使われます";
+export const THEME_COLOR_DESCRIPTION = "運動カードの枠線の色に使われます";
 
 /** テーマカラーのカラーピッカーのラベル */
 export const THEME_COLOR_PICKER_LABEL = "色を選ぶ";

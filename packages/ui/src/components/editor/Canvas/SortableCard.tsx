@@ -94,9 +94,11 @@ export function SortableCard({
     isDragging: isSortableDragging,
   } = useSortable({ id: item.id });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // 枠線の色はテーマカラー（Canvas が上書きする CSS 変数）。区切り線と同じ理由でインライン style で指定する
+    borderColor: "var(--card-border-color)",
   };
 
   const isCurrentlyDragging = isDragging || isSortableDragging;
@@ -194,9 +196,10 @@ export function SortableCard({
         "group relative rounded-xl bg-card transition-all duration-200",
         isMobile ? "cursor-default" : "cursor-pointer",
         isCurrentlyDragging && "z-50 scale-[1.02] shadow-2xl opacity-90",
+        // 枠線はテーマカラー。選択中は枠線から離したオレンジ（--primary）のリングで区別する
         isSelected
-          ? "border-2 border-primary ring-2 ring-primary/40"
-          : "border border-border/50 hover:border-primary/40 hover:shadow-md",
+          ? "border-2 ring-2 ring-primary ring-offset-2 ring-offset-background"
+          : "border hover:shadow-md",
         "animate-fade-in"
       )}
       onClick={(e) => {

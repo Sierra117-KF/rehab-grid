@@ -17,8 +17,6 @@ import {
   IMAGE_DELETE_TITLE,
   IMAGE_LIBRARY_BULK_DELETE,
   IMAGE_LIBRARY_BULK_DELETE_END,
-  IMAGE_LIBRARY_CLICK_HINT_ADD,
-  IMAGE_LIBRARY_CLICK_HINT_SET,
   IMAGE_LIBRARY_CLICK_INSTRUCTION,
   IMAGE_LIBRARY_DROP_INSTRUCTION,
   IMAGE_LIBRARY_NO_MATCHES,
@@ -117,8 +115,6 @@ function setupImageLibraryPanel(
     onAddCard: () => void;
     canAddCard: boolean;
     onImageSelect: (imageId: string) => void;
-    onImageClick: (imageId: string) => void;
-    hasSelectedCard: boolean;
     isMobile: boolean;
   }> = {},
   options: SetupOptions = {}
@@ -143,7 +139,6 @@ function setupImageLibraryPanel(
     onAddCard: vi.fn(),
     canAddCard: true,
     onImageSelect: vi.fn(),
-    onImageClick: vi.fn(),
     isMobile: false,
     ...props,
   };
@@ -429,9 +424,7 @@ describe("ImageLibraryPanel", () => {
       const thumbnail = screen.getByAltText("test_image");
       await user.click(thumbnail);
 
-      // onImageSelect が呼ばれ、デスクトップ用の onImageClick は呼ばれない
       expect(props.onImageSelect).toHaveBeenCalledWith("img-1");
-      expect(props.onImageClick).not.toHaveBeenCalled();
     });
 
     it("モバイルでも検索欄が表示される", () => {
@@ -440,14 +433,6 @@ describe("ImageLibraryPanel", () => {
       expect(
         screen.getByRole("textbox", { name: IMAGE_LIBRARY_SEARCH_LABEL })
       ).toBeInTheDocument();
-    });
-
-    it("モバイルではクリック操作のヒントを表示しない", () => {
-      setupImageLibraryPanel({ isMobile: true });
-
-      expect(
-        screen.queryByText(IMAGE_LIBRARY_CLICK_HINT_ADD)
-      ).not.toBeInTheDocument();
     });
   });
 
@@ -607,8 +592,8 @@ describe("ImageLibraryPanel", () => {
     });
   });
 
-  describe("クリック配置（デスクトップ）", () => {
-    it("サムネイルをクリックすると onImageClick が画像IDで呼ばれる", async () => {
+  describe("サムネイルのクリック", () => {
+    it("デスクトップの通常モードではクリックしても何もしない（配置は D&D で行う）", async () => {
       const user = userEvent.setup();
       const props = setupImageLibraryPanel(
         {},
@@ -617,47 +602,13 @@ describe("ImageLibraryPanel", () => {
 
       await user.click(screen.getByAltText("test_image"));
 
-      expect(props.onImageClick).toHaveBeenCalledWith("img-1");
+      expect(props.onImageSelect).not.toHaveBeenCalled();
+      expect(props.onAddCard).not.toHaveBeenCalled();
     });
 
-    it("サンプル画像もクリックで配置できる", async () => {
+    it("まとめて削除モード中はクリックで選択を切り替える", async () => {
       const user = userEvent.setup();
-      const props = setupImageLibraryPanel({}, { images: [] });
-      const sample = SAMPLE_IMAGES[0];
-      if (sample === undefined) throw new Error("サンプル画像がありません");
-
-      await user.click(screen.getByAltText(sample.fileName));
-
-      expect(props.onImageClick).toHaveBeenCalledWith(sample.id);
-    });
-
-    it("カード未選択なら「新しいカードを追加」のヒントを表示する", () => {
-      setupImageLibraryPanel({ hasSelectedCard: false });
-
-      expect(
-        screen.getByText(IMAGE_LIBRARY_CLICK_HINT_ADD)
-      ).toBeInTheDocument();
-    });
-
-    it("カード選択中なら「選択中のカードに設定」のヒントを表示する", () => {
-      setupImageLibraryPanel({ hasSelectedCard: true });
-
-      expect(
-        screen.getByText(IMAGE_LIBRARY_CLICK_HINT_SET)
-      ).toBeInTheDocument();
-    });
-
-    it("onImageClick がなければヒントを表示しない", () => {
-      setupImageLibraryPanel({ onImageClick: undefined });
-
-      expect(
-        screen.queryByText(IMAGE_LIBRARY_CLICK_HINT_ADD)
-      ).not.toBeInTheDocument();
-    });
-
-    it("まとめて削除モード中はクリックしても配置せず、選択を切り替える", async () => {
-      const user = userEvent.setup();
-      const props = setupImageLibraryPanel(
+      setupImageLibraryPanel(
         {},
         { images: [createTestImage({ id: "img-1", fileName: "test_image" })] }
       );
@@ -667,10 +618,6 @@ describe("ImageLibraryPanel", () => {
       );
       await user.click(screen.getByAltText("test_image"));
 
-      expect(props.onImageClick).not.toHaveBeenCalled();
-      expect(
-        screen.queryByText(IMAGE_LIBRARY_CLICK_HINT_ADD)
-      ).not.toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: createSelectedImagesDeleteLabel(1) })
       ).toBeEnabled();
@@ -680,18 +627,18 @@ describe("ImageLibraryPanel", () => {
       { buttonName: BUTTON_DELETE, label: "削除" },
       { buttonName: BUTTON_CANCEL, label: "キャンセル" },
     ])(
-      "削除確認ダイアログの $label を押しても画像は配置されない",
+      "モバイルで削除確認ダイアログの $label を押しても画像は反映されない",
       async ({ buttonName }) => {
         const user = userEvent.setup();
         const props = setupImageLibraryPanel(
-          {},
+          { isMobile: true },
           { images: [createTestImage({ id: "img-1", fileName: "test_image" })] }
         );
 
         await user.click(screen.getByRole("button", { name: /画像を削除/i }));
         await user.click(screen.getByRole("button", { name: buttonName }));
 
-        expect(props.onImageClick).not.toHaveBeenCalled();
+        expect(props.onImageSelect).not.toHaveBeenCalled();
       }
     );
   });
