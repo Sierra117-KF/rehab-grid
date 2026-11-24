@@ -35,11 +35,6 @@ export { ScrollAnimationSection } from "./components/layout/ScrollAnimationSecti
 export { SecurityDisclaimerModal } from "./components/layout/SecurityDisclaimerModal";
 
 // ========================================
-// pdf コンポーネント
-// ========================================
-export { TrainingSheetPDF } from "./components/pdf/TrainingSheetPDF";
-
-// ========================================
 // ui コンポーネント（shadcn/ui ベース）
 // wrapped/ に対応がないコンポーネントのみエクスポート
 // ========================================

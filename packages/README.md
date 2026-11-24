@@ -144,6 +144,7 @@ core/src/
 │   ├── store/          # Zustand ストア
 │   ├── schemas/        # Zod スキーマ
 │   ├── constants/      # 定数定義
+│   ├── pdf/            # PDF ドキュメント要素の組み立て
 │   ├── templates/      # テンプレートメタデータ
 │   └── changelog/      # 更新履歴データ
 ├── types/              # 型定義
@@ -239,14 +240,14 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 
 | ライブラリ | バージョン | 用途 |
 |-----------|-----------|------|
-| zustand | 5.0.10 | グローバル状態管理 |
-| dexie | 4.2.1 | IndexedDB ラッパー |
-| zod | 4.3.5 | スキーマバリデーション |
-| @react-pdf/renderer | 4.3.2 | PDF生成 |
+| zustand | 5.0.14 | グローバル状態管理 |
+| dexie | 4.4.4 | IndexedDB ラッパー |
+| zod | 4.6.7 | スキーマバリデーション |
+| @react-pdf/renderer | 4.5.1 | PDF生成 |
 | browser-image-compression | 2.0.2 | 画像圧縮 |
 | jszip | 3.10.1 | ZIP生成 |
-| dompurify | 3.3.1 | XSS対策 |
-| nanoid | 5.1.6 | ID生成 |
+| dompurify | 3.4.17 | XSS対策 |
+| nanoid | 5.1.16 | ID生成 |
 
 ---
 
@@ -286,8 +287,6 @@ ui/src/
 │   │   ├── Footer.tsx
 │   │   ├── FAQ.tsx
 │   │   └── ...
-│   ├── pdf/                    # PDF関連
-│   │   └── TrainingSheetPDF.tsx
 │   ├── ui/                     # shadcn/ui（直接編集禁止）
 │   └── wrapped/                # shadcn/ui ラッパー
 └── styles/

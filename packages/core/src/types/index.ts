@@ -18,7 +18,6 @@ export type { ModalState } from "./modal";
 export type {
   PdfGenerationData,
   PdfGenerationState,
-  PdfHeaderInfo,
   PdfWorkerRequest,
   PdfWorkerResponse,
 } from "./pdf";

@@ -98,6 +98,7 @@ packages/core/
 │   │   ├── changelog/      # 更新履歴エントリ
 │   │   ├── constants/      # 定数定義（12モジュール）
 │   │   ├── db/             # IndexedDB（Dexie）
+│   │   ├── pdf/            # PDF ドキュメント要素の組み立て（Worker 専用）
 │   │   ├── schemas/        # Zod スキーマ
 │   │   ├── store/          # Zustand ストア
 │   │   ├── templates/      # テンプレートメタデータ
@@ -454,7 +455,19 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 
 ### pdf.worker.ts
 
-`@react-pdf/renderer` を使用して PDF をメインスレッドをブロックせずに生成。
+`@react-pdf/renderer` を使用して PDF をメインスレッドをブロックせずに生成。Worker 自体はフォント登録（`registerFonts`）・メッセージ処理・Blob 化だけを担い、ドキュメント要素の組み立ては `lib/pdf/` の `buildPdfDocument` に任せる。
+
+```
+lib/pdf/
+├── index.ts      # buildPdfDocument を export
+├── document.ts   # buildPdfDocument, isLayoutType
+├── card.ts       # createCard（画像・タイトル・説明・用量・注意点）
+├── header.ts     # createHeader（タイトル・氏名欄）
+├── metrics.ts    # 画像サイズ・フォントサイズ・1行あたり文字数の計算
+└── styles.ts     # StyleSheet 定義
+```
+
+`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。
 
 ```typescript
 // Worker へのメッセージ
@@ -467,24 +480,19 @@ type PdfWorkerRequest = {
 type PdfWorkerResponse =
   | { type: "progress"; progress: number }
   | { type: "success"; blob: Blob }
-  | { type: "error"; error: string };
+  | { type: "error"; message: string };
 ```
 
 フック経由で使用:
 
 ```typescript
-const { generatePdf, state, blob, error } = usePdfWorker();
+const { state, generatePdf, cancel } = usePdfWorker();
 
-// 生成開始
-await generatePdf({
-  items,
-  meta,
-  settings,
-  imageUrlMap,
-});
+// preparePdfGenerationData で画像を data URL に変換してから渡す
+const data = await preparePdfGenerationData(items, meta, layoutType);
+const blob = data ? await generatePdf(data) : null;
 
-// 状態監視
-// state: "idle" | "generating" | "success" | "error"
+// state: { isGenerating, progress, error }
 ```
 
 ---
@@ -493,17 +501,17 @@ await generatePdf({
 
 | ライブラリ | バージョン | 用途 |
 |-----------|-----------|------|
-| zustand | 5.0.10 | グローバル状態管理 |
-| dexie | 4.2.1 | IndexedDB ラッパー |
-| dexie-react-hooks | 1.1.9 | Dexie の React フック |
-| zod | 4.3.6 | スキーマバリデーション |
-| @react-pdf/renderer | 4.3.2 | PDF 生成 |
+| zustand | 5.0.14 | グローバル状態管理 |
+| dexie | 4.4.4 | IndexedDB ラッパー |
+| dexie-react-hooks | 4.4.0 | Dexie の React フック |
+| zod | 4.6.7 | スキーマバリデーション |
+| @react-pdf/renderer | 4.5.1 | PDF 生成 |
 | browser-image-compression | 2.0.2 | 画像圧縮 |
 | jszip | 3.10.1 | ZIP 生成・展開 |
-| dompurify | 3.3.1 | XSS 対策 |
-| nanoid | 5.1.6 | 一意 ID 生成 |
+| dompurify | 3.4.17 | XSS 対策 |
+| nanoid | 5.1.16 | 一意 ID 生成 |
 | lucide-react | 0.563.0 | アイコン |
-| tailwind-merge | 3.4.0 | Tailwind クラス結合 |
+| tailwind-merge | 3.6.0 | Tailwind クラス結合 |
 | clsx | 2.1.1 | 条件付きクラス結合 |
 
 ---
@@ -524,6 +532,12 @@ tests/
 ├── lib/
 │   ├── db/
 │   │   └── index.test.ts
+│   ├── pdf/
+│   │   ├── card.test.ts
+│   │   ├── document.test.ts
+│   │   ├── header.test.ts
+│   │   ├── metrics.test.ts
+│   │   └── pdfTestUtils.ts
 │   ├── schemas/
 │   │   ├── project.test.ts
 │   │   └── sanitize.test.ts

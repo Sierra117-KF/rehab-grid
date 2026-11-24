@@ -183,6 +183,7 @@ export {
   getPdfPageSize,
   isLandscapeLayout,
   PDF_CARD_STYLE,
+  PDF_CHAR_WIDTH_RATIO,
   PDF_COLORS,
   PDF_CONTENT_SIZE,
   PDF_CONTENT_SIZE_LANDSCAPE,
