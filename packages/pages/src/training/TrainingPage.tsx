@@ -68,7 +68,7 @@ export function TrainingPage() {
 
   // Zustand ストアから状態とアクションを取得
   const items = useEditorStore((state) => state.items);
-  const layoutType = useEditorStore((state) => state.layoutType);
+  const settings = useEditorStore((state) => state.settings);
   const selectedItemId = useEditorStore((state) => state.selectedItemId);
   const addNewItem = useEditorStore((state) => state.addNewItem);
   const updateItem = useEditorStore((state) => state.updateItem);
@@ -317,7 +317,8 @@ export function TrainingPage() {
         <Canvas
           items={items}
           onItemsChange={handleItemsChange}
-          layoutType={layoutType}
+          layoutType={settings.layoutType}
+          themeColor={settings.themeColor}
           selectedItemId={selectedItemId}
           onItemSelect={handleItemSelect}
           onAddCard={handleAddCard}

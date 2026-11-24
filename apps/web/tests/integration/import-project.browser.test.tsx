@@ -51,8 +51,7 @@ function resetStore(): void {
       projectType: "training",
     },
     items: [],
-    layoutType: "grid2",
-    themeColor: "#3b82f6",
+    settings: { layoutType: "grid2", themeColor: "#3b82f6" },
     selectedItemId: null,
     mobileImageLibraryOpen: false,
     mobilePropertyPanelOpen: false,
@@ -365,8 +364,10 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
 
       const state = useEditorStore.getState();
       expect(state.meta.title).toBe("ZIPストア更新テスト");
-      expect(state.layoutType).toBe("grid1");
-      expect(state.themeColor).toBe("#8b5cf6");
+      expect(state.settings).toEqual({
+        layoutType: "grid1",
+        themeColor: "#8b5cf6",
+      });
     });
   });
 

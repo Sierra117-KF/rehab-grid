@@ -463,16 +463,35 @@ export const SECURITY_DISCLAIMER_CHECKBOX_LABEL = "上記の内容を確認し�
 export const SECURITY_DISCLAIMER_SCROLL_HINT =
   "▼ 全て表示されない場合は下にスクロールしてください";
 
-// グリッド選択関連
-/** グリッド選択ボタンのラベル */
-export const GRID_SELECT_BUTTON_LABEL = "グリッド選択";
+// デザイン設定関連
+/** デザイン設定ボタンのラベル（ダイアログのタイトルも兼ねる） */
+export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 
-/** グリッド選択モーダルのタイトル */
-export const GRID_SELECT_MODAL_TITLE = "グリッド選択";
+/** デザイン設定ダイアログの説明 */
+export const DESIGN_SETTINGS_DESCRIPTION =
+  "指導箋の列数と色を変更できます。変更はすぐに反映されます";
 
-/** グリッド選択モーダルの説明 */
-export const GRID_SELECT_MODAL_DESCRIPTION =
-  "カードの表示列数を選択してください";
+/** デザイン設定ダイアログの列数セクションの見出し */
+export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+
+/** デザイン設定ダイアログのテーマカラーセクションの見出し */
+export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
+
+/** テーマカラーの説明（どこに反映されるか） */
+export const THEME_COLOR_DESCRIPTION = "用量の区切り線の色に使われます";
+
+/** テーマカラーのカラーピッカーのラベル */
+export const THEME_COLOR_PICKER_LABEL = "色を選ぶ";
+
+/** テーマカラーのカラーコード入力欄のラベル */
+export const THEME_COLOR_HEX_LABEL = "カラーコード";
+
+/** テーマカラーのカラーコードが不正なときの案内 */
+export const THEME_COLOR_HEX_INVALID_MESSAGE =
+  "#RRGGBB の形式（例: #3b82f6）で入力してください";
+
+/** ダイアログの「閉じる」ボタンのラベル */
+export const BUTTON_CLOSE = "閉じる";
 
 // 画像アップロード関連
 /** 画像アップロード時の警告メッセージ */

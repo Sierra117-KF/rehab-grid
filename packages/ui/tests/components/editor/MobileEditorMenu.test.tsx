@@ -1,4 +1,8 @@
-import { REDO_LABEL, UNDO_LABEL } from "@rehab-grid/core/lib/constants";
+import {
+  DESIGN_SETTINGS_LABEL,
+  REDO_LABEL,
+  UNDO_LABEL,
+} from "@rehab-grid/core/lib/constants";
 import { MobileEditorMenu } from "@rehab-grid/ui/components/editor/EditorHeader/MobileEditorMenu";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -30,7 +34,7 @@ function setupMenu({ canUndo = false, canRedo = false } = {}) {
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     layoutType: "grid2" as const,
-    onGridSelectClick: vi.fn(),
+    onDesignSettingsClick: vi.fn(),
     onTemplateClick: vi.fn(),
     onOpenClick: vi.fn(),
     isImporting: false,
@@ -71,6 +75,22 @@ describe("MobileEditorMenu", () => {
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
       expect(props.onRedo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("デザイン設定", () => {
+    it("現在の列数を表示し、押すとメニューを閉じてダイアログを開く", async () => {
+      const user = userEvent.setup();
+      const props = setupMenu();
+
+      const button = screen.getByRole("button", {
+        name: new RegExp(DESIGN_SETTINGS_LABEL),
+      });
+      expect(button).toHaveTextContent("2列");
+      await user.click(button);
+
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onDesignSettingsClick).toHaveBeenCalledTimes(1);
     });
   });
 });

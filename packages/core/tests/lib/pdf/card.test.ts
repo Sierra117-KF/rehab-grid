@@ -3,6 +3,7 @@
  */
 
 import {
+  DEFAULT_THEME_COLOR,
   LABELS,
   PDF_SUPPORTED_IMAGE_PREFIXES,
   TEXT_LIMITS,
@@ -11,6 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createTestItem,
+  extractDividerColors,
   extractTextContent,
   findElementsByType,
 } from "./pdfTestUtils";
@@ -155,12 +157,42 @@ describe("createCard", () => {
         }),
         150,
         undefined,
-        "grid4"
+        { layoutType: "grid4", themeColor: DEFAULT_THEME_COLOR }
       );
 
       const texts = extractTextContent(card);
       expect(texts).toContain("毎日");
       expect(texts).toContain(LABELS.frequency);
+    });
+
+    it.each([
+      ["既定のテーマカラー", DEFAULT_THEME_COLOR, "#c4dafc"],
+      ["指定したテーマカラー", "#059669", "#b4e0d2"],
+      ["大文字のテーマカラー", "#059669".toUpperCase(), "#b4e0d2"],
+    ])(
+      "%s を白地に重ねた不透明色が、すべてのラベルの区切り線に使われる",
+      (_, themeColor, expected) => {
+        const card = createCard(
+          createTestItem({
+            dosages: { reps: "10回", sets: "3セット", frequency: "毎日" },
+          }),
+          150,
+          undefined,
+          { layoutType: "grid4", themeColor }
+        );
+
+        // 4列時は頻度を横幅いっぱいの行に分けるため、通常行と全幅行の両方を確認できる
+        expect(extractDividerColors(card)).toEqual([expected, expected, expected]);
+      }
+    );
+
+    it("設定を省略した場合は既定のテーマカラーで区切り線を描く", () => {
+      const card = createCard(
+        createTestItem({ dosages: { reps: "10回", sets: "", frequency: "" } }),
+        200
+      );
+
+      expect(extractDividerColors(card)).toEqual(["#c4dafc"]);
     });
 
     it.each([

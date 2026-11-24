@@ -22,6 +22,34 @@ export const DEFAULT_PROJECT_TITLE = "無題のプロジェクト";
 /** デフォルトのテーマカラー（新規作成時・インポート値が不正な場合に使用） */
 export const DEFAULT_THEME_COLOR = "#3b82f6";
 
+/** テーマカラーとして受け付ける形式（#RRGGBB） */
+export const THEME_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * テーマカラーのプリセット
+ *
+ * @remarks
+ * 白い紙に印刷して判別しやすい濃さに限る。
+ * オレンジはカードの選択枠（--primary = orange-600）と区別できるよう、一段濃い orange-700 にしている。
+ */
+export const THEME_COLOR_PRESETS: readonly { label: string; value: string }[] =
+  [
+    { label: "ブルー", value: DEFAULT_THEME_COLOR },
+    { label: "オレンジ", value: "#c2410c" },
+    { label: "エメラルド", value: "#059669" },
+    { label: "ティール", value: "#0891b2" },
+    { label: "バイオレット", value: "#7c3aed" },
+    { label: "スレート", value: "#334155" },
+  ];
+
+/**
+ * 用量の区切り線に使うテーマカラーの濃さ（0〜1）
+ *
+ * @remarks
+ * 白地に重ねた不透明色として Canvas と PDF の両方で使う
+ */
+export const DOSAGE_DIVIDER_OPACITY = 0.3;
+
 /** アイテム表示時のアニメーション遅延間隔（秒） */
 export const ANIMATION_STAGGER_DELAY = 0.05;
 

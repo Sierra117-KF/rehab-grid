@@ -13,13 +13,15 @@ import {
   MAX_PRECAUTIONS_COUNT,
 } from "@rehab-grid/core/lib/constants";
 import { createNewProject, loadProject, saveProject } from "@rehab-grid/core/lib/db";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import {
   type Dosages,
   type EditorItem,
-  type LayoutType,
   type Precaution,
   type ProjectFile,
   type ProjectMeta,
+  type ProjectSettings,
+  type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { debounce } from "@rehab-grid/core/utils/debounce";
 import { nanoid } from "nanoid";
@@ -39,10 +41,8 @@ type EditorSnapshot = {
   meta: ProjectMeta;
   /** アイテム一覧 */
   items: EditorItem[];
-  /** レイアウトタイプ */
-  layoutType: LayoutType;
-  /** テーマカラー */
-  themeColor: string;
+  /** プロジェクト設定（デフォルト値補完済み） */
+  settings: ResolvedProjectSettings;
 };
 
 /**
@@ -82,15 +82,15 @@ type EditorState = EditorSnapshot & {
 };
 
 /**
- * updateItem のオプション
+ * updateItem / updateSettings のオプション
  */
-type UpdateItemOptions = {
+type HistoryMergeOptions = {
   /**
    * 連続入力を 1 件の履歴にまとめるためのキー
    *
    * @remarks
    * 直前の記録と同じキーで、HISTORY_MERGE_WINDOW_MS 以内なら新しい履歴を積まない。
-   * 例: `${itemId}:title`
+   * 例: `${itemId}:title`、`settings:themeColor`
    */
   mergeKey?: string;
 };
@@ -131,7 +131,7 @@ type EditorActions = {
   updateItem: (
     id: string,
     updates: Partial<EditorItem>,
-    options?: UpdateItemOptions
+    options?: HistoryMergeOptions
   ) => void;
   /** アイテムを削除 */
   deleteItem: (id: string) => void;
@@ -153,8 +153,11 @@ type EditorActions = {
   appendPrecautionsToAll: (values: string[]) => AppendPrecautionsResult;
   /** アイテムを並び替え */
   reorderItems: (items: EditorItem[]) => void;
-  /** レイアウトタイプを設定 */
-  setLayoutType: (layout: LayoutType) => void;
+  /** プロジェクト設定を部分的に更新（レイアウトタイプ・テーマカラー等） */
+  updateSettings: (
+    updates: Partial<ProjectSettings>,
+    options?: HistoryMergeOptions
+  ) => void;
   /** 選択中のアイテムIDを設定 */
   setSelectedItemId: (id: string | null) => void;
   /** プロジェクトタイトルを更新 */
@@ -189,14 +192,31 @@ const EMPTY_HISTORY = {
 const initialProject = createNewProject();
 
 /**
+ * プロジェクトデータからストアに入れる状態を作る
+ *
+ * @remarks
+ * 初期値・DB 復元・インポート・テンプレート適用・プロジェクト削除の共通の入口。
+ * IndexedDB からの復元は Zod を通らないため、ここで設定のデフォルト値を補う。
+ */
+function projectToState(data: ProjectFile) {
+  return {
+    meta: data.meta,
+    items: data.items,
+    settings: resolveProjectSettings(data.settings),
+    // 別のプロジェクトに切り替わるため、選択状態と前のプロジェクトの履歴は捨てる
+    selectedItemId: null,
+    ...EMPTY_HISTORY,
+  } satisfies Partial<EditorState>;
+}
+
+/**
  * 状態から履歴用のスナップショットを取り出す
  */
 function toSnapshot(state: EditorSnapshot): EditorSnapshot {
   return {
     meta: state.meta,
     items: state.items,
-    layoutType: state.layoutType,
-    themeColor: state.themeColor,
+    settings: state.settings,
   };
 }
 
@@ -344,12 +364,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     return {
       // 状態の初期値（空の状態で開始）
       isLoaded: false,
-      meta: initialProject.meta,
-      items: [],
-      layoutType: initialProject.settings.layoutType,
-      themeColor: initialProject.settings.themeColor,
-      selectedItemId: null,
-      ...EMPTY_HISTORY,
+      ...projectToState(initialProject),
 
       // モバイルUI用ステートの初期値
       mobileImageLibraryOpen: false,
@@ -358,15 +373,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       // アクション
       initializeFromDB: (data) =>
-        set({
-          isLoaded: true,
-          meta: data.meta,
-          items: data.items,
-          layoutType: data.settings.layoutType,
-          themeColor: data.settings.themeColor,
-          // 別のプロジェクトに切り替わるため、前のプロジェクトの履歴は捨てる
-          ...EMPTY_HISTORY,
-        }),
+        set({ isLoaded: true, ...projectToState(data) }),
 
       setItems: (items) => commit({ items }),
 
@@ -477,9 +484,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       reorderItems: (items) => commit({ items }),
 
-      setLayoutType: (layout) => {
-        if (get().layoutType === layout) return;
-        commit({ layoutType: layout });
+      updateSettings: (updates, options) => {
+        const { settings } = get();
+        const hasChanges = (
+          Object.keys(updates) as (keyof ProjectSettings)[]
+        ).some((key) => !Object.is(settings[key], updates[key]));
+        if (!hasChanges) return;
+
+        commit({ settings: { ...settings, ...updates } }, options?.mergeKey);
       },
 
       setSelectedItemId: (id) => set({ selectedItemId: id }),
@@ -534,18 +546,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         await deleteFromDB();
 
         // 2. Zustandストアの全状態を初期値にリセット
-        // createNewProject()を使用することで、layoutType, themeColorを含めて
-        // 一貫した初期状態にリセットされる
-        const newProject = createNewProject();
-        set({
-          isLoaded: true,
-          meta: newProject.meta,
-          items: newProject.items,
-          layoutType: newProject.settings.layoutType,
-          themeColor: newProject.settings.themeColor,
-          selectedItemId: null,
-          ...EMPTY_HISTORY,
-        });
+        // 他のプロジェクト切り替えと同じ入口を通し、設定・選択・履歴まで一貫してリセットする
+        get().initializeFromDB(createNewProject());
       },
 
       deleteImageAndClearReferences: async (imageId) => {
@@ -589,16 +591,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
  * @remarks
  * エクスポート機能などで現在のプロジェクト状態を取得する際に使用
  *
- * @param state - エディタストアの状態（保存対象のフィールドのみ参照する）
+ * @param state - エディタストアの状態（meta / settings / items のみ参照する）
  * @returns ProjectFile形式のデータ
  */
 export function stateToProjectFile(state: EditorSnapshot): ProjectFile {
   return {
     meta: state.meta,
-    settings: {
-      layoutType: state.layoutType,
-      themeColor: state.themeColor,
-    },
+    settings: state.settings,
     items: state.items,
   };
 }
@@ -614,15 +613,14 @@ const debouncedSave = debounce((state: EditorSnapshot) => {
  * オートセーブの設定
  *
  * @remarks
- * items, layoutType, themeColor, meta の変更を監視し、
+ * items, settings, meta の変更を監視し、
  * 変更があった場合に debounce 付きで保存を実行。
  * Undo / Redo で値が戻った場合もここで保存される（past / future だけの変化では保存しない）。
  */
 useEditorStore.subscribe(
   (state) => ({
     items: state.items,
-    layoutType: state.layoutType,
-    themeColor: state.themeColor,
+    settings: state.settings,
     meta: state.meta,
   }),
   () => {

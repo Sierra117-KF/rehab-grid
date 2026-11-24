@@ -2,10 +2,8 @@ import { APP_VERSION, CURRENT_PROJECT_ID } from "@rehab-grid/core/lib/constants"
 import {
   type EditorItem,
   type ImportResult,
-  type LayoutType,
   type ProjectFile,
   type ProjectMeta,
-  type ProjectSettings,
 } from "@rehab-grid/core/types";
 import {
   afterAll,
@@ -45,11 +43,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 // モック定義後に実装ファイルをインポート（順序重要）
-import {
-  applyImportResult,
-  createProjectFile,
-  createProjectSettings,
-} from "@rehab-grid/core/utils/project";
+import { applyImportResult } from "@rehab-grid/core/utils/project";
 
 /**
  * テスト用の固定日時
@@ -102,87 +96,6 @@ function createTestProjectFile(
 }
 
 describe("utils/project", () => {
-  describe("createProjectFile", () => {
-    it("正しい ProjectFile オブジェクトを生成できること", () => {
-      const meta = createTestMeta({ title: "スクワットセット" });
-      const settings: Pick<ProjectSettings, "layoutType" | "themeColor"> = {
-        layoutType: "grid3",
-        themeColor: "#ff0000",
-      };
-      const items = [
-        createTestItem({ id: "item-1", title: "スクワット" }),
-        createTestItem({ id: "item-2", title: "腹筋", order: 1 }),
-      ];
-
-      const result = createProjectFile(meta, settings, items);
-
-      expect(result).toEqual({
-        meta,
-        settings,
-        items,
-      });
-    });
-
-    it("items が空配列でも正しく動作すること", () => {
-      const meta = createTestMeta();
-      const settings: Pick<ProjectSettings, "layoutType" | "themeColor"> = {
-        layoutType: "grid2",
-        themeColor: "#3b82f6",
-      };
-      const items: EditorItem[] = [];
-
-      const result = createProjectFile(meta, settings, items);
-
-      expect(result.items).toEqual([]);
-      expect(result.meta).toBe(meta);
-      expect(result.settings).toBe(settings);
-    });
-
-    it("入力オブジェクトを変更しないこと（参照の保持）", () => {
-      const meta = createTestMeta();
-      const settings: Pick<ProjectSettings, "layoutType" | "themeColor"> = {
-        layoutType: "grid2",
-        themeColor: "#3b82f6",
-      };
-      const items = [createTestItem()];
-
-      const result = createProjectFile(meta, settings, items);
-
-      // 参照が保持されていること（新しいオブジェクトを作成していない）
-      expect(result.meta).toBe(meta);
-      expect(result.settings).toBe(settings);
-      expect(result.items).toBe(items);
-    });
-  });
-
-  describe("createProjectSettings", () => {
-    it.each([
-      ["grid1", "#000000"],
-      ["grid2", "#3b82f6"],
-      ["grid3", "#ff0000"],
-      ["grid4", "#ffffff"],
-    ] as const)(
-      "layoutType=%s, themeColor=%s で正しい設定を生成できること",
-      (layoutType, themeColor) => {
-        const result = createProjectSettings(layoutType, themeColor);
-
-        expect(result).toEqual({
-          layoutType,
-          themeColor,
-        });
-      }
-    );
-
-    it("全ての LayoutType で動作すること", () => {
-      const layoutTypes: LayoutType[] = ["grid1", "grid2", "grid3", "grid4"];
-
-      for (const layoutType of layoutTypes) {
-        const result = createProjectSettings(layoutType, "#test");
-        expect(result.layoutType).toBe(layoutType);
-      }
-    });
-  });
-
   describe("applyImportResult", () => {
     beforeAll(() => {
       vi.useFakeTimers();

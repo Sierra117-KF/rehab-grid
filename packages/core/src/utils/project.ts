@@ -4,60 +4,7 @@
 
 import { CURRENT_PROJECT_ID } from "@rehab-grid/core/lib/constants";
 import { db } from "@rehab-grid/core/lib/db";
-import {
-  type EditorItem,
-  type ImportResult,
-  type LayoutType,
-  type ProjectFile,
-  type ProjectMeta,
-  type ProjectSettings,
-} from "@rehab-grid/core/types";
-
-/**
- * ProjectFileオブジェクトを作成
- *
- * @param meta - プロジェクトのメタ情報
- * @param settings - プロジェクトの設定（layoutType, themeColor）
- * @param items - エディタアイテムの配列
- * @returns ProjectFileオブジェクト
- *
- * @example
- * ```typescript
- * const project = createProjectFile(
- *   meta,
- *   { layoutType: "grid2", themeColor: "#000000" },
- *   items
- * );
- * ```
- */
-export function createProjectFile(
-  meta: ProjectMeta,
-  settings: Pick<ProjectSettings, "layoutType" | "themeColor">,
-  items: EditorItem[]
-): ProjectFile {
-  return {
-    meta,
-    settings,
-    items,
-  };
-}
-
-/**
- * 現在のストア状態からProjectFileを作成するための設定オブジェクトを生成
- *
- * @param layoutType - グリッドレイアウトタイプ
- * @param themeColor - テーマカラー
- * @returns ProjectSettings形式の設定オブジェクト
- */
-export function createProjectSettings(
-  layoutType: LayoutType,
-  themeColor: string
-): ProjectSettings {
-  return {
-    layoutType,
-    themeColor,
-  };
-}
+import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
 
 /**
  * インポート結果をアプリに適用する

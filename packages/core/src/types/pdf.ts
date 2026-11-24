@@ -2,8 +2,8 @@
  * PDF出力関連の型定義
  */
 
-import { type EditorItem, type LayoutType } from "./editor";
-import { type ProjectMeta } from "./project";
+import { type EditorItem } from "./editor";
+import { type ProjectMeta, type ResolvedProjectSettings } from "./project";
 
 /**
  * PDF生成に必要なデータ
@@ -11,8 +11,8 @@ import { type ProjectMeta } from "./project";
 export type PdfGenerationData = {
   /** プロジェクトのメタ情報 */
   meta: ProjectMeta;
-  /** レイアウトタイプ */
-  layoutType: LayoutType;
+  /** プロジェクト設定（レイアウトタイプ・テーマカラー等） */
+  settings: ResolvedProjectSettings;
   /** アイテム一覧 */
   items: EditorItem[];
   /** 画像データ（ID -> Base64 data URL のマップ） */

@@ -169,6 +169,7 @@ export const PDF_TEXT_STYLE = {
  *
  * shared.ts の DOSAGE_COLORS を参照（信頼できる単一の情報源）
  * 数値強調型デザイン: グレースケール + blue-500アクセント
+ * 区切り線の色はテーマカラーから求める（lib/pdf/card.ts）
  */
 export const PDF_DOSAGE_COLORS = {
   /** 数値色: slate-800 */
@@ -177,8 +178,6 @@ export const PDF_DOSAGE_COLORS = {
   label: DOSAGE_COLORS.label,
   /** アクセント色: blue-500 */
   accent: DOSAGE_COLORS.accent,
-  /** アクセント色（薄い）: blue-500/30 */
-  accentLight: DOSAGE_COLORS.accentLight,
 } as const;
 
 /**

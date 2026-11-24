@@ -327,6 +327,28 @@ describe("Canvas", () => {
     );
   });
 
+  describe("テーマカラー", () => {
+    it("用量の区切り線の CSS 変数を、テーマカラーを白地に重ねた色で上書きする", () => {
+      setupCanvas({ items: [createTestItem()], themeColor: "#059669" });
+
+      expect(
+        screen
+          .getByTestId("canvas-scroll")
+          .style.getPropertyValue("--dosage-accent-light")
+      ).toBe("#b4e0d2");
+    });
+
+    it("themeColor を省略すると CSS 変数を上書きしない（globals.css の既定色）", () => {
+      setupCanvas({ items: [createTestItem()] });
+
+      expect(
+        screen
+          .getByTestId("canvas-scroll")
+          .style.getPropertyValue("--dosage-accent-light")
+      ).toBe("");
+    });
+  });
+
   describe("モバイルモード", () => {
     it("isMobile=true のとき layoutType に関わらず常に1列表示になる", () => {
       setupCanvas({

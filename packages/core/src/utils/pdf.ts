@@ -13,6 +13,7 @@ import {
   type LayoutType,
   type PdfGenerationData,
   type ProjectMeta,
+  type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 
 import {
@@ -94,12 +95,12 @@ export function truncateToLines(
  *
  * @param items - エディタアイテムの配列
  * @param meta - プロジェクトのメタ情報
- * @param layoutType - グリッドレイアウトタイプ
+ * @param settings - プロジェクト設定（レイアウトタイプ・テーマカラー等）
  * @returns PDF生成データ。itemsが空の場合はnull
  *
  * @example
  * ```typescript
- * const pdfData = await preparePdfGenerationData(items, meta, layoutType);
+ * const pdfData = await preparePdfGenerationData(items, meta, settings);
  * if (pdfData) {
  *   const blob = await generatePdf(pdfData);
  * }
@@ -108,7 +109,7 @@ export function truncateToLines(
 export async function preparePdfGenerationData(
   items: EditorItem[],
   meta: ProjectMeta,
-  layoutType: LayoutType
+  settings: ResolvedProjectSettings
 ): Promise<PdfGenerationData | null> {
   if (items.length === 0) {
     return null;
@@ -151,7 +152,7 @@ export async function preparePdfGenerationData(
 
   return {
     meta,
-    layoutType,
+    settings,
     items,
     images: imagesMap,
   };

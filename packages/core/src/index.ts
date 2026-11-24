@@ -9,12 +9,14 @@ export * from "./lib/constants";
 export * from "./lib/db";
 export { Platform } from "./lib/platform";
 export * from "./lib/schemas";
+export * from "./lib/settings";
 export * from "./lib/store/useEditorStore";
 export * from "./lib/store/useModalStore";
 export * from "./lib/templates";
 export { cn } from "./lib/utils";
 
 // utils
+export * from "./utils/color";
 export * from "./utils/debounce";
 export * from "./utils/download";
 export * from "./utils/editor";

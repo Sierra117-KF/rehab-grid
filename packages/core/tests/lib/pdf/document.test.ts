@@ -3,54 +3,49 @@
  */
 
 import {
+  DEFAULT_THEME_COLOR,
   LABELS,
-  LAYOUT_COLUMNS,
   PDF_LABELS,
   PDF_PAGE_SIZE,
   PDF_PAGE_SIZE_LANDSCAPE,
 } from "@rehab-grid/core/lib/constants";
-import { type PdfGenerationData } from "@rehab-grid/core/types";
+import {
+  type LayoutType,
+  type PdfGenerationData,
+} from "@rehab-grid/core/types";
 import { describe, expect, it, vi } from "vitest";
 
 import {
   createTestItem,
   createTestMeta,
+  extractDividerColors,
   extractTextContent,
   findElementsByType,
 } from "./pdfTestUtils";
 
 vi.mock("@react-pdf/renderer", async () => (await import("./pdfTestUtils")).reactPdfMock);
 
-import { buildPdfDocument, isLayoutType } from "@/lib/pdf/document";
+import { buildPdfDocument } from "@/lib/pdf/document";
 
 function createTestData(
   overrides: Partial<PdfGenerationData> = {}
 ): PdfGenerationData {
   return {
     meta: createTestMeta(),
-    layoutType: "grid2",
+    settings: { layoutType: "grid2", themeColor: DEFAULT_THEME_COLOR },
     items: [],
     images: {},
     ...overrides,
   };
 }
 
+function createSettings(layoutType: LayoutType, themeColor = DEFAULT_THEME_COLOR) {
+  return { layoutType, themeColor };
+}
+
 function getPageSize(doc: unknown): unknown {
   return findElementsByType(doc, "Page")[0]?.props?.size;
 }
-
-describe("isLayoutType", () => {
-  it.each(Object.keys(LAYOUT_COLUMNS))("'%s' で true を返す", (value) => {
-    expect(isLayoutType(value)).toBeTruthy();
-  });
-
-  it.each(["invalid", "grid5", "", "Grid2", "GRID2"])(
-    "'%s' で false を返す",
-    (value) => {
-      expect(isLayoutType(value)).toBeFalsy();
-    }
-  );
-});
 
 describe("buildPdfDocument", () => {
   it("Document の下に Page が 1 つ生成される", () => {
@@ -135,7 +130,9 @@ describe("buildPdfDocument", () => {
     ["grid3", "横", PDF_PAGE_SIZE_LANDSCAPE],
     ["grid4", "横", PDF_PAGE_SIZE_LANDSCAPE],
   ] as const)("%s は A4%s の用紙になる", (layoutType, _, size) => {
-    const doc = buildPdfDocument(createTestData({ layoutType }));
+    const doc = buildPdfDocument(
+      createTestData({ settings: createSettings(layoutType) })
+    );
 
     expect(getPageSize(doc)).toEqual([size.width, size.height]);
   });
@@ -144,10 +141,36 @@ describe("buildPdfDocument", () => {
     const doc = buildPdfDocument(
       createTestData({
         // @ts-expect-error - Worker 経由で不正値が届いた場合を想定
-        layoutType: "invalid",
+        settings: createSettings("invalid"),
       })
     );
 
     expect(getPageSize(doc)).toEqual([PDF_PAGE_SIZE.width, PDF_PAGE_SIZE.height]);
+  });
+
+  it("テーマカラーがカードの用量の区切り線に反映される", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", "#7c3aed"),
+        items: [
+          createTestItem({ dosages: { reps: "10回", sets: "", frequency: "" } }),
+        ],
+      })
+    );
+
+    expect(extractDividerColors(doc)).toEqual(["#d8c4fa"]);
+  });
+
+  it("不正なテーマカラーは既定のテーマカラーとして扱う", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", "red"),
+        items: [
+          createTestItem({ dosages: { reps: "10回", sets: "", frequency: "" } }),
+        ],
+      })
+    );
+
+    expect(extractDividerColors(doc)).toEqual(["#c4dafc"]);
   });
 });
