@@ -50,8 +50,7 @@ function extractImageFromClipboard(items: DataTransferItemList): File | null {
  * ```tsx
  * usePasteImage({
  *   onPaste: (imageId) => {
- *     const newItemId = addNewItem();
- *     updateItem(newItemId, { imageSource: imageId });
+ *     addNewItem({ imageSource: imageId });
  *   },
  * });
  * ```

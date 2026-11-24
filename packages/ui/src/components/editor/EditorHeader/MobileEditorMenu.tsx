@@ -10,7 +10,9 @@ import {
   IMPORT_OPEN_LABEL,
   LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
+  REDO_LABEL,
   TEMPLATE_BUTTON_LABEL,
+  UNDO_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
@@ -26,7 +28,9 @@ import {
   Home,
   LayoutTemplate,
   Loader2,
+  Redo2,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -35,6 +39,14 @@ import { useCallback, useState } from "react";
  * MobileEditorMenu のプロパティ
  */
 type MobileEditorMenuProps = {
+  /** 元に戻せる操作があるかどうか */
+  canUndo: boolean;
+  /** やり直せる操作があるかどうか */
+  canRedo: boolean;
+  /** 直前の操作を取り消す */
+  onUndo: () => void;
+  /** 取り消した操作をやり直す */
+  onRedo: () => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
   /** グリッド選択ダイアログを開く */
@@ -121,6 +133,10 @@ function MenuItem(props: MenuItemProps) {
  * グリッド選択、テンプレート、ファイル操作、エクスポート、削除の機能を提供。
  */
 export function MobileEditorMenu({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   layoutType,
   onGridSelectClick,
   onTemplateClick,
@@ -133,6 +149,22 @@ export function MobileEditorMenu({
 }: MobileEditorMenuProps) {
   /** エクスポートサブメニューの展開状態 */
   const [isExportExpanded, setIsExportExpanded] = useState(false);
+
+  /**
+   * 元に戻すクリックハンドラ（結果が見えるようメニューを閉じる）
+   */
+  const handleUndo = useCallback(() => {
+    onClose();
+    onUndo();
+  }, [onClose, onUndo]);
+
+  /**
+   * やり直すクリックハンドラ（結果が見えるようメニューを閉じる）
+   */
+  const handleRedo = useCallback(() => {
+    onClose();
+    onRedo();
+  }, [onClose, onRedo]);
 
   /**
    * グリッド選択クリックハンドラ
@@ -191,6 +223,23 @@ export function MobileEditorMenu({
 
   return (
     <nav className="flex flex-col">
+      {/* 元に戻す / やり直す */}
+      <MenuItem
+        icon={Undo2}
+        label={UNDO_LABEL}
+        onClick={handleUndo}
+        disabled={!canUndo}
+      />
+      <MenuItem
+        icon={Redo2}
+        label={REDO_LABEL}
+        onClick={handleRedo}
+        disabled={!canRedo}
+      />
+
+      {/* 区切り線 */}
+      <div className="my-2 h-px bg-border/40" aria-hidden="true" />
+
       {/* グリッド選択 */}
       <MenuItem
         icon={Grid3x3}

@@ -86,8 +86,9 @@ import type { EditorItem, ProjectFile } from "@rehab-grid/core/types";
 packages/core/
 ├── src/
 │   ├── index.ts            # バレルエクスポート
-│   ├── hooks/              # カスタムフック（7個）
+│   ├── hooks/              # カスタムフック（8個）
 │   │   ├── useCanvasImages.ts
+│   │   ├── useEditorShortcuts.ts
 │   │   ├── useHasEditorHistory.ts
 │   │   ├── useImageUpload.ts
 │   │   ├── useMediaQuery.ts
@@ -123,6 +124,7 @@ packages/core/
 | フック名 | 用途 | 主な戻り値 |
 |---------|------|-----------|
 | `useCanvasImages` | IndexedDB + サンプル画像の URL 統合 | `Map<string, string>` (id → URL) |
+| `useEditorShortcuts` | Undo / Redo のキーボードショートカット（Ctrl/Cmd+Z 等） | `void` |
 | `useHasEditorHistory` | LocalStorage からエディタ使用履歴を判定 | `boolean` |
 | `useImageUpload` | ファイル選択による画像アップロード | `{ openFilePicker, isUploading }` |
 | `useMediaQuery` | メディアクエリ監視 | `boolean` |
@@ -195,25 +197,33 @@ await deleteImage("img_001");
 
 #### useEditorStore
 
-エディタの状態管理。アイテム、メタデータ、レイアウト設定を管理します。
+エディタの状態管理。アイテム、メタデータ、レイアウト設定と編集履歴（Undo / Redo）を管理します。
 
 ```typescript
 const {
   // 状態
   items,
   meta,
-  settings,
+  layoutType,
+  themeColor,
+  past, // Undo で戻れる状態（最大 HISTORY_LIMIT 件、永続化しない）
+  future, // Redo で進める状態
 
-  // アクション
-  addNewItem,
-  updateItem,
+  // アクション（変更系は履歴に記録される）
+  addNewItem, // addNewItem({ title?, imageSource? })
+  updateItem, // updateItem(id, updates, { mergeKey? }) 同じキーの連続入力は 1 件にまとまる
   deleteItem,
   reorderItems,
   setLayoutType,
-  setMeta,
-  loadFromProject,
-  reset,
+  setProjectTitle,
+  undo,
+  redo,
+  initializeFromDB, // 読み込み・インポート・テンプレート適用（履歴はクリア）
+  deleteProject,
 } = useEditorStore();
+
+// 履歴の有無はセレクタで購読する
+const canUndo = useEditorStore((state) => state.past.length > 0);
 ```
 
 #### useModalStore

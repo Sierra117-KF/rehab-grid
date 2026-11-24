@@ -1,4 +1,8 @@
-import { MAX_ITEM_COUNT } from "@rehab-grid/core/lib/constants";
+import {
+  HISTORY_LIMIT,
+  HISTORY_MERGE_WINDOW_MS,
+  MAX_ITEM_COUNT,
+} from "@rehab-grid/core/lib/constants";
 import { stateToProjectFile, useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import {
   type EditorItem,
@@ -98,6 +102,9 @@ const getInitialState = () => ({
   layoutType: "grid2" as LayoutType,
   themeColor: "#3b82f6",
   selectedItemId: null,
+  past: [],
+  future: [],
+  lastHistoryCommit: null,
   mobileImageLibraryOpen: false,
   mobilePropertyPanelOpen: false,
   mobileImageLibraryTargetItemId: null,
@@ -284,9 +291,15 @@ describe("useEditorStore", () => {
     });
 
     it("カスタムタイトルを指定できる", () => {
-      useEditorStore.getState().addNewItem("スクワット");
+      useEditorStore.getState().addNewItem({ title: "スクワット" });
 
       expect(useEditorStore.getState().items[0]?.title).toBe("スクワット");
+    });
+
+    it("画像IDを指定して追加できる", () => {
+      useEditorStore.getState().addNewItem({ imageSource: "img-1" });
+
+      expect(useEditorStore.getState().items[0]?.imageSource).toBe("img-1");
     });
 
     it("order が items.length に設定される", () => {
@@ -622,6 +635,284 @@ describe("useEditorStore", () => {
         useEditorStore.getState().setMobilePropertyPanelOpen(false);
         expect(useEditorStore.getState().mobilePropertyPanelOpen).toBeFalsy();
       });
+    });
+  });
+
+  describe("編集履歴（Undo / Redo）", () => {
+    /** 現在の items のタイトル一覧 */
+    const titles = () => useEditorStore.getState().items.map((i) => i.title);
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      useEditorStore.setState({
+        items: [
+          createTestItem({ id: "a", title: "運動A", order: 0 }),
+          createTestItem({ id: "b", title: "運動B", order: 1 }),
+        ],
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("updateItem を取り消し・やり直しできる", () => {
+      const { updateItem, undo, redo } = useEditorStore.getState();
+      updateItem("a", { title: "変更後" });
+
+      undo();
+      expect(titles()).toEqual(["運動A", "運動B"]);
+
+      redo();
+      expect(titles()).toEqual(["変更後", "運動B"]);
+    });
+
+    it("deleteItem を取り消すとカードが戻るが、選択状態には戻らない", () => {
+      useEditorStore.setState({ selectedItemId: "a" });
+      const { deleteItem, undo } = useEditorStore.getState();
+      deleteItem("a");
+
+      undo();
+
+      expect(titles()).toEqual(["運動A", "運動B"]);
+      expect(useEditorStore.getState().selectedItemId).toBeNull();
+    });
+
+    it("reorderItems を取り消せる", () => {
+      const { reorderItems, undo } = useEditorStore.getState();
+      reorderItems([
+        createTestItem({ id: "b", title: "運動B", order: 0 }),
+        createTestItem({ id: "a", title: "運動A", order: 1 }),
+      ]);
+
+      undo();
+
+      expect(titles()).toEqual(["運動A", "運動B"]);
+    });
+
+    it("setLayoutType と setProjectTitle を取り消せる", () => {
+      const { setLayoutType, setProjectTitle, undo } =
+        useEditorStore.getState();
+      setLayoutType("grid4");
+      setProjectTitle("新しい名前");
+
+      undo();
+      expect(useEditorStore.getState().meta.title).toBe("無題のプロジェクト");
+      expect(useEditorStore.getState().layoutType).toBe("grid4");
+
+      undo();
+      expect(useEditorStore.getState().layoutType).toBe("grid2");
+    });
+
+    it("画像付きのカード追加は履歴 1 件になる", () => {
+      const { addNewItem, undo } = useEditorStore.getState();
+      addNewItem({ imageSource: "img-1" });
+
+      expect(useEditorStore.getState().past).toHaveLength(1);
+      undo();
+      expect(titles()).toEqual(["運動A", "運動B"]);
+    });
+
+    it("Redo 後も存在するカードの選択は維持される", () => {
+      const { addNewItem, undo, redo } = useEditorStore.getState();
+      const newId = addNewItem();
+      undo();
+      useEditorStore.setState({ selectedItemId: "a" });
+
+      redo();
+
+      expect(useEditorStore.getState().selectedItemId).toBe("a");
+      expect(useEditorStore.getState().items.at(-1)?.id).toBe(newId);
+    });
+
+    it("Undo 後に追加したカードが消えたら選択が解除される", () => {
+      const { addNewItem, undo } = useEditorStore.getState();
+      addNewItem();
+      expect(useEditorStore.getState().selectedItemId).not.toBeNull();
+
+      undo();
+
+      expect(useEditorStore.getState().selectedItemId).toBeNull();
+    });
+
+    it("履歴がないときの undo / redo は何もしない", () => {
+      const before = useEditorStore.getState().items;
+      const { undo, redo } = useEditorStore.getState();
+
+      undo();
+      redo();
+
+      expect(useEditorStore.getState().items).toBe(before);
+    });
+
+    it("新しい操作をすると future が消える", () => {
+      const { updateItem, undo } = useEditorStore.getState();
+      updateItem("a", { title: "1回目" });
+      undo();
+      expect(useEditorStore.getState().future).toHaveLength(1);
+
+      updateItem("b", { title: "別の操作" });
+
+      expect(useEditorStore.getState().future).toEqual([]);
+    });
+
+    it(`${HISTORY_LIMIT} 件を超えると古い履歴から捨てられる`, () => {
+      const { updateItem } = useEditorStore.getState();
+      for (let i = 1; i <= HISTORY_LIMIT + 5; i++) {
+        updateItem("a", { title: `変更${i}` });
+      }
+
+      const { past, undo } = useEditorStore.getState();
+      expect(past).toHaveLength(HISTORY_LIMIT);
+
+      // 最大まで戻すと、捨てられなかった最古の状態（6回目の変更前 = 変更5）になる
+      for (let i = 0; i < HISTORY_LIMIT; i++) undo();
+      expect(titles()[0]).toBe("変更5");
+    });
+
+    describe("変化のない操作", () => {
+      it("同じ値での updateItem は履歴を積まない", () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "運動A" });
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+
+      it("同じ値の dosages での updateItem は履歴を積まない", () => {
+        const dosages = { reps: "10回", sets: "3セット", frequency: "" };
+        useEditorStore.setState({
+          items: [createTestItem({ id: "a", dosages })],
+        });
+
+        useEditorStore
+          .getState()
+          .updateItem("a", { dosages: { ...dosages } });
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+
+      it("存在しない ID の updateItem / deleteItem は履歴を積まない", () => {
+        const { updateItem, deleteItem } = useEditorStore.getState();
+        updateItem("missing", { title: "x" });
+        deleteItem("missing");
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+
+      it("同じ値での setLayoutType / setProjectTitle は履歴を積まない", () => {
+        const { setLayoutType, setProjectTitle } = useEditorStore.getState();
+        setLayoutType("grid2");
+        setProjectTitle("無題のプロジェクト");
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+
+      it("選択状態の変更は履歴を積まない", () => {
+        useEditorStore.getState().setSelectedItemId("a");
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+    });
+
+    describe("連続入力のマージ", () => {
+      it(`同じ mergeKey で ${HISTORY_MERGE_WINDOW_MS}ms 以内の入力は 1 件にまとまる`, () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "運" }, { mergeKey: "a:title" });
+        vi.advanceTimersByTime(HISTORY_MERGE_WINDOW_MS);
+        updateItem("a", { title: "運動" }, { mergeKey: "a:title" });
+        vi.advanceTimersByTime(HISTORY_MERGE_WINDOW_MS);
+        updateItem("a", { title: "運動C" }, { mergeKey: "a:title" });
+
+        expect(useEditorStore.getState().past).toHaveLength(1);
+        useEditorStore.getState().undo();
+        expect(titles()[0]).toBe("運動A");
+      });
+
+      it(`${HISTORY_MERGE_WINDOW_MS}ms を超えて間が空くと別の履歴になる`, () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "運" }, { mergeKey: "a:title" });
+        vi.advanceTimersByTime(HISTORY_MERGE_WINDOW_MS + 1);
+        updateItem("a", { title: "運動" }, { mergeKey: "a:title" });
+
+        expect(useEditorStore.getState().past).toHaveLength(2);
+      });
+
+      it("別の mergeKey の入力でマージが切れる", () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "x" }, { mergeKey: "a:title" });
+        updateItem("a", { description: "y" }, { mergeKey: "a:description" });
+        updateItem("a", { title: "xx" }, { mergeKey: "a:title" });
+
+        expect(useEditorStore.getState().past).toHaveLength(3);
+      });
+
+      it("mergeKey なしの操作はマージされない", () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "x" });
+        updateItem("a", { title: "xx" });
+
+        expect(useEditorStore.getState().past).toHaveLength(2);
+      });
+
+      it("Undo 直後の入力は Undo 前の入力とまとめない", () => {
+        const { updateItem, undo } = useEditorStore.getState();
+        updateItem("a", { title: "x" }, { mergeKey: "a:title" });
+        updateItem("b", { title: "y" }, { mergeKey: "b:title" });
+        undo();
+        updateItem("a", { title: "xx" }, { mergeKey: "a:title" });
+
+        expect(useEditorStore.getState().past).toHaveLength(2);
+      });
+    });
+
+    describe("履歴のクリア", () => {
+      it("initializeFromDB で履歴がクリアされる", () => {
+        const { updateItem, undo, initializeFromDB } =
+          useEditorStore.getState();
+        updateItem("a", { title: "1" });
+        updateItem("a", { title: "2" });
+        undo();
+
+        initializeFromDB(createTestProjectFile());
+
+        const state = useEditorStore.getState();
+        expect(state.past).toEqual([]);
+        expect(state.future).toEqual([]);
+      });
+
+      it("deleteProject で履歴がクリアされる", async () => {
+        mockDeleteProject.mockResolvedValue(undefined);
+        useEditorStore.getState().updateItem("a", { title: "1" });
+
+        await useEditorStore.getState().deleteProject();
+
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
+    });
+
+    it("画像削除は履歴に積まれず、履歴内の同じ画像への参照も消える", async () => {
+      mockDeleteImage.mockResolvedValue(undefined);
+      const { updateItem, undo, redo } = useEditorStore.getState();
+      updateItem("a", { imageSource: "img-target" });
+      updateItem("b", { imageSource: "img-target" });
+      undo();
+      // 現在: a に画像 / past: [初期] / future: [a・b に画像]
+
+      await useEditorStore
+        .getState()
+        .deleteImageAndClearReferences("img-target");
+
+      const imageSources = () =>
+        useEditorStore.getState().items.map((i) => i.imageSource);
+      expect(useEditorStore.getState().past).toHaveLength(1);
+      expect(imageSources()).toEqual(["", ""]);
+
+      redo();
+      expect(imageSources()).toEqual(["", ""]);
+
+      undo();
+      undo();
+      expect(imageSources()).toEqual(["", ""]);
     });
   });
 

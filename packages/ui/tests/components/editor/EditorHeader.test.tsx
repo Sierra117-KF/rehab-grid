@@ -19,7 +19,9 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  REDO_TOOLTIP,
   TEMPLATE_BUTTON_LABEL,
+  UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
 import type { EditorItem, LayoutType, ProjectMeta } from "@rehab-grid/core/types";
 import { EditorHeader } from "@rehab-grid/ui/components/editor/EditorHeader";
@@ -51,6 +53,8 @@ const {
   mockDeleteProject,
   mockSetLayoutType,
   mockSetProjectTitle,
+  mockUndo,
+  mockRedo,
   mockGeneratePdf,
   mockDownloadProjectAsJSON,
   mockDownloadProjectAsZIP,
@@ -65,6 +69,8 @@ const {
   mockDeleteProject: vi.fn().mockResolvedValue(undefined),
   mockSetLayoutType: vi.fn(),
   mockSetProjectTitle: vi.fn(),
+  mockUndo: vi.fn(),
+  mockRedo: vi.fn(),
   mockGeneratePdf: vi
     .fn()
     .mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
@@ -87,6 +93,8 @@ let mockStoreState: {
   items: EditorItem[];
   layoutType: LayoutType;
   themeColor: string;
+  past: unknown[];
+  future: unknown[];
 };
 
 /**
@@ -139,6 +147,8 @@ vi.mock("@/lib/store/useEditorStore", () => ({
         deleteProject: typeof mockDeleteProject;
         setLayoutType: typeof mockSetLayoutType;
         setProjectTitle: typeof mockSetProjectTitle;
+        undo: typeof mockUndo;
+        redo: typeof mockRedo;
       }
     ) => unknown
   ) => {
@@ -148,6 +158,8 @@ vi.mock("@/lib/store/useEditorStore", () => ({
       deleteProject: mockDeleteProject,
       setLayoutType: mockSetLayoutType,
       setProjectTitle: mockSetProjectTitle,
+      undo: mockUndo,
+      redo: mockRedo,
     };
     return selector(fullState);
   },
@@ -274,6 +286,8 @@ function createDefaultMockStoreState(): typeof mockStoreState {
     items: [],
     layoutType: "grid2",
     themeColor: "#3B82F6",
+    past: [],
+    future: [],
   };
 }
 
@@ -757,6 +771,31 @@ describe("EditorHeader", () => {
       expect(
         screen.getByRole("button", { name: PROJECT_DELETE_TOOLTIP })
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("元に戻す / やり直す", () => {
+    it("履歴がないときはどちらのボタンも無効になる", () => {
+      render(<EditorHeader />);
+
+      expect(screen.getByRole("button", { name: UNDO_TOOLTIP })).toBeDisabled();
+      expect(screen.getByRole("button", { name: REDO_TOOLTIP })).toBeDisabled();
+    });
+
+    it("履歴があるときはボタンが有効になり、クリックで undo / redo が呼ばれる", async () => {
+      mockStoreState.past = [{}];
+      mockStoreState.future = [{}];
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      const undoButton = screen.getByRole("button", { name: UNDO_TOOLTIP });
+      const redoButton = screen.getByRole("button", { name: REDO_TOOLTIP });
+      expect(undoButton).toHaveAttribute("title", UNDO_TOOLTIP);
+      await user.click(undoButton);
+      await user.click(redoButton);
+
+      expect(mockUndo).toHaveBeenCalledTimes(1);
+      expect(mockRedo).toHaveBeenCalledTimes(1);
     });
   });
 

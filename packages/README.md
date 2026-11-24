@@ -164,7 +164,8 @@ core/src/
 | `useObjectUrls` | Object URL のライフサイクル管理 |
 | `useMediaQuery` | レスポンシブ判定（モバイル検出） |
 | `usePdfWorker` | Web Worker による非同期PDF生成 |
-| `useHasEditorHistory` | undo/redo 可能状態判定 |
+| `useHasEditorHistory` | 過去にエディタを使用したか（localStorage）の判定 |
+| `useEditorShortcuts` | エディタのキーボードショートカット（Undo / Redo） |
 
 #### Zustand ストア
 

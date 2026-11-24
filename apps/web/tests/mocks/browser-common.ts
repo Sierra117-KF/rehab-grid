@@ -195,6 +195,10 @@ export function getInitialEditorState(
     layoutType: "grid2" as LayoutType,
     themeColor: "#3b82f6",
     selectedItemId: null,
+    // 編集履歴はテストごとに空から始める
+    past: [],
+    future: [],
+    lastHistoryCommit: null,
     mobileImageLibraryOpen: false,
     mobilePropertyPanelOpen: false,
     mobileImageLibraryTargetItemId: null,
