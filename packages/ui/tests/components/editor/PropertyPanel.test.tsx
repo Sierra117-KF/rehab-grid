@@ -1,6 +1,9 @@
 import {
+  APPLY_DOSAGES_TO_ALL_TOOLTIP,
+  APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
+  DUPLICATE_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
@@ -12,16 +15,6 @@ import {
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-
-/**
- * sonner（トースト）のモック
- */
-vi.mock("sonner", () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 /**
  * nanoid のモック
@@ -178,9 +171,11 @@ describe("PropertyPanel", () => {
       // 1文字入力して検証（制御されたコンポーネントのため、モックでは状態が更新されない）
       await user.type(titleInput, "A");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        title: "既存A",
-      });
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        { title: "既存A" },
+        { mergeKey: "item-1:title" }
+      );
     });
 
     it("タイトル入力フィールドに maxLength が設定されている", () => {
@@ -209,9 +204,11 @@ describe("PropertyPanel", () => {
       const descriptionTextarea = screen.getByLabelText("説明");
       await user.type(descriptionTextarea, "追");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        description: "既存の説明追",
-      });
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        { description: "既存の説明追" },
+        { mergeKey: "item-1:description" }
+      );
     });
 
     it("説明テキストエリアに maxLength が設定されている", () => {
@@ -241,13 +238,17 @@ describe("PropertyPanel", () => {
       const repsInput = screen.getByDisplayValue("10");
       await user.type(repsInput, "回");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3セット",
-          frequency: "毎日",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3セット",
+            frequency: "毎日",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
 
     it("セット数を変更すると onItemChange が呼ばれる", async () => {
@@ -262,13 +263,17 @@ describe("PropertyPanel", () => {
       const setsInput = screen.getByDisplayValue("3");
       await user.type(setsInput, "回");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3回",
-          frequency: "",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3回",
+            frequency: "",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
 
     it("頻度を変更すると onItemChange が呼ばれる", async () => {
@@ -283,13 +288,17 @@ describe("PropertyPanel", () => {
       const frequencyInput = screen.getByDisplayValue("毎日");
       await user.type(frequencyInput, "2");
 
-      expect(props.onItemChange).toHaveBeenCalledWith("item-1", {
-        dosages: {
-          reps: "10回",
-          sets: "3セット",
-          frequency: "毎日2",
+      expect(props.onItemChange).toHaveBeenCalledWith(
+        "item-1",
+        {
+          dosages: {
+            reps: "10回",
+            sets: "3セット",
+            frequency: "毎日2",
+          },
         },
-      });
+        { mergeKey: "item-1:dosages" }
+      );
     });
   });
 
@@ -325,9 +334,12 @@ describe("PropertyPanel", () => {
       await user.type(precautionInput, "注意");
 
       // 1文字目の入力を検証
-      expect(props.onItemChange).toHaveBeenNthCalledWith(1, "item-1", {
-        precautions: [{ id: "p1", value: "痛み注" }],
-      });
+      expect(props.onItemChange).toHaveBeenNthCalledWith(
+        1,
+        "item-1",
+        { precautions: [{ id: "p1", value: "痛み注" }] },
+        { mergeKey: "item-1:precaution:p1" }
+      );
     });
 
     it("注意点の削除ボタンをクリックすると該当の注意点が削除される", async () => {
@@ -464,22 +476,115 @@ describe("PropertyPanel", () => {
 
       expect(mockOnItemDelete).toHaveBeenCalledWith("delete-me");
     });
+  });
 
-    it("削除成功時にトースト通知が表示される", async () => {
+  describe("複製機能", () => {
+    it("onItemDuplicate が渡された場合、複製ボタンで選択中カードの ID が渡される", async () => {
       const user = userEvent.setup();
-      const { toast } = await import("sonner");
-
+      const mockOnItemDuplicate = vi.fn();
       setupPropertyPanel({
-        selectedItem: createTestItem({ id: "delete-me" }),
-        onItemDelete: vi.fn(),
+        selectedItem: createTestItem({ id: "copy-me" }),
+        onItemDuplicate: mockOnItemDuplicate,
       });
 
       await user.click(
-        screen.getByRole("button", { name: /このカードを削除/ })
+        screen.getByRole("button", { name: DUPLICATE_BUTTON_LABEL })
       );
-      await user.click(screen.getByRole("button", { name: "削除" }));
 
-      expect(toast.success).toHaveBeenCalledWith("カードを削除しました");
+      expect(mockOnItemDuplicate).toHaveBeenCalledWith("copy-me");
+    });
+
+    it("onItemDuplicate が渡されない場合、複製ボタンが表示されない", () => {
+      setupPropertyPanel({ selectedItem: createTestItem() });
+
+      expect(
+        screen.queryByRole("button", { name: DUPLICATE_BUTTON_LABEL })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("全カードに反映", () => {
+    const getDosagesButton = () =>
+      screen.getByRole("button", { name: APPLY_DOSAGES_TO_ALL_TOOLTIP });
+    const getPrecautionsButton = () =>
+      screen.getByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP });
+
+    it("コールバックが渡されない場合（カード 1 枚）はボタンを表示しない", () => {
+      setupPropertyPanel({ selectedItem: createTestItem() });
+
+      expect(
+        screen.queryByRole("button", { name: APPLY_DOSAGES_TO_ALL_TOOLTIP })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP })
+      ).not.toBeInTheDocument();
+    });
+
+    it("用量の 3 項目がすべて空（空白のみ含む）のときは用量の反映ボタンが無効になる", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "", sets: " ", frequency: "" },
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      expect(getDosagesButton()).toBeDisabled();
+    });
+
+    it("用量の反映ボタンで選択中カードの用量が渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnApply = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "10回", sets: "", frequency: "" },
+        }),
+        onApplyDosagesToAll: mockOnApply,
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      await user.click(getDosagesButton());
+
+      expect(mockOnApply).toHaveBeenCalledWith({
+        reps: "10回",
+        sets: "",
+        frequency: "",
+      });
+    });
+
+    it("空でない注意点がないときは注意点の反映ボタンが無効になる", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          precautions: [{ id: "p1", value: "  " }],
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+      });
+
+      expect(getPrecautionsButton()).toBeDisabled();
+    });
+
+    it("注意点の反映ボタンで空欄を除いた文言が渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnApply = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          precautions: [
+            { id: "p1", value: "痛みが出たら中止" },
+            { id: "p2", value: "" },
+            { id: "p3", value: "呼吸を止めない" },
+          ],
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: mockOnApply,
+      });
+
+      await user.click(getPrecautionsButton());
+
+      expect(mockOnApply).toHaveBeenCalledWith([
+        "痛みが出たら中止",
+        "呼吸を止めない",
+      ]);
     });
   });
 });

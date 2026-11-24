@@ -20,12 +20,14 @@ import {
 import {
   ANIMATION_STAGGER_DELAY,
   BUTTON_ADD_CARD,
+  DOSAGE_DIVIDER_OPACITY,
   IMAGE_DRAG_TYPE,
   LABELS,
   LAYOUT_COLUMNS,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
+import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { reorderEditorItems } from "@rehab-grid/core/utils/editor";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
@@ -33,6 +35,21 @@ import { useCallback, useState } from "react";
 
 import { EmptyState } from "./EmptyState";
 import { SortableCard } from "./SortableCard";
+
+/**
+ * CSS 変数（--xxx）を含められる style の型
+ */
+type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
+
+/**
+ * 運動カードの枠線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ */
+const CARD_BORDER_CSS_VARIABLE = "--card-border-color";
+
+/**
+ * 用量の区切り線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ */
+const DOSAGE_DIVIDER_CSS_VARIABLE = "--dosage-accent-light";
 
 /**
  * Canvas コンポーネントの Props
@@ -44,6 +61,8 @@ export type CanvasProps = {
   onItemsChange: (items: EditorItem[]) => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
+  /** テーマカラー（#RRGGBB。カードの枠線と用量の区切り線の色に使う。省略時は globals.css の既定色） */
+  themeColor?: string;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
   /** アイテムが選択されたときのコールバック */
@@ -58,6 +77,8 @@ export type CanvasProps = {
   onAddCardWithImage?: (imageId: string) => void;
   /** カード追加が可能かどうか（最大数チェック用） */
   canAddCard?: boolean;
+  /** カードの複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onItemDuplicate?: (itemId: string) => void;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -89,6 +110,7 @@ export function Canvas({
   items,
   onItemsChange,
   layoutType,
+  themeColor,
   selectedItemId,
   onItemSelect,
   onAddCard,
@@ -96,6 +118,7 @@ export function Canvas({
   imageUrls,
   onAddCardWithImage,
   canAddCard = true,
+  onItemDuplicate,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -178,6 +201,18 @@ export function Canvas({
     },
     [onItemSelect]
   );
+
+  // テーマカラーをカードの枠線と用量の区切り線（PDF と同じく白地と合成した不透明色）に反映する
+  const themeStyle: CssVariableStyle | undefined =
+    themeColor === undefined
+      ? undefined
+      : {
+          [CARD_BORDER_CSS_VARIABLE]: themeColor,
+          [DOSAGE_DIVIDER_CSS_VARIABLE]: mixWithWhite(
+            themeColor,
+            DOSAGE_DIVIDER_OPACITY
+          ),
+        };
 
   // アクティブなアイテム（ドラッグ中のオーバーレイ用）
   const activeItem =
@@ -272,12 +307,14 @@ export function Canvas({
         <div className="pointer-events-none absolute inset-2 z-50 rounded-xl border-2 border-dashed border-primary-active bg-primary-active/20 transition-all" />
       ) : null}
 
-      {/* グリッドコンテナ */}
+      {/* グリッドコンテナ（テーマカラーは CSS 変数の上書きで子孫のカードに効かせる） */}
       <div
+        data-testid="canvas-scroll"
         className={cn(
           "relative flex-1 overflow-auto pb-20",
           isMobile ? "px-6 pt-20" : "p-6"
         )}
+        style={themeStyle}
       >
         {items.length === 0 ? (
           <EmptyState onAddCard={handleAddCardClick} canAddCard={canAddCard} />
@@ -320,6 +357,11 @@ export function Canvas({
                           : undefined
                       }
                       onCanvasDragEnd={handleCanvasDragEnd}
+                      onDuplicate={
+                        onItemDuplicate
+                          ? () => onItemDuplicate(item.id)
+                          : undefined
+                      }
                       onImageAreaClick={onImageAreaClick}
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}

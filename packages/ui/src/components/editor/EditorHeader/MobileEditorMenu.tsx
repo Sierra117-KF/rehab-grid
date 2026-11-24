@@ -2,15 +2,17 @@
 
 import {
   BUTTON_BACKUP,
+  DESIGN_SETTINGS_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
-  GRID_SELECT_BUTTON_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
   LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
+  REDO_LABEL,
   TEMPLATE_BUTTON_LABEL,
+  UNDO_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
@@ -22,11 +24,13 @@ import {
   FileJson,
   FolderArchive,
   FolderOpen,
-  Grid3x3,
   Home,
   LayoutTemplate,
   Loader2,
+  Palette,
+  Redo2,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -35,10 +39,18 @@ import { useCallback, useState } from "react";
  * MobileEditorMenu のプロパティ
  */
 type MobileEditorMenuProps = {
+  /** 元に戻せる操作があるかどうか */
+  canUndo: boolean;
+  /** やり直せる操作があるかどうか */
+  canRedo: boolean;
+  /** 直前の操作を取り消す */
+  onUndo: () => void;
+  /** 取り消した操作をやり直す */
+  onRedo: () => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
-  /** グリッド選択ダイアログを開く */
-  onGridSelectClick: () => void;
+  /** デザイン設定ダイアログを開く */
+  onDesignSettingsClick: () => void;
   /** テンプレートモーダルを開く */
   onTemplateClick: () => void;
   /** ファイルを開くダイアログを開く */
@@ -118,11 +130,15 @@ function MenuItem(props: MenuItemProps) {
  * モバイルエディタメニューコンポーネント
  *
  * エディタ用のドロップダウンメニューコンテンツ。
- * グリッド選択、テンプレート、ファイル操作、エクスポート、削除の機能を提供。
+ * デザイン設定、テンプレート、ファイル操作、エクスポート、削除の機能を提供。
  */
 export function MobileEditorMenu({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   layoutType,
-  onGridSelectClick,
+  onDesignSettingsClick,
   onTemplateClick,
   onOpenClick,
   isImporting,
@@ -135,12 +151,28 @@ export function MobileEditorMenu({
   const [isExportExpanded, setIsExportExpanded] = useState(false);
 
   /**
-   * グリッド選択クリックハンドラ
+   * 元に戻すクリックハンドラ（結果が見えるようメニューを閉じる）
    */
-  const handleGridSelectClick = useCallback(() => {
+  const handleUndo = useCallback(() => {
     onClose();
-    onGridSelectClick();
-  }, [onClose, onGridSelectClick]);
+    onUndo();
+  }, [onClose, onUndo]);
+
+  /**
+   * やり直すクリックハンドラ（結果が見えるようメニューを閉じる）
+   */
+  const handleRedo = useCallback(() => {
+    onClose();
+    onRedo();
+  }, [onClose, onRedo]);
+
+  /**
+   * デザイン設定クリックハンドラ
+   */
+  const handleDesignSettingsClick = useCallback(() => {
+    onClose();
+    onDesignSettingsClick();
+  }, [onClose, onDesignSettingsClick]);
 
   /**
    * テンプレートクリックハンドラ
@@ -191,11 +223,28 @@ export function MobileEditorMenu({
 
   return (
     <nav className="flex flex-col">
-      {/* グリッド選択 */}
+      {/* 元に戻す / やり直す */}
       <MenuItem
-        icon={Grid3x3}
-        label={GRID_SELECT_BUTTON_LABEL}
-        onClick={handleGridSelectClick}
+        icon={Undo2}
+        label={UNDO_LABEL}
+        onClick={handleUndo}
+        disabled={!canUndo}
+      />
+      <MenuItem
+        icon={Redo2}
+        label={REDO_LABEL}
+        onClick={handleRedo}
+        disabled={!canRedo}
+      />
+
+      {/* 区切り線 */}
+      <div className="my-2 h-px bg-border/40" aria-hidden="true" />
+
+      {/* デザイン設定（列数バッジ付き） */}
+      <MenuItem
+        icon={Palette}
+        label={DESIGN_SETTINGS_LABEL}
+        onClick={handleDesignSettingsClick}
         iconColor="text-sky-500"
         rightContent={
           <span className="flex items-center gap-1 text-sm text-muted-foreground">

@@ -36,7 +36,7 @@ type UsePdfWorkerReturn = {
  * const handleExport = async () => {
  *   const blob = await generatePdf({
  *     meta: project.meta,
- *     layoutType: project.settings.layoutType,
+ *     settings: resolveProjectSettings(project.settings),
  *     items: project.items,
  *     images: imageDataUrls,
  *   });

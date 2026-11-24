@@ -22,6 +22,34 @@ export const DEFAULT_PROJECT_TITLE = "無題のプロジェクト";
 /** デフォルトのテーマカラー（新規作成時・インポート値が不正な場合に使用） */
 export const DEFAULT_THEME_COLOR = "#3b82f6";
 
+/** テーマカラーとして受け付ける形式（#RRGGBB） */
+export const THEME_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * テーマカラーのプリセット
+ *
+ * @remarks
+ * 白い紙に印刷して判別しやすい濃さに限る。
+ * オレンジはカードの選択枠（--primary = orange-600）と区別できるよう、一段濃い orange-700 にしている。
+ */
+export const THEME_COLOR_PRESETS: readonly { label: string; value: string }[] =
+  [
+    { label: "ブルー", value: DEFAULT_THEME_COLOR },
+    { label: "オレンジ", value: "#c2410c" },
+    { label: "エメラルド", value: "#059669" },
+    { label: "ティール", value: "#0891b2" },
+    { label: "バイオレット", value: "#7c3aed" },
+    { label: "スレート", value: "#334155" },
+  ];
+
+/**
+ * 用量の区切り線に使うテーマカラーの濃さ（0〜1）
+ *
+ * @remarks
+ * 白地に重ねた不透明色として Canvas と PDF の両方で使う
+ */
+export const DOSAGE_DIVIDER_OPACITY = 0.3;
+
 /** アイテム表示時のアニメーション遅延間隔（秒） */
 export const ANIMATION_STAGGER_DELAY = 0.05;
 
@@ -36,6 +64,18 @@ export const MAX_ITEM_COUNT = 10;
 
 /** ロングプレス判定の閾値（ミリ秒） */
 export const LONG_PRESS_DURATION = 500;
+
+/** 編集履歴（Undo）の最大保持件数。超えた分は古い方から捨てる */
+export const HISTORY_LIMIT = 50;
+
+/**
+ * 同じ入力欄への連続入力を 1 件の履歴にまとめる時間幅（ミリ秒）
+ *
+ * @remarks
+ * 前回の記録からこの時間以内に同じ mergeKey で更新されたら、新しい履歴を積まない。
+ * 時刻は入力のたびに更新するため、打ち続けている間は 1 件にまとまる。
+ */
+export const HISTORY_MERGE_WINDOW_MS = 800;
 
 /**
  * グリッドレイアウトオプション

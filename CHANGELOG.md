@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-25
+
+### Added
+
+- 元に戻す・やり直す（Undo / Redo、最大50件）とキーボードショートカット（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）。ヘッダーとモバイルメニューにボタンを追加
+- カードの複製（プロパティパネルとカードのホバーアクション）
+- 回数・セット・頻度と注意点の「全カードに反映」
+- 画像ライブラリのキーワード検索（ひらがな・カタカナ・全角半角を区別しない）
+- テーマカラー（運動カードの枠線と、用量の区切り線の色。プリセット6色とカラーピッカー / カラーコード入力）
+- 「デザイン設定」ダイアログ（列数とテーマカラー）
+
+### Changed
+
+- ヘッダーとモバイルメニューの「グリッド選択」を「デザイン設定」に置き換え
+- カード削除・全カードへの反映のあと、トーストの「元に戻す」で取り消せるように
+- 運動カードの枠線を、固定のグレーからテーマカラー（既定はブルー）に変更
+- PDF の描画処理を `packages/core/src/lib/pdf/` に一本化し、PDF ライブラリを Web Worker だけで読み込むように（編集画面のバンドルから除外）
+- エディタストアの設定（列数・テーマカラー）を `settings` に集約し、保存データの不足・不正な設定値はデフォルト値で補うように
+
+### Fixed
+
+- 編集画面の用量の区切り線が、本来の淡い青ではなくグレーで表示されていた問題（`globals.css` のレイヤー外の `* { border-color }` が優先されていたため）
+- PDF の用量の区切り線が、ビューアによって黄色っぽく表示されることがある問題（白地と合成した不透明色で描画）
+- 保存データに記録されるアプリのバージョンが `0.1.0` のままだった問題
+
 ## [1.0.0] - 2026-01-25
 
 ### Added
@@ -22,5 +47,6 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/RehaGri/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/Sierra117-KF/RehaGri/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/Sierra117-KF/rehab-grid/releases/tag/v1.0.0

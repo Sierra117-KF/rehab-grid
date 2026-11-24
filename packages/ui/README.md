@@ -8,7 +8,6 @@
 
 - **エディタUI**: 自主トレーニング指導箋エディタのコアコンポーネント
 - **レイアウトUI**: ヘッダー、フッター、モーダル等の共通レイアウト
-- **PDF生成**: `@react-pdf/renderer` を使用したクライアントサイドPDF生成
 - **shadcn/uiラッパー**: プロジェクト固有のカスタマイズを施したUIコンポーネント
 
 ## ディレクトリ構成
@@ -38,11 +37,13 @@ packages/ui/
 │   │   │   │   ├── MobileImageButtons.tsx
 │   │   │   │   ├── ThumbnailCard.tsx
 │   │   │   │   └── ThumbnailGrid.tsx
-│   │   │   ├── GridSelectDialog.tsx
+│   │   │   ├── DesignSettingsDialog.tsx
+│   │   │   ├── GridLayoutSelector.tsx
 │   │   │   ├── PdfPreviewModal.tsx
 │   │   │   ├── PrecautionSnippetDialog.tsx
 │   │   │   ├── PropertyPanel.tsx
-│   │   │   └── TemplateSelectModal.tsx
+│   │   │   ├── TemplateSelectModal.tsx
+│   │   │   └── ThemeColorSelector.tsx
 │   │   ├── layout/                 # レイアウトUI
 │   │   │   ├── DisclaimerModalProvider.tsx
 │   │   │   ├── FAQ.tsx
@@ -54,8 +55,6 @@ packages/ui/
 │   │   │   ├── RecentUpdates.tsx
 │   │   │   ├── ScrollAnimationSection.tsx
 │   │   │   └── SecurityDisclaimerModal.tsx
-│   │   ├── pdf/                    # PDF関連
-│   │   │   └── TrainingSheetPDF.tsx
 │   │   ├── ui/                     # shadcn/ui（直接編集禁止）
 │   │   │   ├── alert-dialog.tsx
 │   │   │   ├── button.tsx
@@ -83,8 +82,7 @@ packages/ui/
 ├── tests/                          # テストファイル
 │   └── components/
 │       ├── editor/                 # エディタコンポーネントテスト（8ファイル）
-│       ├── layout/                 # レイアウトコンポーネントテスト（10ファイル）
-│       └── pdf/                    # PDFコンポーネントテスト（1ファイル）
+│       └── layout/                 # レイアウトコンポーネントテスト（10ファイル）
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.mjs
@@ -129,7 +127,7 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 | `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド | `EmptyState`, `SortableCard` |
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons` |
-| `GridSelectDialog` | グリッドレイアウト選択（1-4列） | - |
+| `DesignSettingsDialog` | デザイン設定（列数 1-4・テーマカラー）。開閉は `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector` |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
 | `PrecautionSnippetDialog` | 注意点スニペット挿入 | - |
 | `PropertyPanel` | 選択カードの編集パネル | - |
@@ -220,33 +218,9 @@ import { DisclaimerModalProvider, SecurityDisclaimerModal } from "@rehab-grid/ui
 
 ---
 
-### PDFコンポーネント（pdf/）
+### PDF出力について
 
-`@react-pdf/renderer` を使用したPDF生成コンポーネント。
-
-| コンポーネント | 説明 |
-|--------------|------|
-| `TrainingSheetPDF` | 自主トレーニング指導箋PDF生成 |
-
-```typescript
-import { TrainingSheetPDF } from "@rehab-grid/ui";
-import { pdf } from "@react-pdf/renderer";
-
-// PDF Blobを生成
-const blob = await pdf(
-  <TrainingSheetPDF
-    items={editorItems}
-    layoutType="grid2"
-    title="自主トレーニング指導箋"
-  />
-).toBlob();
-```
-
-**特徴:**
-
-- A4サイズ対応
-- 日本語フォント（Noto Sans JP）埋め込み
-- キャンバスUIと同一レイアウト
+PDF の描画はこのパッケージには含まれません。ドキュメント要素の組み立ては `@rehab-grid/core` の `lib/pdf/`（`buildPdfDocument`）、生成は `pdf.worker.ts`（Web Worker）で行い、UI からは `usePdfWorker` フック経由で呼び出します。
 
 ---
 
@@ -305,12 +279,11 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 | `@dnd-kit/sortable` | 10.0.0 | ソート機能 |
 | `@dnd-kit/utilities` | 3.2.2 | D&Dユーティリティ |
 | `@radix-ui/react-*` | 各種 | shadcn/ui基盤（10パッケージ） |
-| `@react-pdf/renderer` | 4.3.2 | クライアントサイドPDF生成 |
 | `class-variance-authority` | 0.7.1 | CVAスタイリング |
 | `clsx` | 2.1.1 | クラス名結合 |
 | `lucide-react` | 0.563.0 | アイコン |
 | `sonner` | 2.0.7 | トースト通知 |
-| `tailwind-merge` | 3.4.0 | Tailwindクラスマージ |
+| `tailwind-merge` | 3.6.0 | Tailwindクラスマージ |
 
 ### Radix UIパッケージ一覧
 
@@ -333,7 +306,7 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 
 - **テストランナー**: Vitest
 - **環境**: jsdom
-- **テストファイル数**: 19
+- **テストファイル数**: 18
 
 ### テストファイル配置
 
@@ -342,14 +315,14 @@ tests/
 └── components/
     ├── editor/          # 8ファイル
     │   ├── Canvas.test.tsx
+    │   ├── DesignSettingsDialog.test.tsx
     │   ├── EditorHeader.test.tsx
-    │   ├── GridSelectDialog.test.tsx
     │   ├── ImageLibraryPanel.test.tsx
     │   ├── PdfPreviewModal.test.tsx
     │   ├── PrecautionSnippetDialog.test.tsx
     │   ├── PropertyPanel.test.tsx
     │   └── TemplateSelectModal.test.tsx
-    ├── layout/          # 10ファイル
+    └── layout/          # 10ファイル
     │   ├── DisclaimerModalProvider.test.tsx
     │   ├── FAQ.test.tsx
     │   ├── Footer.test.tsx
@@ -359,9 +332,7 @@ tests/
     │   ├── MobileSidebar.test.tsx
     │   ├── RecentUpdates.test.tsx
     │   ├── ScrollAnimationSection.test.tsx
-    │   └── SecurityDisclaimerModal.test.tsx
-    └── pdf/             # 1ファイル
-        └── TrainingSheetPDF.test.tsx
+        └── SecurityDisclaimerModal.test.tsx
 ```
 
 ### テスト実行コマンド
@@ -386,7 +357,6 @@ pnpm --filter @rehab-grid/ui test -- --coverage
 1. **カテゴリを決定**
    - エディタ機能 → `editor/`
    - 共通レイアウト → `layout/`
-   - PDF関連 → `pdf/`
    - shadcn/uiカスタマイズ → `wrapped/`
 
 2. **コンポーネントを作成**

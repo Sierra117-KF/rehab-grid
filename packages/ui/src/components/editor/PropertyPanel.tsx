@@ -1,15 +1,22 @@
 "use client";
 
 import {
+  APPLY_DOSAGES_TO_ALL_TOOLTIP,
+  APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
+  APPLY_TO_ALL_LABEL,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
-  DELETE_SUCCESS_MESSAGE,
+  DUPLICATE_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
   PROPERTY_PANEL_WARNING,
   SNIPPET_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
-import { type EditorItem, type Precaution } from "@rehab-grid/core/types";
+import {
+  type Dosages,
+  type EditorItem,
+  type Precaution,
+} from "@rehab-grid/core/types";
 import { PrecautionSnippetDialog } from "@rehab-grid/ui/components/editor/PrecautionSnippetDialog";
 import {
   AlertDialog,
@@ -27,6 +34,8 @@ import { Label } from "@rehab-grid/ui/components/wrapped/Label";
 import { Textarea } from "@rehab-grid/ui/components/wrapped/Textarea";
 import {
   AlertTriangle,
+  Copy,
+  CopyCheck,
   FileText,
   MousePointerClick,
   Plus,
@@ -35,7 +44,35 @@ import {
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useState } from "react";
-import { toast } from "sonner";
+
+/**
+ * 「全カードに反映」ボタン（見出しの横に置く小さなボタン）
+ */
+function ApplyToAllButton({
+  title,
+  disabled,
+  onClick,
+}: {
+  title: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 gap-1 px-2 text-[11px] text-muted-foreground"
+      title={title}
+      // 用量・注意点の 2 つのボタンを支援技術で区別できるよう、ツールチップと同じ名前にする
+      aria-label={title}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <CopyCheck className="size-3" />
+      {APPLY_TO_ALL_LABEL}
+    </Button>
+  );
+}
 
 /**
  * プロパティパネルの Props
@@ -43,10 +80,35 @@ import { toast } from "sonner";
 export type PropertyPanelProps = {
   /** 選択中のアイテム */
   selectedItem: EditorItem | null;
-  /** アイテム変更時のコールバック */
-  onItemChange: (id: string, updates: Partial<EditorItem>) => void;
-  /** アイテム削除時のコールバック */
+  /**
+   * アイテム変更時のコールバック
+   *
+   * @remarks
+   * 入力欄の変更では options.mergeKey を渡す。同じキーの連続入力は 1 件の履歴にまとまる。
+   */
+  onItemChange: (
+    id: string,
+    updates: Partial<EditorItem>,
+    options?: { mergeKey?: string }
+  ) => void;
+  /** アイテム削除時のコールバック（完了トーストは呼び出し側で表示する） */
   onItemDelete?: (id: string) => void;
+  /** アイテム複製時のコールバック（未指定なら複製ボタンを表示しない） */
+  onItemDuplicate?: (id: string) => void;
+  /**
+   * 用量を全カードに反映するコールバック
+   *
+   * @remarks
+   * 未指定なら反映ボタンを表示しない（カードが 1 枚のときは渡さない）
+   */
+  onApplyDosagesToAll?: (dosages: Dosages) => void;
+  /**
+   * 注意点を全カードに追加するコールバック
+   *
+   * @remarks
+   * 未指定なら反映ボタンを表示しない（カードが 1 枚のときは渡さない）
+   */
+  onApplyPrecautionsToAll?: (values: string[]) => void;
 };
 
 /**
@@ -61,6 +123,9 @@ export function PropertyPanel({
   selectedItem,
   onItemChange,
   onItemDelete,
+  onItemDuplicate,
+  onApplyDosagesToAll,
+  onApplyPrecautionsToAll,
 }: PropertyPanelProps) {
   // 削除確認ダイアログの状態
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -80,7 +145,6 @@ export function PropertyPanel({
   const handleConfirmDelete = () => {
     if (selectedItem && onItemDelete) {
       onItemDelete(selectedItem.id);
-      toast.success(DELETE_SUCCESS_MESSAGE);
     }
     setShowDeleteDialog(false);
   };
@@ -106,14 +170,18 @@ export function PropertyPanel({
     value: string
   ) => {
     if (!selectedItem) return;
-    onItemChange(selectedItem.id, {
-      dosages: {
-        reps: selectedItem.dosages?.reps ?? "",
-        sets: selectedItem.dosages?.sets ?? "",
-        frequency: selectedItem.dosages?.frequency ?? "",
-        [field]: value,
+    onItemChange(
+      selectedItem.id,
+      {
+        dosages: {
+          reps: selectedItem.dosages?.reps ?? "",
+          sets: selectedItem.dosages?.sets ?? "",
+          frequency: selectedItem.dosages?.frequency ?? "",
+          [field]: value,
+        },
       },
-    });
+      { mergeKey: `${selectedItem.id}:dosages` }
+    );
   };
 
   /**
@@ -145,11 +213,15 @@ export function PropertyPanel({
   const handleUpdatePrecaution = (precautionId: string, value: string) => {
     if (!selectedItem) return;
     const currentPrecautions = selectedItem.precautions ?? [];
-    onItemChange(selectedItem.id, {
-      precautions: currentPrecautions.map((p) =>
-        p.id === precautionId ? { ...p, value } : p
-      ),
-    });
+    onItemChange(
+      selectedItem.id,
+      {
+        precautions: currentPrecautions.map((p) =>
+          p.id === precautionId ? { ...p, value } : p
+        ),
+      },
+      { mergeKey: `${selectedItem.id}:precaution:${precautionId}` }
+    );
   };
 
   /**
@@ -174,6 +246,14 @@ export function PropertyPanel({
     });
   };
 
+  // 一度入力して消すと空文字の dosages が残るため、値の有無はトリム後の中身で判定する
+  const hasDosages =
+    selectedItem?.dosages !== undefined &&
+    Object.values(selectedItem.dosages).some((value) => value.trim() !== "");
+  const precautionValues = (selectedItem?.precautions ?? [])
+    .map((precaution) => precaution.value)
+    .filter((value) => value.trim() !== "");
+
   return (
     <div className="flex h-full flex-col">
       {/* 警告ラベル */}
@@ -193,7 +273,11 @@ export function PropertyPanel({
                 id="item-title"
                 value={selectedItem.title}
                 onChange={(e) =>
-                  onItemChange(selectedItem.id, { title: e.target.value })
+                  onItemChange(
+                    selectedItem.id,
+                    { title: e.target.value },
+                    { mergeKey: `${selectedItem.id}:title` }
+                  )
                 }
                 placeholder="運動名を入力"
                 maxLength={TEXT_LIMITS.title}
@@ -210,7 +294,11 @@ export function PropertyPanel({
                 id="item-description"
                 value={selectedItem.description}
                 onChange={(e) =>
-                  onItemChange(selectedItem.id, { description: e.target.value })
+                  onItemChange(
+                    selectedItem.id,
+                    { description: e.target.value },
+                    { mergeKey: `${selectedItem.id}:description` }
+                  )
                 }
                 placeholder="手順や方法を入力"
                 rows={3}
@@ -223,7 +311,21 @@ export function PropertyPanel({
             </div>
 
             {/* 回数・セット・頻度 */}
-            <div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <Label>回数・セット・頻度</Label>
+                {onApplyDosagesToAll ? (
+                  <ApplyToAllButton
+                    title={APPLY_DOSAGES_TO_ALL_TOOLTIP}
+                    disabled={!hasDosages}
+                    onClick={() => {
+                      if (selectedItem.dosages) {
+                        onApplyDosagesToAll(selectedItem.dosages);
+                      }
+                    }}
+                  />
+                ) : null}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="dosage-reps" className="text-xs">
@@ -286,7 +388,16 @@ export function PropertyPanel({
 
             {/* 注意点 */}
             <div className="space-y-1">
-              <Label>注意点</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>注意点</Label>
+                {onApplyPrecautionsToAll ? (
+                  <ApplyToAllButton
+                    title={APPLY_PRECAUTIONS_TO_ALL_TOOLTIP}
+                    disabled={precautionValues.length === 0}
+                    onClick={() => onApplyPrecautionsToAll(precautionValues)}
+                  />
+                ) : null}
+              </div>
               <div className="space-y-1.5">
                 {(selectedItem.precautions ?? []).map((precaution) => (
                   <div key={precaution.id} className="space-y-0.5">
@@ -347,18 +458,31 @@ export function PropertyPanel({
               </div>
             </div>
 
-            {/* 削除ボタン */}
-            {onItemDelete ? (
-              <div className="mt-4 border-t border-border/40 pt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 bg-white border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={handleDeleteClick}
-                >
-                  <Trash2 className="size-4" />
-                  このカードを削除
-                </Button>
+            {/* 複製・削除ボタン */}
+            {onItemDuplicate || onItemDelete ? (
+              <div className="mt-4 space-y-2 border-t border-border/40 pt-3">
+                {onItemDuplicate ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 bg-white"
+                    onClick={() => onItemDuplicate(selectedItem.id)}
+                  >
+                    <Copy className="size-4" />
+                    {DUPLICATE_BUTTON_LABEL}
+                  </Button>
+                ) : null}
+                {onItemDelete ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 bg-white border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={handleDeleteClick}
+                  >
+                    <Trash2 className="size-4" />
+                    このカードを削除
+                  </Button>
+                ) : null}
               </div>
             ) : null}
           </div>

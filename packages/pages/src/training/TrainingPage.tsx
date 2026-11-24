@@ -1,11 +1,18 @@
 "use client";
 
 import {
+  APPLY_TO_ALL_NO_TARGET_MESSAGE,
+  createApplyToAllSuccessMessage,
   createMaxItemCountReachedMessage,
+  DELETE_SUCCESS_MESSAGE,
+  type Dosages,
   MAX_ITEM_COUNT,
+  UNDO_LABEL,
+  UNDO_STALE_MESSAGE,
   useEditorStore,
 } from "@rehab-grid/core";
 import { useCanvasImages } from "@rehab-grid/core/hooks/useCanvasImages";
+import { useEditorShortcuts } from "@rehab-grid/core/hooks/useEditorShortcuts";
 import { useIsMobile } from "@rehab-grid/core/hooks/useMediaQuery";
 import { usePasteImage } from "@rehab-grid/core/hooks/usePasteImage";
 import {
@@ -16,6 +23,35 @@ import {
 } from "@rehab-grid/ui";
 import { useCallback } from "react";
 import { toast } from "sonner";
+
+/**
+ * 「元に戻す」付きの完了トーストを表示する
+ *
+ * @remarks
+ * 直前の操作を履歴に記録した直後に呼ぶ。
+ * トーストは数秒残るため、その間に別の操作をすると「元に戻す」が別の操作を取り消してしまう。
+ * 表示時点の past 末尾（スナップショットの参照）を控えておき、
+ * クリック時に末尾が同じときだけ undo する。
+ *
+ * @param message - トーストに表示するメッセージ
+ */
+function showUndoableToast(message: string) {
+  const recordedSnapshot = useEditorStore.getState().past.at(-1);
+
+  toast.success(message, {
+    action: {
+      label: UNDO_LABEL,
+      onClick: () => {
+        const { past, undo } = useEditorStore.getState();
+        if (recordedSnapshot !== undefined && past.at(-1) === recordedSnapshot) {
+          undo();
+        } else {
+          toast.info(UNDO_STALE_MESSAGE);
+        }
+      },
+    },
+  });
+}
 
 /**
  * 自主トレーニング指導箋エディタページ
@@ -31,11 +67,16 @@ export function TrainingPage() {
 
   // Zustand ストアから状態とアクションを取得
   const items = useEditorStore((state) => state.items);
-  const layoutType = useEditorStore((state) => state.layoutType);
+  const settings = useEditorStore((state) => state.settings);
   const selectedItemId = useEditorStore((state) => state.selectedItemId);
   const addNewItem = useEditorStore((state) => state.addNewItem);
   const updateItem = useEditorStore((state) => state.updateItem);
   const deleteItem = useEditorStore((state) => state.deleteItem);
+  const duplicateItem = useEditorStore((state) => state.duplicateItem);
+  const applyDosagesToAll = useEditorStore((state) => state.applyDosagesToAll);
+  const appendPrecautionsToAll = useEditorStore(
+    (state) => state.appendPrecautionsToAll
+  );
   const reorderItems = useEditorStore((state) => state.reorderItems);
   const setSelectedItemId = useEditorStore((state) => state.setSelectedItemId);
 
@@ -70,17 +111,13 @@ export function TrainingPage() {
    */
   const tryAddCard = useCallback(
     (imageId?: string) => {
-      const newItemId = addNewItem();
+      // 画像付きの追加も 1 件の履歴になるよう、画像IDごと 1 回で追加する
+      const newItemId = addNewItem({ imageSource: imageId });
       if (newItemId === null) {
         toast.info(createMaxItemCountReachedMessage(MAX_ITEM_COUNT));
-        return;
-      }
-
-      if (imageId !== undefined && imageId !== "") {
-        updateItem(newItemId, { imageSource: imageId });
       }
     },
-    [addNewItem, updateItem]
+    [addNewItem]
   );
 
   /**
@@ -102,6 +139,9 @@ export function TrainingPage() {
 
   // クリップボード画像貼り付けフック
   usePasteImage({ onPaste: handlePasteImage });
+
+  // Undo / Redo のキーボードショートカット
+  useEditorShortcuts();
 
   /**
    * 画像がカードにドロップされたときの処理
@@ -126,7 +166,64 @@ export function TrainingPage() {
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
   const handleItemChange = updateItem;
-  const handleItemDelete = deleteItem;
+
+  /**
+   * カードを削除し、「元に戻す」付きのトーストを表示
+   */
+  const handleItemDelete = useCallback(
+    (id: string) => {
+      deleteItem(id);
+      showUndoableToast(DELETE_SUCCESS_MESSAGE);
+    },
+    [deleteItem]
+  );
+
+  /**
+   * カードを複製（上限に達していれば案内を表示）
+   */
+  const handleItemDuplicate = useCallback(
+    (id: string) => {
+      if (duplicateItem(id) === null) {
+        toast.info(createMaxItemCountReachedMessage(MAX_ITEM_COUNT));
+      }
+    },
+    [duplicateItem]
+  );
+
+  /**
+   * 選択中カードの用量を全カードに反映し、「元に戻す」付きのトーストを表示
+   */
+  const handleApplyDosagesToAll = useCallback(
+    (dosages: Dosages) => {
+      const updatedCount = applyDosagesToAll(dosages);
+      if (updatedCount === 0) {
+        toast.info(APPLY_TO_ALL_NO_TARGET_MESSAGE);
+        return;
+      }
+      showUndoableToast(createApplyToAllSuccessMessage(updatedCount));
+    },
+    [applyDosagesToAll]
+  );
+
+  /**
+   * 選択中カードの注意点を全カードに追加し、「元に戻す」付きのトーストを表示
+   */
+  const handleApplyPrecautionsToAll = useCallback(
+    (values: string[]) => {
+      const { updatedCount, skippedCount } = appendPrecautionsToAll(values);
+      if (updatedCount === 0) {
+        toast.info(APPLY_TO_ALL_NO_TARGET_MESSAGE);
+        return;
+      }
+      showUndoableToast(
+        createApplyToAllSuccessMessage(updatedCount, skippedCount)
+      );
+    },
+    [appendPrecautionsToAll]
+  );
+
+  // 反映先となる他のカードがあるときだけ「全カードに反映」を出す
+  const canApplyToAll = items.length > 1;
 
   // 最大数チェック（MAX_ITEM_COUNT に達したらカード追加を無効化）
   const canAddCard = items.length < MAX_ITEM_COUNT;
@@ -197,7 +294,8 @@ export function TrainingPage() {
         <Canvas
           items={items}
           onItemsChange={handleItemsChange}
-          layoutType={layoutType}
+          layoutType={settings.layoutType}
+          themeColor={settings.themeColor}
           selectedItemId={selectedItemId}
           onItemSelect={handleItemSelect}
           onAddCard={handleAddCard}
@@ -205,6 +303,7 @@ export function TrainingPage() {
           imageUrls={cardImageUrls}
           onAddCardWithImage={handleAddCardWithImage}
           canAddCard={canAddCard}
+          onItemDuplicate={handleItemDuplicate}
           onImageAreaClick={handleMobileImageAreaClick}
           onSettingsClick={handleMobileSettingsClick}
           isMobile={isMobile}
@@ -217,6 +316,13 @@ export function TrainingPage() {
           selectedItem={selectedItem}
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
+          onItemDuplicate={handleItemDuplicate}
+          onApplyDosagesToAll={
+            canApplyToAll ? handleApplyDosagesToAll : undefined
+          }
+          onApplyPrecautionsToAll={
+            canApplyToAll ? handleApplyPrecautionsToAll : undefined
+          }
         />
       </aside>
 
@@ -248,6 +354,13 @@ export function TrainingPage() {
           selectedItem={selectedItem}
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
+          onItemDuplicate={handleItemDuplicate}
+          onApplyDosagesToAll={
+            canApplyToAll ? handleApplyDosagesToAll : undefined
+          }
+          onApplyPrecautionsToAll={
+            canApplyToAll ? handleApplyPrecautionsToAll : undefined
+          }
         />
       </MobileSidebar>
     </div>

@@ -88,7 +88,7 @@ function createTestData(
       updatedAt: "2024-01-01T00:00:00.000Z",
       projectType: "training",
     },
-    layoutType: "grid2",
+    settings: { layoutType: "grid2", themeColor: "#3b82f6" },
     items: [],
     images: {},
     ...overrides,

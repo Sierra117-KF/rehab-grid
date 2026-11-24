@@ -6,7 +6,7 @@ import {
   APP_NAME,
   BUTTON_CANCEL,
   BUTTON_DELETE,
-  GRID_SELECT_BUTTON_LABEL,
+  DESIGN_SETTINGS_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_FAILED_MESSAGE,
   IMPORT_LOADING_LABEL,
@@ -21,12 +21,19 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  REDO_TOOLTIP,
   TEMPLATE_APPLY_SUCCESS,
   TEMPLATE_BUTTON_LABEL,
   TEMPLATE_LOAD_ERROR,
+  UNDO_TOOLTIP,
   UNKNOWN_ERROR_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
-import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
+import {
+  stateToProjectFile,
+  useEditorStore,
+} from "@rehab-grid/core/lib/store/useEditorStore";
+import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
+import { type LayoutType } from "@rehab-grid/core/types";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
@@ -37,13 +44,9 @@ import {
   generatePdfFilename,
   preparePdfGenerationData,
 } from "@rehab-grid/core/utils/pdf";
-import {
-  applyImportResult,
-  createProjectFile,
-  createProjectSettings,
-} from "@rehab-grid/core/utils/project";
+import { applyImportResult } from "@rehab-grid/core/utils/project";
 import { loadTemplate } from "@rehab-grid/core/utils/template";
-import { GridSelectDialog } from "@rehab-grid/ui/components/editor/GridSelectDialog";
+import { DesignSettingsDialog } from "@rehab-grid/ui/components/editor/DesignSettingsDialog";
 import { PdfPreviewModal } from "@rehab-grid/ui/components/editor/PdfPreviewModal";
 import { TemplateSelectModal } from "@rehab-grid/ui/components/editor/TemplateSelectModal";
 import { MobileDropdownMenu } from "@rehab-grid/ui/components/layout/MobileDropdownMenu";
@@ -61,11 +64,13 @@ import {
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
   FolderOpen,
-  Grid3x3,
   LayoutTemplate,
   Loader2,
   Menu,
+  Palette,
+  Redo2,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -77,6 +82,13 @@ import { ImportConfirmDialog } from "./ImportConfirmDialog";
 import { MobileEditorMenu } from "./MobileEditorMenu";
 import { PdfMenu } from "./PdfMenu";
 import { ProjectInfo } from "./ProjectInfo";
+
+/**
+ * テーマカラー変更の履歴をまとめるキー
+ *
+ * カラーピッカーのドラッグ中は値が連続して変わるため、1 件の履歴にまとめる
+ */
+const THEME_COLOR_MERGE_KEY = "settings:themeColor";
 
 /**
  * EditorHeaderコンポーネントのプロパティ
@@ -107,11 +119,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   // Zustand ストアから状態を取得
   const meta = useEditorStore((state) => state.meta);
   const items = useEditorStore((state) => state.items);
-  const layoutType = useEditorStore((state) => state.layoutType);
-  const themeColor = useEditorStore((state) => state.themeColor);
+  const settings = useEditorStore((state) => state.settings);
   const initializeFromDB = useEditorStore((state) => state.initializeFromDB);
   const deleteProject = useEditorStore((state) => state.deleteProject);
-  const setLayoutType = useEditorStore((state) => state.setLayoutType);
+  const updateSettings = useEditorStore((state) => state.updateSettings);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  // 関数アクションではなくセレクタで購読し、履歴の増減でボタンを再描画する
+  const canUndo = useEditorStore((state) => state.past.length > 0);
+  const canRedo = useEditorStore((state) => state.future.length > 0);
 
   // インポート関連の状態
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,8 +145,13 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   // プロジェクト削除関連の状態
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
 
-  // グリッド選択関連の状態
-  const [showGridSelectDialog, setShowGridSelectDialog] = useState(false);
+  // デザイン設定ダイアログの開閉（Canvas 等からも開けるようストアで管理）
+  const isDesignSettingsOpen = useModalStore(
+    (state) => state.isDesignSettingsOpen
+  );
+  const setDesignSettingsOpen = useModalStore(
+    (state) => state.setDesignSettingsOpen
+  );
 
   // モバイルメニュー関連の状態
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -142,19 +163,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * 軽量JSONとしてエクスポート
    */
   const handleExportJSON = useCallback(() => {
-    const settings = createProjectSettings(layoutType, themeColor);
-    const project = createProjectFile(meta, settings, items);
-    downloadProjectAsJSON(project);
-  }, [meta, items, layoutType, themeColor]);
+    downloadProjectAsJSON(stateToProjectFile({ meta, settings, items }));
+  }, [meta, settings, items]);
 
   /**
    * 完全バックアップ（ZIP）としてエクスポート
    */
   const handleExportZIP = useCallback(() => {
-    const settings = createProjectSettings(layoutType, themeColor);
-    const project = createProjectFile(meta, settings, items);
-    void downloadProjectAsZIP(project);
-  }, [meta, items, layoutType, themeColor]);
+    void downloadProjectAsZIP(stateToProjectFile({ meta, settings, items }));
+  }, [meta, settings, items]);
 
   /**
    * PDFプレビュー
@@ -166,7 +183,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     }
 
     try {
-      const pdfData = await preparePdfGenerationData(items, meta, layoutType);
+      const pdfData = await preparePdfGenerationData(items, meta, settings);
       if (!pdfData) return;
 
       toast.info(PDF_PREVIEW_GENERATING);
@@ -184,7 +201,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         error instanceof Error ? error.message : PDF_GENERATE_FAILED;
       toast.error(message);
     }
-  }, [items, meta, layoutType, generatePdf]);
+  }, [items, meta, settings, generatePdf]);
 
   /**
    * PDFダウンロード
@@ -196,7 +213,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     }
 
     try {
-      const pdfData = await preparePdfGenerationData(items, meta, layoutType);
+      const pdfData = await preparePdfGenerationData(items, meta, settings);
       if (!pdfData) return;
 
       toast.info(PDF_GENERATING_MESSAGE);
@@ -214,7 +231,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         error instanceof Error ? error.message : PDF_GENERATE_FAILED;
       toast.error(message);
     }
-  }, [items, meta, layoutType, generatePdf]);
+  }, [items, meta, settings, generatePdf]);
 
   /**
    * プレビューモーダルからのダウンロード
@@ -389,18 +406,31 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, []);
 
   /**
-   * グリッド選択ダイアログを開く
+   * デザイン設定ダイアログを開く
    */
-  const handleOpenGridSelectDialog = useCallback(() => {
-    setShowGridSelectDialog(true);
-  }, []);
+  const handleOpenDesignSettings = useCallback(() => {
+    setDesignSettingsOpen(true);
+  }, [setDesignSettingsOpen]);
 
   /**
-   * グリッド選択ダイアログの開閉状態変更
+   * レイアウト（列数）の変更
    */
-  const handleGridSelectDialogOpenChange = useCallback((open: boolean) => {
-    setShowGridSelectDialog(open);
-  }, []);
+  const handleLayoutChange = useCallback(
+    (layoutType: LayoutType) => {
+      updateSettings({ layoutType });
+    },
+    [updateSettings]
+  );
+
+  /**
+   * テーマカラーの変更
+   */
+  const handleThemeColorChange = useCallback(
+    (themeColor: string) => {
+      updateSettings({ themeColor }, { mergeKey: THEME_COLOR_MERGE_KEY });
+    },
+    [updateSettings]
+  );
 
   /**
    * モバイルメニューを開く
@@ -483,8 +513,12 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
             title="メニュー"
           >
             <MobileEditorMenu
-              layoutType={layoutType}
-              onGridSelectClick={handleOpenGridSelectDialog}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              layoutType={settings.layoutType}
+              onDesignSettingsClick={handleOpenDesignSettings}
               onTemplateClick={handleTemplateButtonClick}
               onOpenClick={handleOpenClick}
               isImporting={isImporting}
@@ -519,6 +553,30 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
             {/* 右側: プロジェクト情報 + アクションボタン */}
             <div className="ml-auto flex items-center gap-2">
+              {/* 元に戻す / やり直す */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={undo}
+                disabled={!canUndo}
+                title={UNDO_TOOLTIP}
+                aria-label={UNDO_TOOLTIP}
+              >
+                <Undo2 className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={redo}
+                disabled={!canRedo}
+                title={REDO_TOOLTIP}
+                aria-label={REDO_TOOLTIP}
+              >
+                <Redo2 className="size-4" />
+              </Button>
+
               {/* プロジェクト名 + 削除ボタン */}
               <ProjectInfo />
               <Button
@@ -534,15 +592,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
               {/* セパレーター */}
               <div className="mx-1 h-6 w-px bg-border" />
-              {/* グリッド選択ボタン */}
+              {/* デザイン設定ボタン */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
-                onClick={handleOpenGridSelectDialog}
+                onClick={handleOpenDesignSettings}
               >
-                <Grid3x3 className="size-4 text-sky-500" />
-                <span>{GRID_SELECT_BUTTON_LABEL}</span>
+                <Palette className="size-4 text-sky-500" />
+                <span>{DESIGN_SETTINGS_LABEL}</span>
               </Button>
 
               {/* テンプレートボタン */}
@@ -619,12 +677,13 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         requireConfirmation={items.length > 0}
       />
 
-      {/* グリッド選択ダイアログ */}
-      <GridSelectDialog
-        open={showGridSelectDialog}
-        onOpenChange={handleGridSelectDialogOpenChange}
-        layoutType={layoutType}
-        onLayoutChange={setLayoutType}
+      {/* デザイン設定ダイアログ */}
+      <DesignSettingsDialog
+        open={isDesignSettingsOpen}
+        onOpenChange={setDesignSettingsOpen}
+        settings={settings}
+        onLayoutChange={handleLayoutChange}
+        onThemeColorChange={handleThemeColorChange}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

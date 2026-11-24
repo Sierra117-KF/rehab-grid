@@ -56,4 +56,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
       router.push("/training");
     }
   },
+
+  isDesignSettingsOpen: false,
+  setDesignSettingsOpen: (open) => set({ isDesignSettingsOpen: open }),
 }));

@@ -12,8 +12,8 @@
 // editor コンポーネント
 // ========================================
 export { Canvas } from "./components/editor/Canvas";
+export { DesignSettingsDialog } from "./components/editor/DesignSettingsDialog";
 export { EditorHeader } from "./components/editor/EditorHeader";
-export { GridSelectDialog } from "./components/editor/GridSelectDialog";
 export { ImageLibraryPanel } from "./components/editor/ImageLibraryPanel";
 export { PdfPreviewModal } from "./components/editor/PdfPreviewModal";
 export { PrecautionSnippetDialog } from "./components/editor/PrecautionSnippetDialog";
@@ -33,11 +33,6 @@ export { MobileSidebar } from "./components/layout/MobileSidebar";
 export { RecentUpdates } from "./components/layout/RecentUpdates";
 export { ScrollAnimationSection } from "./components/layout/ScrollAnimationSection";
 export { SecurityDisclaimerModal } from "./components/layout/SecurityDisclaimerModal";
-
-// ========================================
-// pdf コンポーネント
-// ========================================
-export { TrainingSheetPDF } from "./components/pdf/TrainingSheetPDF";
 
 // ========================================
 // ui コンポーネント（shadcn/ui ベース）

@@ -26,13 +26,25 @@ export type ProjectMeta = {
 
 /**
  * プロジェクトの設定
+ *
+ * @remarks
+ * 項目を追加するときはオプショナルにし、既存の JSON / ZIP・IndexedDB のデータを読めるようにする。
+ * デフォルト値は resolveProjectSettings で補う。
  */
 export type ProjectSettings = {
   /** グリッドレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（将来実装予定） */
+  /** テーマカラー（#RRGGBB。用量の区切り線などの指導箋の見た目に使う） */
   themeColor: string;
 };
+
+/**
+ * デフォルト値を補ったプロジェクト設定
+ *
+ * @remarks
+ * ストアと PDF 生成はこの型で設定を持つため、各所でフォールバックを書かずに済む
+ */
+export type ResolvedProjectSettings = Required<ProjectSettings>;
 
 /**
  * プロジェクトファイル全体の型

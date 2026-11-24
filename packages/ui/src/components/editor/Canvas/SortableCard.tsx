@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   CANVAS_DROP_HERE,
+  DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_DRAG_TYPE,
@@ -15,9 +16,16 @@ import {
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
 import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
-import { GripVertical, ImagePlus, Pencil } from "lucide-react";
+import { Copy, GripVertical, ImagePlus, Pencil } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
+
+/**
+ * 用量の区切り線の色（Canvas がテーマカラーから上書きする CSS 変数を参照する）
+ */
+const DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
+  borderTopColor: "var(--dosage-accent-light)",
+};
 
 /**
  * ソート可能なカードの Props
@@ -37,6 +45,8 @@ export type SortableCardProps = {
   imageUrl?: string;
   /** キャンバスのドラッグオーバー状態をリセットするコールバック */
   onCanvasDragEnd?: () => void;
+  /** 複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onDuplicate?: () => void;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -64,6 +74,7 @@ export function SortableCard({
   onImageDrop,
   imageUrl,
   onCanvasDragEnd,
+  onDuplicate,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -83,9 +94,11 @@ export function SortableCard({
     isDragging: isSortableDragging,
   } = useSortable({ id: item.id });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // 枠線の色はテーマカラー（Canvas が上書きする CSS 変数）。区切り線と同じ理由でインライン style で指定する
+    borderColor: "var(--card-border-color)",
   };
 
   const isCurrentlyDragging = isDragging || isSortableDragging;
@@ -183,9 +196,10 @@ export function SortableCard({
         "group relative rounded-xl bg-card transition-all duration-200",
         isMobile ? "cursor-default" : "cursor-pointer",
         isCurrentlyDragging && "z-50 scale-[1.02] shadow-2xl opacity-90",
+        // 枠線はテーマカラー。選択中は枠線から離したオレンジ（--primary）のリングで区別する
         isSelected
-          ? "border-2 border-primary ring-2 ring-primary/40"
-          : "border border-border/50 hover:border-primary/40 hover:shadow-md",
+          ? "border-2 ring-2 ring-primary ring-offset-2 ring-offset-background"
+          : "border hover:shadow-md",
         "animate-fade-in"
       )}
       onClick={(e) => {
@@ -212,6 +226,32 @@ export function SortableCard({
           aria-label="ドラッグして並べ替え"
         >
           <GripVertical className="size-5" />
+        </button>
+      ) : null}
+
+      {/* デスクトップ用: 複製ボタン（ホバー・フォーカス時に右上へ表示） */}
+      {!isMobile && onDuplicate ? (
+        <button
+          type="button"
+          className={cn(
+            "absolute right-2 top-2 z-20",
+            "flex size-8 items-center justify-center rounded-full border border-border",
+            "bg-background/90 text-muted-foreground shadow-sm",
+            "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+            "hover:text-primary"
+          )}
+          // カードのルート要素には dnd-kit の listeners（ドラッグ開始）と選択用の onClick が付いている。
+          // ボタン操作でドラッグや選択が起きないよう、ポインター・キー・クリックの伝播を止める。
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+          title={DUPLICATE_TOOLTIP}
+          aria-label={DUPLICATE_TOOLTIP}
+        >
+          <Copy className="size-4" />
         </button>
       ) : null}
 
@@ -392,14 +432,17 @@ export function SortableCard({
                             ? badge.value.slice(0, TEXT_LIMITS[badge.type])
                             : "-"}
                         </span>
-                        {/* ラベル（下線付き） */}
+                        {/* ラベル（下線付き）
+                            線の色はテーマカラー（Canvas が上書きする CSS 変数）。globals.css のレイヤー外の
+                            `* { border-color }` は Tailwind のユーティリティより強いため、インライン style で指定する */}
                         <span
                           className={cn(
                             layoutType === "grid1" && !isMobile
                               ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.dosageLabelSize
                               : EDITOR_TEXT_STYLE.dosageLabelSize,
-                            "text-dosage-label border-t border-dosage-accent-light pt-1 mt-1"
+                            "text-dosage-label border-t pt-1 mt-1"
                           )}
+                          style={DOSAGE_DIVIDER_STYLE}
                         >
                           {LABELS[badge.type]}
                         </span>

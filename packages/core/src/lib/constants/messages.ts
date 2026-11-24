@@ -53,7 +53,62 @@ export const DELETE_CONFIRM_TITLE = "カードを削除";
 
 /** カード削除確認ダイアログの説明 */
 export const DELETE_CONFIRM_DESCRIPTION =
-  "このカードを削除してもよろしいですか？この操作は取り消せません。";
+  "このカードを削除してもよろしいですか？";
+
+// 編集履歴（Undo / Redo）関連メッセージ
+/** 元に戻すボタンのラベル */
+export const UNDO_LABEL = "元に戻す";
+
+/** やり直すボタンのラベル */
+export const REDO_LABEL = "やり直す";
+
+/** 元に戻すボタンのツールチップ */
+export const UNDO_TOOLTIP = "元に戻す（Ctrl+Z）";
+
+/** やり直すボタンのツールチップ */
+export const REDO_TOOLTIP = "やり直す（Ctrl+Shift+Z）";
+
+/** トーストの「元に戻す」を押したが、その後に別の操作が行われていた場合の案内 */
+export const UNDO_STALE_MESSAGE =
+  "他の操作が行われたため、ヘッダーの［元に戻す］を使ってください";
+
+// カード複製・一括適用関連メッセージ
+/** カード複製ボタンのラベル */
+export const DUPLICATE_BUTTON_LABEL = "このカードを複製";
+
+/** カード上の複製ボタンのツールチップ */
+export const DUPLICATE_TOOLTIP = "カードを複製";
+
+/** 全カードに反映ボタンのラベル */
+export const APPLY_TO_ALL_LABEL = "全カードに反映";
+
+/** 用量の全カード反映ボタンのツールチップ */
+export const APPLY_DOSAGES_TO_ALL_TOOLTIP =
+  "このカードの回数・セット・頻度を全カードに反映";
+
+/** 注意点の全カード反映ボタンのツールチップ */
+export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
+  "このカードの注意点を全カードに追加";
+
+/** 一括適用で値が変わるカードがなかった場合のメッセージ */
+export const APPLY_TO_ALL_NO_TARGET_MESSAGE = "反映するカードがありません";
+
+/**
+ * 一括適用が完了したときのメッセージを生成
+ *
+ * @param updatedCount - 値が変わったカードの枚数
+ * @param skippedCount - 上限を超えたため追加しなかった注意点の件数
+ * @returns 表示用メッセージ
+ */
+export function createApplyToAllSuccessMessage(
+  updatedCount: number,
+  skippedCount = 0
+): string {
+  const base = `${String(updatedCount)}枚のカードに反映しました`;
+  return skippedCount > 0
+    ? `${base}（上限を超える${String(skippedCount)}件は追加していません）`
+    : base;
+}
 
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */
@@ -235,6 +290,15 @@ export const IMAGE_LIBRARY_VIDEO_NOT_SUPPORTED = "動画ファイルは保存で
 /** 選択した画像を削除ボタンのラベル */
 export const IMAGE_LIBRARY_DELETE_SELECTED = "選択した画像を削除";
 
+/** 画像検索欄のラベル（aria-label） */
+export const IMAGE_LIBRARY_SEARCH_LABEL = "画像を検索";
+
+/** 画像検索欄のプレースホルダー */
+export const IMAGE_LIBRARY_SEARCH_PLACEHOLDER = "運動名で検索";
+
+/** 画像検索のクリアボタンのラベル */
+export const IMAGE_LIBRARY_SEARCH_CLEAR = "検索をクリア";
+
 // 画像削除ダイアログ関連
 /** 単一画像削除ダイアログのタイトル */
 export const IMAGE_DELETE_TITLE = "画像を削除";
@@ -390,16 +454,35 @@ export const SECURITY_DISCLAIMER_CHECKBOX_LABEL = "上記の内容を確認し�
 export const SECURITY_DISCLAIMER_SCROLL_HINT =
   "▼ 全て表示されない場合は下にスクロールしてください";
 
-// グリッド選択関連
-/** グリッド選択ボタンのラベル */
-export const GRID_SELECT_BUTTON_LABEL = "グリッド選択";
+// デザイン設定関連
+/** デザイン設定ボタンのラベル（ダイアログのタイトルも兼ねる） */
+export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 
-/** グリッド選択モーダルのタイトル */
-export const GRID_SELECT_MODAL_TITLE = "グリッド選択";
+/** デザイン設定ダイアログの説明 */
+export const DESIGN_SETTINGS_DESCRIPTION =
+  "指導箋の列数と色を変更できます。変更はすぐに反映されます";
 
-/** グリッド選択モーダルの説明 */
-export const GRID_SELECT_MODAL_DESCRIPTION =
-  "カードの表示列数を選択してください";
+/** デザイン設定ダイアログの列数セクションの見出し */
+export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+
+/** デザイン設定ダイアログのテーマカラーセクションの見出し */
+export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
+
+/** テーマカラーの説明（どこに反映されるか） */
+export const THEME_COLOR_DESCRIPTION = "運動カードの枠線の色に使われます";
+
+/** テーマカラーのカラーピッカーのラベル */
+export const THEME_COLOR_PICKER_LABEL = "色を選ぶ";
+
+/** テーマカラーのカラーコード入力欄のラベル */
+export const THEME_COLOR_HEX_LABEL = "カラーコード";
+
+/** テーマカラーのカラーコードが不正なときの案内 */
+export const THEME_COLOR_HEX_INVALID_MESSAGE =
+  "#RRGGBB の形式（例: #3b82f6）で入力してください";
+
+/** ダイアログの「閉じる」ボタンのラベル */
+export const BUTTON_CLOSE = "閉じる";
 
 // 画像アップロード関連
 /** 画像アップロード時の警告メッセージ */

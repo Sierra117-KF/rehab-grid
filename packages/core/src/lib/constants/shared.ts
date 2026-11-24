@@ -142,6 +142,4 @@ export const DOSAGE_COLORS = {
   label: "#94a3b8",
   /** アクセント色: blue-500 */
   accent: "#3b82f6",
-  /** アクセント色（薄い）: blue-500/30 */
-  accentLight: "rgba(59, 130, 246, 0.3)",
 } as const;

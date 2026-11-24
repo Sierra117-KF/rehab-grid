@@ -9,13 +9,19 @@
  */
 import {
   BUTTON_ADD_CARD,
+  BUTTON_CANCEL,
   BUTTON_DELETE,
+  createDeleteAllLabel,
+  createSelectedImagesDeleteLabel,
   IMAGE_DELETE_DESCRIPTION,
   IMAGE_DELETE_TITLE,
   IMAGE_LIBRARY_BULK_DELETE,
   IMAGE_LIBRARY_BULK_DELETE_END,
   IMAGE_LIBRARY_CLICK_INSTRUCTION,
   IMAGE_LIBRARY_DROP_INSTRUCTION,
+  IMAGE_LIBRARY_NO_MATCHES,
+  IMAGE_LIBRARY_SEARCH_CLEAR,
+  IMAGE_LIBRARY_SEARCH_LABEL,
   IMAGE_LIBRARY_UPLOADING,
   SAMPLE_IMAGES,
 } from "@rehab-grid/core/lib/constants";
@@ -418,8 +424,222 @@ describe("ImageLibraryPanel", () => {
       const thumbnail = screen.getByAltText("test_image");
       await user.click(thumbnail);
 
-      // onImageSelect が呼ばれることを確認
       expect(props.onImageSelect).toHaveBeenCalledWith("img-1");
     });
+
+    it("モバイルでも検索欄が表示される", () => {
+      setupImageLibraryPanel({ isMobile: true });
+
+      expect(
+        screen.getByRole("textbox", { name: IMAGE_LIBRARY_SEARCH_LABEL })
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("キーワード検索", () => {
+    /** 検索欄に入力する */
+    async function search(
+      user: ReturnType<typeof userEvent.setup>,
+      query: string
+    ) {
+      await user.type(
+        screen.getByRole("textbox", { name: IMAGE_LIBRARY_SEARCH_LABEL }),
+        query
+      );
+    }
+
+    it("ひらがなでカタカナの運動名のサンプル画像に絞り込める", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel({}, { images: [] });
+
+      await search(user, "すくわっと");
+
+      expect(screen.getAllByRole("img")).toHaveLength(1);
+      expect(
+        screen.getByAltText("standing_05_スクワット")
+      ).toBeInTheDocument();
+    });
+
+    it("小文字の英字で「足上げ（SLR）」がヒットする", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel({}, { images: [] });
+
+      await search(user, "slr");
+
+      expect(screen.getAllByRole("img")).toHaveLength(1);
+      expect(screen.getByAltText("lying_02_足上げ（SLR）")).toBeInTheDocument();
+    });
+
+    it("空白区切りの複数語はすべてを含む画像だけに絞り込む", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel({}, { images: [] });
+
+      await search(user, "股関節 伸展");
+
+      const altTexts = screen
+        .getAllByRole("img")
+        .map((img) => img.getAttribute("alt"));
+      expect(altTexts).toEqual([
+        "lying_05_股関節伸展",
+        "lying_18_四つ這い股関節伸展1",
+        "lying_19_四つ這い股関節伸展2",
+      ]);
+    });
+
+    it("取り込み画像もファイル名で検索できる", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        {
+          images: [
+            createTestImage({ id: "img-1", fileName: "knee_exercise.png" }),
+            createTestImage({ id: "img-2", fileName: "shoulder_exercise.png" }),
+          ],
+        }
+      );
+
+      await search(user, "knee");
+
+      expect(screen.getAllByRole("img")).toHaveLength(1);
+      expect(screen.getByAltText("knee_exercise.png")).toBeInTheDocument();
+    });
+
+    it("該当する画像がないとき「該当なし」を表示する", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel({}, { images: [] });
+
+      await search(user, "存在しない運動");
+
+      expect(screen.queryAllByRole("img")).toHaveLength(0);
+      expect(screen.getByText(IMAGE_LIBRARY_NO_MATCHES)).toBeInTheDocument();
+    });
+
+    it("クリアボタンで検索語が消え、全画像の表示に戻る", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel({}, { images: [] });
+
+      await search(user, "すくわっと");
+      await user.click(
+        screen.getByRole("button", { name: IMAGE_LIBRARY_SEARCH_CLEAR })
+      );
+
+      expect(
+        screen.getByRole("textbox", { name: IMAGE_LIBRARY_SEARCH_LABEL })
+      ).toHaveValue("");
+      expect(screen.getAllByRole("img")).toHaveLength(SAMPLE_IMAGES.length);
+      expect(
+        screen.queryByRole("button", { name: IMAGE_LIBRARY_SEARCH_CLEAR })
+      ).not.toBeInTheDocument();
+    });
+
+    describe("まとめて削除モードとの併用", () => {
+      const importedImages = [
+        createTestImage({ id: "img-1", fileName: "knee_exercise.png" }),
+        createTestImage({ id: "img-2", fileName: "shoulder_exercise.png" }),
+      ];
+
+      it("検索結果の取り込み画像だけが「表示中の画像を削除」の対象になる", async () => {
+        const user = userEvent.setup();
+        setupImageLibraryPanel({}, { images: importedImages });
+
+        await user.click(
+          screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+        );
+        await search(user, "knee");
+
+        expect(
+          screen.getByRole("button", { name: createDeleteAllLabel(1, true) })
+        ).toBeEnabled();
+      });
+
+      it("検索結果が 0 件のとき「表示中の画像を削除」を押せない", async () => {
+        const user = userEvent.setup();
+        setupImageLibraryPanel({}, { images: importedImages });
+
+        await user.click(
+          screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+        );
+        await search(user, "存在しない");
+
+        expect(
+          screen.getByRole("button", { name: createDeleteAllLabel(0, true) })
+        ).toBeDisabled();
+      });
+
+      it("検索語を変えると画像の選択が解除される", async () => {
+        const user = userEvent.setup();
+        setupImageLibraryPanel({}, { images: importedImages });
+
+        await user.click(
+          screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+        );
+        await user.click(screen.getByAltText("shoulder_exercise.png"));
+        expect(
+          screen.getByRole("button", {
+            name: createSelectedImagesDeleteLabel(1),
+          })
+        ).toBeEnabled();
+
+        // 選択した「shoulder」が非表示になる検索語に変える
+        await search(user, "knee");
+
+        expect(
+          screen.getByRole("button", {
+            name: createSelectedImagesDeleteLabel(0),
+          })
+        ).toBeDisabled();
+      });
+    });
+  });
+
+  describe("サムネイルのクリック", () => {
+    it("デスクトップの通常モードではクリックしても何もしない（配置は D&D で行う）", async () => {
+      const user = userEvent.setup();
+      const props = setupImageLibraryPanel(
+        {},
+        { images: [createTestImage({ id: "img-1", fileName: "test_image" })] }
+      );
+
+      await user.click(screen.getByAltText("test_image"));
+
+      expect(props.onImageSelect).not.toHaveBeenCalled();
+      expect(props.onAddCard).not.toHaveBeenCalled();
+    });
+
+    it("まとめて削除モード中はクリックで選択を切り替える", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        { images: [createTestImage({ id: "img-1", fileName: "test_image" })] }
+      );
+
+      await user.click(
+        screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+      );
+      await user.click(screen.getByAltText("test_image"));
+
+      expect(
+        screen.getByRole("button", { name: createSelectedImagesDeleteLabel(1) })
+      ).toBeEnabled();
+    });
+
+    it.each([
+      { buttonName: BUTTON_DELETE, label: "削除" },
+      { buttonName: BUTTON_CANCEL, label: "キャンセル" },
+    ])(
+      "モバイルで削除確認ダイアログの $label を押しても画像は反映されない",
+      async ({ buttonName }) => {
+        const user = userEvent.setup();
+        const props = setupImageLibraryPanel(
+          { isMobile: true },
+          { images: [createTestImage({ id: "img-1", fileName: "test_image" })] }
+        );
+
+        await user.click(screen.getByRole("button", { name: /画像を削除/i }));
+        await user.click(screen.getByRole("button", { name: buttonName }));
+
+        expect(props.onImageSelect).not.toHaveBeenCalled();
+      }
+    );
   });
 });

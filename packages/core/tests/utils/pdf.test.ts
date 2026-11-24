@@ -3,7 +3,12 @@ import {
   LAYOUT_COLUMNS,
   PDF_CONTENT_SIZE,
 } from "@rehab-grid/core/lib/constants";
-import { type EditorItem, type LayoutType, type ProjectMeta } from "@rehab-grid/core/types";
+import {
+  type EditorItem,
+  type LayoutType,
+  type ProjectMeta,
+  type ResolvedProjectSettings,
+} from "@rehab-grid/core/types";
 import {
   calculatePdfCardWidth,
   generatePdfFilename,
@@ -68,6 +73,12 @@ const TEST_IMAGE_IDS = {
   sampleStandingSquat: "sample-standing-squat",
   sampleImage1: "sample-image-1",
 } as const;
+
+/** テスト用のプロジェクト設定 */
+const TEST_SETTINGS: ResolvedProjectSettings = {
+  layoutType: "grid2",
+  themeColor: "#3b82f6",
+};
 
 // ============================================================================
 // ヘルパー関数
@@ -280,7 +291,7 @@ describe("pdf.ts", () => {
       const result = await preparePdfGenerationData(
         [],
         createTestMeta(),
-        "grid2"
+        TEST_SETTINGS
       );
 
       expect(result).toBeNull();
@@ -318,7 +329,7 @@ describe("pdf.ts", () => {
       mockFetchSample.mockResolvedValue(new Map());
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証
       expect(result).not.toBeNull();
@@ -330,7 +341,7 @@ describe("pdf.ts", () => {
       );
       expect(result?.items).toBe(items);
       expect(result?.meta).toBe(meta);
-      expect(result?.layoutType).toBe("grid2");
+      expect(result?.settings).toBe(TEST_SETTINGS);
     });
 
     it("サンプル画像のみの場合、fetchで取得・変換する", async () => {
@@ -358,7 +369,7 @@ describe("pdf.ts", () => {
       mockConvertBlob.mockResolvedValue("data:image/jpeg;base64,sample");
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証
       expect(result).not.toBeNull();
@@ -402,7 +413,7 @@ describe("pdf.ts", () => {
         .mockResolvedValueOnce("data:image/jpeg;base64,sample");
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証
       expect(result).not.toBeNull();
@@ -447,7 +458,7 @@ describe("pdf.ts", () => {
       mockFetchSample.mockResolvedValue(new Map());
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証：失敗した画像はスキップされる
       expect(result).not.toBeNull();
@@ -485,7 +496,7 @@ describe("pdf.ts", () => {
       mockFetchSample.mockResolvedValue(new Map());
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証
       expect(result).not.toBeNull();
@@ -514,7 +525,7 @@ describe("pdf.ts", () => {
       mockFetchSample.mockResolvedValue(new Map());
 
       // 実行
-      const result = await preparePdfGenerationData(items, meta, "grid2");
+      const result = await preparePdfGenerationData(items, meta, TEST_SETTINGS);
 
       // 検証：空文字の変換結果はスキップ
       expect(result).not.toBeNull();

@@ -111,6 +111,7 @@ useEditorStore(); // Zustand ストア（状態管理）
 useCanvasImages(); // 画像URL生成（IndexedDB + サンプル画像）
 useIsMobile(); // モバイル判定
 usePasteImage(); // クリップボード貼り付け
+useEditorShortcuts(); // Undo / Redo のキーボードショートカット
 ```
 
 #### 使用するUIコンポーネント

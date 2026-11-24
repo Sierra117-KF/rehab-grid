@@ -74,8 +74,16 @@ export function ThumbnailCard({
 }: ThumbnailCardProps) {
   /**
    * カードのクリックハンドラ
+   *
+   * @remarks
+   * 削除確認ダイアログはポータルに描画されるが、React の合成イベントはポータル越しにも
+   * このカードへ伝播する。ダイアログ内の「削除」「キャンセル」やオーバーレイのクリックで
+   * 選択の切り替えやモバイルの画像反映が起きないよう、DOM 上でカード内にある要素のクリックだけを扱う。
    */
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) {
+      return;
+    }
     onClick(image.id);
   };
 

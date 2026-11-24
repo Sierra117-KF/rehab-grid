@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 const INITIAL_STATE = {
   isSecurityDisclaimerOpen: false,
+  isDesignSettingsOpen: false,
 };
 
 describe("useModalStore", () => {
@@ -31,6 +32,19 @@ describe("useModalStore", () => {
       const state = useModalStore.getState();
 
       expect(state.isSecurityDisclaimerOpen).toBeFalsy();
+    });
+  });
+
+  describe("setDesignSettingsOpen", () => {
+    it("デザイン設定ダイアログを開閉できる", () => {
+      const { setDesignSettingsOpen } = useModalStore.getState();
+      expect(useModalStore.getState().isDesignSettingsOpen).toBeFalsy();
+
+      setDesignSettingsOpen(true);
+      expect(useModalStore.getState().isDesignSettingsOpen).toBeTruthy();
+
+      setDesignSettingsOpen(false);
+      expect(useModalStore.getState().isDesignSettingsOpen).toBeFalsy();
     });
   });
 

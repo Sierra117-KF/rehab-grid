@@ -126,14 +126,14 @@ export const PDF_IMAGE_ASPECT_RATIO = 5 / 3;
 
 /**
  * カードのスタイル設定
+ *
+ * ボーダー色はテーマカラー（プロジェクト設定）を使う
  */
 export const PDF_CARD_STYLE = {
   /** 角丸の半径 */
   borderRadius: 8,
   /** ボーダー幅 */
   borderWidth: 1,
-  /** ボーダー色 */
-  borderColor: "#e5e7eb",
   /** 背景色 */
   backgroundColor: "#ffffff",
   /** 内側のパディング */
@@ -169,6 +169,7 @@ export const PDF_TEXT_STYLE = {
  *
  * shared.ts の DOSAGE_COLORS を参照（信頼できる単一の情報源）
  * 数値強調型デザイン: グレースケール + blue-500アクセント
+ * 区切り線の色はテーマカラーから求める（lib/pdf/card.ts）
  */
 export const PDF_DOSAGE_COLORS = {
   /** 数値色: slate-800 */
@@ -177,8 +178,6 @@ export const PDF_DOSAGE_COLORS = {
   label: DOSAGE_COLORS.label,
   /** アクセント色: blue-500 */
   accent: DOSAGE_COLORS.accent,
-  /** アクセント色（薄い）: blue-500/30 */
-  accentLight: DOSAGE_COLORS.accentLight,
 } as const;
 
 /**
@@ -199,8 +198,6 @@ export const PDF_COLORS = {
   cardBackground: "#ffffff",
   /** 画像プレースホルダー背景色 */
   imagePlaceholder: "#f1f5f9",
-  /** 画像プレースホルダーテキスト色 */
-  imagePlaceholderText: "#94a3b8",
   /** 注意点背景色（アンバー系: 穏やかな警告色） */
   precautionBackground: "#fef3c7", // amber-100
   /** 注意点タイトル色（アンバー系: 印刷時の視認性向上） */
@@ -218,8 +215,6 @@ export const PDF_COLORS = {
  * shared.ts の LABELS を使用
  */
 export const PDF_LABELS = {
-  /** デフォルトヘッダータイトル */
-  defaultTitle: "自主トレーニング指導箋",
   /** 患者ラベル */
   patientLabel: "氏名:",
 } as const;
@@ -228,14 +223,8 @@ export const PDF_LABELS = {
  * PDFのスペーシング定数（ポイント単位）
  */
 export const PDF_SPACING = {
-  /** ヘッダー下マージン */
-  headerMarginBottom: 16,
   /** ヘッダー下パディング */
   headerPaddingBottom: 4,
-  /** タイトル下マージン */
-  titleMarginBottom: 4,
-  /** 患者情報上マージン */
-  patientInfoMarginTop: 8,
   /** 患者ラベル右マージン */
   patientLabelMarginRight: 8,
   /** カード画像角丸 */
@@ -276,8 +265,18 @@ export const PDF_SPACING = {
   patientNameBoxBorderRadius: 4,
   /** 患者ラベルフォントサイズ */
   patientLabelFontSize: 10,
-  /** 患者名フォントサイズ */
-  patientNameFontSize: 10,
+} as const;
+
+/**
+ * 1行あたりの概算文字数を求めるための、フォントサイズに対する1文字幅の係数
+ *
+ * 日本語の全角文字幅を経験的に近似した値
+ */
+export const PDF_CHAR_WIDTH_RATIO = {
+  /** タイトル（太字） */
+  title: 0.6,
+  /** 説明文・注意点 */
+  body: 0.55,
 } as const;
 
 /**
