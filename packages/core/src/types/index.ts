@@ -22,12 +22,16 @@ export type {
   PdfWorkerResponse,
 } from "./pdf";
 export type {
+  DosageLabels,
   ImageRecord,
   ImportResult,
+  PageOrientation,
+  PrintColorMode,
   ProjectFile,
   ProjectMeta,
   ProjectRecord,
   ProjectSettings,
   ResolvedProjectSettings,
+  TextScale,
 } from "./project";
 export type { TemplateMetadata } from "./template";

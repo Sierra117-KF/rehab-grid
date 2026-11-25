@@ -24,9 +24,16 @@ import {
   IMAGE_DRAG_TYPE,
   LABELS,
   LAYOUT_COLUMNS,
+  MONOCHROME_COLORS,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
-import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
+import type {
+  DosageLabels,
+  EditorItem,
+  LayoutType,
+  PrintColorMode,
+  TextScale,
+} from "@rehab-grid/core/types";
 import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { reorderEditorItems } from "@rehab-grid/core/utils/editor";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
@@ -42,14 +49,67 @@ import { SortableCard } from "./SortableCard";
 type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
- * 運動カードの枠線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ * カードの色を持つ CSS 変数の名前（既定値は globals.css。SortableCard がユーティリティやインライン style で参照する）
  */
-const CARD_BORDER_CSS_VARIABLE = "--card-border-color";
+const CARD_CSS_VARIABLES = {
+  /** 運動カードの枠線 */
+  cardBorder: "--card-border-color",
+  /** 用量の区切り線 */
+  dosageDivider: "--dosage-accent-light",
+  /** 用量のラベル */
+  dosageLabel: "--dosage-label",
+  /** カード番号バッジの背景 */
+  cardNumberBackground: "--card-number-bg",
+  /** 注意点の背景 */
+  precautionBackground: "--precaution-bg",
+  /** 注意点の枠線 */
+  precautionBorder: "--precaution-border",
+  /** 注意点の見出し */
+  precautionTitle: "--precaution-title",
+  /** 注意点の本文 */
+  precautionText: "--precaution-text",
+} as const;
 
 /**
- * 用量の区切り線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ * テーマカラーと印刷の色づかいから、カードの色を持つ CSS 変数を求める
+ *
+ * @remarks
+ * 変数はスクロールコンテナに設定し、子孫のカードに効かせる。
+ * 白黒モードは PDF と同じ MONOCHROME_COLORS を使う。
+ *
+ * @param themeColor - テーマカラー（省略時は globals.css の既定色のまま）
+ * @param printColorMode - 印刷の色づかい
+ * @returns style に渡す CSS 変数（上書きしない場合は undefined）
  */
-const DOSAGE_DIVIDER_CSS_VARIABLE = "--dosage-accent-light";
+function getCardColorVariables(
+  themeColor: string | undefined,
+  printColorMode: PrintColorMode
+): CssVariableStyle | undefined {
+  if (printColorMode === "monochrome") {
+    return {
+      [CARD_CSS_VARIABLES.cardBorder]: MONOCHROME_COLORS.cardBorder,
+      [CARD_CSS_VARIABLES.dosageDivider]: MONOCHROME_COLORS.dosageDivider,
+      [CARD_CSS_VARIABLES.dosageLabel]: MONOCHROME_COLORS.dosageLabel,
+      [CARD_CSS_VARIABLES.cardNumberBackground]:
+        MONOCHROME_COLORS.cardNumberBackground,
+      [CARD_CSS_VARIABLES.precautionBackground]:
+        MONOCHROME_COLORS.precautionBackground,
+      [CARD_CSS_VARIABLES.precautionBorder]: MONOCHROME_COLORS.precautionBorder,
+      [CARD_CSS_VARIABLES.precautionTitle]: MONOCHROME_COLORS.precautionTitle,
+      [CARD_CSS_VARIABLES.precautionText]: MONOCHROME_COLORS.precautionText,
+    };
+  }
+  if (themeColor === undefined) return undefined;
+  return {
+    [CARD_CSS_VARIABLES.cardBorder]: themeColor,
+    // 用量の区切り線は PDF と同じく白地と合成した不透明色
+    [CARD_CSS_VARIABLES.dosageDivider]: mixWithWhite(
+      themeColor,
+      DOSAGE_DIVIDER_OPACITY
+    ),
+    [CARD_CSS_VARIABLES.cardNumberBackground]: themeColor,
+  };
+}
 
 /**
  * Canvas コンポーネントの Props
@@ -61,8 +121,16 @@ export type CanvasProps = {
   onItemsChange: (items: EditorItem[]) => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（#RRGGBB。カードの枠線と用量の区切り線の色に使う。省略時は globals.css の既定色） */
+  /** テーマカラー（#RRGGBB。カードの枠線・用量の区切り線・カード番号の色に使う。省略時は globals.css の既定色） */
   themeColor?: string;
+  /** 印刷の色づかい（白黒ではテーマカラーの代わりに slate 系の色を使い、注意点の塗りつぶしをなくす。省略時はカラー） */
+  printColorMode?: PrintColorMode;
+  /** カード内の文字サイズ（省略時は標準） */
+  textScale?: TextScale;
+  /** カード番号を表示するか（省略時は表示しない） */
+  showCardNumbers?: boolean;
+  /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
+  dosageLabels?: DosageLabels;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
   /** アイテムが選択されたときのコールバック */
@@ -115,6 +183,10 @@ export function Canvas({
   onItemsChange,
   layoutType,
   themeColor,
+  printColorMode = "color",
+  textScale = "standard",
+  showCardNumbers = false,
+  dosageLabels,
   selectedItemId,
   onItemSelect,
   onAddCard,
@@ -208,17 +280,8 @@ export function Canvas({
     [onItemSelect]
   );
 
-  // テーマカラーをカードの枠線と用量の区切り線（PDF と同じく白地と合成した不透明色）に反映する
-  const themeStyle: CssVariableStyle | undefined =
-    themeColor === undefined
-      ? undefined
-      : {
-          [CARD_BORDER_CSS_VARIABLE]: themeColor,
-          [DOSAGE_DIVIDER_CSS_VARIABLE]: mixWithWhite(
-            themeColor,
-            DOSAGE_DIVIDER_OPACITY
-          ),
-        };
+  // テーマカラー・白黒モードをカードの色（CSS 変数）に反映する
+  const themeStyle = getCardColorVariables(themeColor, printColorMode);
 
   // アクティブなアイテム（ドラッグ中のオーバーレイ用）
   const activeItem =
@@ -378,6 +441,9 @@ export function Canvas({
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}
                       layoutType={layoutType}
+                      textScale={textScale}
+                      cardNumber={showCardNumbers ? index + 1 : undefined}
+                      dosageLabels={dosageLabels}
                     />
                   </div>
                 ))}

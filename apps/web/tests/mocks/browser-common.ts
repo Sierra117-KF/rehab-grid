@@ -179,6 +179,11 @@ export function createTestItem(
 const DEFAULT_TEST_SETTINGS: ResolvedProjectSettings = {
   layoutType: "grid2",
   themeColor: "#3b82f6",
+  printColorMode: "color",
+  textScale: "standard",
+  pageOrientation: "auto",
+  showCardNumbers: false,
+  dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
 };
 
 /**

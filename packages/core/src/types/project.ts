@@ -25,6 +25,33 @@ export type ProjectMeta = {
 };
 
 /**
+ * 印刷の色づかい（color: カラー / monochrome: 白黒・インク節約）
+ */
+export type PrintColorMode = "color" | "monochrome";
+
+/**
+ * カード内の文字サイズ（standard: 標準 / large: 大きめ）
+ */
+export type TextScale = "standard" | "large";
+
+/**
+ * PDF の用紙の向き（auto: 1〜2列は縦・3〜4列は横）
+ */
+export type PageOrientation = "auto" | "portrait" | "landscape";
+
+/**
+ * 用量（回数・セット・頻度）の欄に表示するラベル
+ */
+export type DosageLabels = {
+  /** 回数の欄のラベル（例: 「秒数」「時間」） */
+  reps: string;
+  /** セットの欄のラベル（例: 「左右」） */
+  sets: string;
+  /** 頻度の欄のラベル（例: 「目安」「強度」） */
+  frequency: string;
+};
+
+/**
  * プロジェクトの設定
  *
  * @remarks
@@ -34,8 +61,18 @@ export type ProjectMeta = {
 export type ProjectSettings = {
   /** グリッドレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（#RRGGBB。用量の区切り線などの指導箋の見た目に使う） */
+  /** テーマカラー（#RRGGBB。カードの枠線などの指導箋の見た目に使う） */
   themeColor: string;
+  /** 印刷の色づかい（デフォルト: "color"） */
+  printColorMode?: PrintColorMode;
+  /** カード内の文字サイズ（デフォルト: "standard"。1列は常に大きめ） */
+  textScale?: TextScale;
+  /** PDF の用紙の向き（デフォルト: "auto"。1列は常に縦） */
+  pageOrientation?: PageOrientation;
+  /** カード番号を表示するか（デフォルト: false） */
+  showCardNumbers?: boolean;
+  /** 用量のラベル（未指定・空欄のキーは LABELS の reps / sets / frequency） */
+  dosageLabels?: Partial<DosageLabels>;
 };
 
 /**
@@ -44,7 +81,12 @@ export type ProjectSettings = {
  * @remarks
  * ストアと PDF 生成はこの型で設定を持つため、各所でフォールバックを書かずに済む
  */
-export type ResolvedProjectSettings = Required<ProjectSettings>;
+export type ResolvedProjectSettings = Required<
+  Omit<ProjectSettings, "dosageLabels">
+> & {
+  /** 用量のラベル（全キーがそろっている） */
+  dosageLabels: DosageLabels;
+};
 
 /**
  * プロジェクトファイル全体の型

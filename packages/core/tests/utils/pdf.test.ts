@@ -78,6 +78,11 @@ const TEST_IMAGE_IDS = {
 const TEST_SETTINGS: ResolvedProjectSettings = {
   layoutType: "grid2",
   themeColor: "#3b82f6",
+  printColorMode: "color",
+  textScale: "standard",
+  pageOrientation: "auto",
+  showCardNumbers: false,
+  dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
 };
 
 // ============================================================================
@@ -136,6 +141,21 @@ describe("pdf.ts", () => {
       (layoutType, expectedWidth) => {
         const result = calculatePdfCardWidth(layoutType);
         expect(result).toBe(expectedWidth);
+      }
+    );
+
+    it.each([
+      ["grid2", "landscape", 374.945], // (761.89 - 12) / 2 = 374.945
+      ["grid3", "portrait", 163.76], // (515.28 - 24) / 3 = 163.76
+      ["grid4", "portrait", 119.82], // (515.28 - 36) / 4 = 119.82
+      ["grid1", "landscape", 515.28], // 1列は横向き指定でも縦向き
+    ] as const)(
+      "layoutType=%s・向き=%s のとき、カード幅 %f を返す",
+      (layoutType, orientation, expectedWidth) => {
+        expect(calculatePdfCardWidth(layoutType, orientation)).toBeCloseTo(
+          expectedWidth,
+          6
+        );
       }
     );
 

@@ -3,22 +3,43 @@
 /**
  * デザイン設定ダイアログコンポーネント
  *
- * 指導箋の見た目に関する設定（列数・テーマカラー）をまとめて変更するダイアログ。
+ * 指導箋の見た目と印刷に関する設定（列数・用紙の向き・用途別プリセット・テーマカラー・
+ * 印刷の色・文字サイズ・カード番号・用量のラベル）をまとめて変更するダイアログ。
  * 設定は選んだ時点で反映し、ダイアログは「閉じる」で閉じる。
  */
 
 import {
   BUTTON_CLOSE,
+  CARD_NUMBER_TOGGLE_LABEL,
+  DESIGN_PRESETS,
+  DESIGN_SETTINGS_CARD_NUMBER_HEADING,
   DESIGN_SETTINGS_DESCRIPTION,
+  DESIGN_SETTINGS_DOSAGE_LABEL_HEADING,
   DESIGN_SETTINGS_LABEL,
   DESIGN_SETTINGS_LAYOUT_HEADING,
+  DESIGN_SETTINGS_ORIENTATION_HEADING,
+  DESIGN_SETTINGS_PRESET_DESCRIPTION,
+  DESIGN_SETTINGS_PRESET_HEADING,
+  DESIGN_SETTINGS_PRINT_COLOR_HEADING,
+  DESIGN_SETTINGS_TEXT_SCALE_HEADING,
   DESIGN_SETTINGS_THEME_COLOR_HEADING,
+  DOSAGE_LABEL_DESCRIPTION,
+  PAGE_ORIENTATION_AUTO_HINT,
+  PAGE_ORIENTATION_NARROW_NOTE,
+  PAGE_ORIENTATION_OPTIONS,
+  PAGE_ORIENTATION_SINGLE_COLUMN_NOTE,
+  PRINT_COLOR_MODE_OPTIONS,
+  PRINT_COLOR_MONOCHROME_HINT,
+  TEXT_SCALE_OPTIONS,
+  TEXT_SCALE_SINGLE_COLUMN_NOTE,
   THEME_COLOR_DESCRIPTION,
 } from "@rehab-grid/core/lib/constants";
+import { cn } from "@rehab-grid/core/lib/utils";
 import {
   type LayoutType,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
+import { Checkbox } from "@rehab-grid/ui/components/ui/checkbox";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
   Dialog,
@@ -29,10 +50,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@rehab-grid/ui/components/wrapped/Dialog";
+import { Label } from "@rehab-grid/ui/components/wrapped/Label";
 import { useId } from "react";
 
+import { DosageLabelSettings } from "./DosageLabelSettings";
 import { GridLayoutSelector } from "./GridLayoutSelector";
+import { OptionButtonGroup } from "./OptionButtonGroup";
 import { ThemeColorSelector } from "./ThemeColorSelector";
+
+/**
+ * 設定変更のオプション
+ */
+type SettingsChangeOptions = {
+  /** 連続入力を 1 件の履歴にまとめるためのキー */
+  mergeKey?: string;
+};
 
 /**
  * DesignSettingsDialog コンポーネントの Props
@@ -48,7 +80,64 @@ type DesignSettingsDialogProps = {
   onLayoutChange: (layout: LayoutType) => void;
   /** テーマカラー変更ハンドラ */
   onThemeColorChange: (color: string) => void;
+  /** そのほかの設定（印刷スタイル・プリセット・用量ラベル）の変更ハンドラ */
+  onSettingsChange: (
+    updates: Partial<ResolvedProjectSettings>,
+    options?: SettingsChangeOptions
+  ) => void;
 };
+
+/**
+ * ダイアログ内の 1 セクション（見出し＋説明＋中身）
+ */
+function SettingsSection({
+  headingId,
+  heading,
+  description,
+  children,
+}: {
+  headingId: string;
+  heading: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <div>
+        <h3 id={headingId} className="text-sm font-semibold">
+          {heading}
+        </h3>
+        {description !== undefined ? (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * 設定の補足（選んだ組み合わせに応じた注意など）
+ */
+function SettingsNote({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-amber-700">{children}</p>;
+}
+
+/**
+ * プリセットの設定がすべて現在の設定と一致しているか
+ *
+ * @param preset - プリセットの設定
+ * @param settings - 現在の設定
+ * @returns 一致していれば true
+ */
+function isPresetActive(
+  preset: Partial<ResolvedProjectSettings>,
+  settings: ResolvedProjectSettings
+): boolean {
+  return (
+    Object.keys(preset) as (keyof ResolvedProjectSettings)[]
+  ).every((key) => Object.is(preset[key], settings[key]));
+}
 
 /**
  * デザイン設定ダイアログコンポーネント
@@ -59,47 +148,193 @@ export function DesignSettingsDialog({
   settings,
   onLayoutChange,
   onThemeColorChange,
+  onSettingsChange,
 }: DesignSettingsDialogProps) {
   const layoutHeadingId = useId();
+  const orientationHeadingId = useId();
+  const presetHeadingId = useId();
   const themeColorHeadingId = useId();
+  const printColorHeadingId = useId();
+  const textScaleHeadingId = useId();
+  const cardNumberHeadingId = useId();
+  const cardNumberToggleId = useId();
+  const dosageLabelHeadingId = useId();
+
+  const isSingleColumn = settings.layoutType === "grid1";
+  // 1列は横向きにするとカードが 1 ページに収まらないため、横向きを選べなくする
+  const orientationOptions = PAGE_ORIENTATION_OPTIONS.map((option) => ({
+    ...option,
+    disabled: isSingleColumn && option.value === "landscape",
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      {/* 項目が多いため、本文だけを縦スクロールにする（見出しと「閉じる」は常に見える） */}
+      <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{DESIGN_SETTINGS_LABEL}</DialogTitle>
           <DialogDescription>{DESIGN_SETTINGS_DESCRIPTION}</DialogDescription>
         </DialogHeader>
 
-        {/* 列数 */}
-        <section aria-labelledby={layoutHeadingId} className="flex flex-col gap-2">
-          <h3 id={layoutHeadingId} className="text-sm font-semibold">
-            {DESIGN_SETTINGS_LAYOUT_HEADING}
-          </h3>
-          <GridLayoutSelector
-            layoutType={settings.layoutType}
-            onLayoutChange={onLayoutChange}
-          />
-        </section>
+        <div className="-mx-6 flex flex-col gap-5 overflow-y-auto px-6 pb-1">
+          {/* 列数 */}
+          <SettingsSection
+            headingId={layoutHeadingId}
+            heading={DESIGN_SETTINGS_LAYOUT_HEADING}
+          >
+            <GridLayoutSelector
+              layoutType={settings.layoutType}
+              onLayoutChange={onLayoutChange}
+            />
+          </SettingsSection>
 
-        {/* テーマカラー */}
-        <section
-          aria-labelledby={themeColorHeadingId}
-          className="flex flex-col gap-2"
-        >
-          <div>
-            <h3 id={themeColorHeadingId} className="text-sm font-semibold">
-              {DESIGN_SETTINGS_THEME_COLOR_HEADING}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {THEME_COLOR_DESCRIPTION}
-            </p>
-          </div>
-          <ThemeColorSelector
-            value={settings.themeColor}
-            onChange={onThemeColorChange}
-          />
-        </section>
+          {/* 用紙の向き */}
+          <SettingsSection
+            headingId={orientationHeadingId}
+            heading={DESIGN_SETTINGS_ORIENTATION_HEADING}
+            description={PAGE_ORIENTATION_AUTO_HINT}
+          >
+            <OptionButtonGroup
+              options={orientationOptions}
+              value={settings.pageOrientation}
+              onChange={(pageOrientation) =>
+                onSettingsChange({ pageOrientation })
+              }
+              labelledBy={orientationHeadingId}
+            />
+            {isSingleColumn ? (
+              <SettingsNote>{PAGE_ORIENTATION_SINGLE_COLUMN_NOTE}</SettingsNote>
+            ) : null}
+            {settings.layoutType === "grid4" &&
+            settings.pageOrientation === "portrait" ? (
+              <SettingsNote>{PAGE_ORIENTATION_NARROW_NOTE}</SettingsNote>
+            ) : null}
+          </SettingsSection>
+
+          {/* 用途別プリセット */}
+          <SettingsSection
+            headingId={presetHeadingId}
+            heading={DESIGN_SETTINGS_PRESET_HEADING}
+            description={DESIGN_SETTINGS_PRESET_DESCRIPTION}
+          >
+            <div
+              role="group"
+              aria-labelledby={presetHeadingId}
+              className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
+              {DESIGN_PRESETS.map((preset) => {
+                const isActive = isPresetActive(preset.settings, settings);
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => onSettingsChange(preset.settings)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex flex-col items-start gap-0.5 rounded-lg border-2 px-3 py-2 text-left transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
+                      isActive
+                        ? "border-orange-500 bg-orange-50"
+                        : "border-border bg-card hover:border-orange-400/50 hover:bg-orange-50/50"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "text-sm font-semibold",
+                        isActive ? "text-orange-700" : "text-foreground"
+                      )}
+                    >
+                      {preset.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {preset.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </SettingsSection>
+
+          {/* テーマカラー */}
+          <SettingsSection
+            headingId={themeColorHeadingId}
+            heading={DESIGN_SETTINGS_THEME_COLOR_HEADING}
+            description={THEME_COLOR_DESCRIPTION}
+          >
+            <ThemeColorSelector
+              value={settings.themeColor}
+              onChange={onThemeColorChange}
+            />
+          </SettingsSection>
+
+          {/* 印刷の色 */}
+          <SettingsSection
+            headingId={printColorHeadingId}
+            heading={DESIGN_SETTINGS_PRINT_COLOR_HEADING}
+            description={PRINT_COLOR_MONOCHROME_HINT}
+          >
+            <OptionButtonGroup
+              options={PRINT_COLOR_MODE_OPTIONS}
+              value={settings.printColorMode}
+              onChange={(printColorMode) =>
+                onSettingsChange({ printColorMode })
+              }
+              labelledBy={printColorHeadingId}
+            />
+          </SettingsSection>
+
+          {/* 文字サイズ */}
+          <SettingsSection
+            headingId={textScaleHeadingId}
+            heading={DESIGN_SETTINGS_TEXT_SCALE_HEADING}
+          >
+            <OptionButtonGroup
+              options={TEXT_SCALE_OPTIONS}
+              value={settings.textScale}
+              onChange={(textScale) => onSettingsChange({ textScale })}
+              labelledBy={textScaleHeadingId}
+            />
+            {isSingleColumn ? (
+              <SettingsNote>{TEXT_SCALE_SINGLE_COLUMN_NOTE}</SettingsNote>
+            ) : null}
+          </SettingsSection>
+
+          {/* カード番号 */}
+          <SettingsSection
+            headingId={cardNumberHeadingId}
+            heading={DESIGN_SETTINGS_CARD_NUMBER_HEADING}
+          >
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={cardNumberToggleId}
+                checked={settings.showCardNumbers}
+                onCheckedChange={(checked) =>
+                  onSettingsChange({ showCardNumbers: checked === true })
+                }
+              />
+              <Label
+                htmlFor={cardNumberToggleId}
+                className="text-sm font-normal"
+              >
+                {CARD_NUMBER_TOGGLE_LABEL}
+              </Label>
+            </div>
+          </SettingsSection>
+
+          {/* 用量のラベル */}
+          <SettingsSection
+            headingId={dosageLabelHeadingId}
+            heading={DESIGN_SETTINGS_DOSAGE_LABEL_HEADING}
+            description={DOSAGE_LABEL_DESCRIPTION}
+          >
+            <DosageLabelSettings
+              labels={settings.dosageLabels}
+              onChange={(dosageLabels, options) =>
+                onSettingsChange({ dosageLabels }, options)
+              }
+            />
+          </SettingsSection>
+        </div>
 
         <DialogFooter>
           <DialogClose asChild>

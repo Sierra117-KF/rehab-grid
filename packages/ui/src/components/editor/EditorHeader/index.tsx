@@ -684,6 +684,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         settings={settings}
         onLayoutChange={handleLayoutChange}
         onThemeColorChange={handleThemeColorChange}
+        onSettingsChange={updateSettings}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

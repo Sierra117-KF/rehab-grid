@@ -439,6 +439,10 @@ export function TrainingPage() {
           onItemsChange={handleItemsChange}
           layoutType={settings.layoutType}
           themeColor={settings.themeColor}
+          printColorMode={settings.printColorMode}
+          textScale={settings.textScale}
+          showCardNumbers={settings.showCardNumbers}
+          dosageLabels={settings.dosageLabels}
           selectedItemId={selectedItemId}
           onItemSelect={handleItemSelect}
           onAddCard={handleAddCard}
@@ -471,6 +475,7 @@ export function TrainingPage() {
           onImageFlip={handleImageFlipClick}
           onImageEdit={handleImageEditClick}
           isImageProcessing={isImageProcessing}
+          dosageLabels={settings.dosageLabels}
         />
       </aside>
 
@@ -512,6 +517,7 @@ export function TrainingPage() {
           onImageFlip={handleImageFlipClick}
           onImageEdit={handleImageEditClick}
           isImageProcessing={isImageProcessing}
+          dosageLabels={settings.dosageLabels}
         />
       </MobileSidebar>
 

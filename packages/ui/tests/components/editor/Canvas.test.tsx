@@ -3,6 +3,8 @@ import {
   CANVAS_EMPTY_DESCRIPTION,
   CANVAS_EMPTY_TITLE,
   DUPLICATE_TOOLTIP,
+  EDITOR_TEXT_STYLE_LARGE,
+  EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_FLIP_TOOLTIP,
   LABELS,
   LAYOUT_COLUMNS,
@@ -415,6 +417,84 @@ describe("Canvas", () => {
 
       expect(getCanvasVariable("--card-border-color")).toBe("");
       expect(getCanvasVariable("--dosage-accent-light")).toBe("");
+    });
+
+    it("カード番号バッジの背景もテーマカラーで上書きする", () => {
+      setupCanvas({ items: [createTestItem()], themeColor: "#059669" });
+
+      expect(getCanvasVariable("--card-number-bg")).toBe("#059669");
+    });
+
+    it("白黒モードではテーマカラーの代わりに slate 系の色にし、注意点の塗りつぶしを白・枠線を濃い色にする", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        themeColor: "#059669",
+        printColorMode: "monochrome",
+      });
+
+      expect(getCanvasVariable("--card-border-color")).toBe("#64748b");
+      expect(getCanvasVariable("--dosage-accent-light")).toBe("#cbd5e1");
+      expect(getCanvasVariable("--dosage-label")).toBe("#475569");
+      expect(getCanvasVariable("--card-number-bg")).toBe("#0f172a");
+      expect(getCanvasVariable("--precaution-bg")).toBe("#ffffff");
+      expect(getCanvasVariable("--precaution-border")).toBe("#334155");
+    });
+  });
+
+  describe("印刷スタイル", () => {
+    const items = [
+      createTestItem({ id: "a", title: "運動A", order: 0 }),
+      createTestItem({ id: "b", title: "運動B", order: 1 }),
+    ];
+
+    it("カード番号を表示する設定では、運動名の前に並び順の番号を表示する", () => {
+      setupCanvas({ items, showCardNumbers: true });
+
+      expect(
+        screen.getByRole("heading", { level: 3, name: "1運動A" })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { level: 3, name: "2運動B" })
+      ).toBeInTheDocument();
+    });
+
+    it("カード番号は既定では表示しない", () => {
+      setupCanvas({ items });
+
+      expect(
+        screen.getByRole("heading", { level: 3, name: "運動A" })
+      ).toBeInTheDocument();
+    });
+
+    it("用量のラベルを設定値で表示する", () => {
+      setupCanvas({
+        items: [
+          createTestItem({
+            dosages: { reps: "30", sets: "2", frequency: "毎日" },
+          }),
+        ],
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      });
+
+      expect(screen.getByText("秒数")).toBeInTheDocument();
+      expect(screen.getByText("左右")).toBeInTheDocument();
+      expect(screen.getByText("目安")).toBeInTheDocument();
+      expect(screen.queryByText(LABELS.reps)).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ["2列で「大きめ」", "grid2", false, EDITOR_TEXT_STYLE_LARGE.titleSize],
+      ["モバイルの1列表示で「大きめ」", "grid1", true, EDITOR_TEXT_STYLE_LARGE.titleSize],
+      ["デスクトップの1列は「大きめ」でも1列用", "grid1", false, EDITOR_TEXT_STYLE_SINGLE_COLUMN.titleSize],
+    ] as const)("%s の文字サイズで表示する", (_, layoutType, isMobile, titleClass) => {
+      setupCanvas({
+        items: [createTestItem({ title: "運動A" })],
+        layoutType,
+        isMobile,
+        textScale: "large",
+      });
+
+      expect(screen.getByRole("heading", { level: 3 })).toHaveClass(titleClass);
     });
   });
 

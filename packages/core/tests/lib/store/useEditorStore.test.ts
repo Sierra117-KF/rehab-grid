@@ -6,11 +6,32 @@ import {
 import { stateToProjectFile, useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import {
   type EditorItem,
-  type LayoutType,
   type ProjectFile,
   type ProjectMeta,
+  type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+/** 印刷スタイル（2-2）のデフォルト値。ストアに入る設定は resolveProjectSettings で補われる */
+const DEFAULT_PRINT_STYLE = {
+  printColorMode: "color",
+  textScale: "standard",
+  pageOrientation: "auto",
+  showCardNumbers: false,
+  dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+} satisfies Partial<ResolvedProjectSettings>;
+
+/**
+ * テスト用の（デフォルト値補完済みの）プロジェクト設定を生成
+ */
+const createTestSettings = (
+  overrides: Partial<ResolvedProjectSettings> = {}
+): ResolvedProjectSettings => ({
+  layoutType: "grid2",
+  themeColor: "#3b82f6",
+  ...DEFAULT_PRINT_STYLE,
+  ...overrides,
+});
 
 /**
  * モック関数の定義
@@ -99,7 +120,7 @@ const getInitialState = () => ({
   isLoaded: false,
   meta: createTestMeta({ title: "無題のプロジェクト" }),
   items: [],
-  settings: { layoutType: "grid2" as LayoutType, themeColor: "#3b82f6" },
+  settings: createTestSettings(),
   selectedItemId: null,
   past: [],
   future: [],
@@ -131,10 +152,11 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().items).toEqual([]);
     });
 
-    it("settings が既定値（grid2・#3b82f6）である", () => {
+    it("settings が既定値（grid2・#3b82f6・印刷スタイルは現行の見た目）である", () => {
       expect(useEditorStore.getState().settings).toEqual({
         layoutType: "grid2",
         themeColor: "#3b82f6",
+        ...DEFAULT_PRINT_STYLE,
       });
     });
 
@@ -175,6 +197,7 @@ describe("useEditorStore", () => {
       expect(state.settings).toEqual({
         layoutType: "grid3",
         themeColor: "#ff0000",
+        ...DEFAULT_PRINT_STYLE,
       });
     });
 
@@ -197,6 +220,7 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().settings).toEqual({
         layoutType: "grid2",
         themeColor: "#3b82f6",
+        ...DEFAULT_PRINT_STYLE,
       });
     });
 
@@ -774,10 +798,45 @@ describe("useEditorStore", () => {
     it("指定した項目だけを更新し、他の項目は保つ", () => {
       useEditorStore.getState().updateSettings({ themeColor: "#059669" });
 
-      expect(useEditorStore.getState().settings).toEqual({
-        layoutType: "grid2",
-        themeColor: "#059669",
+      expect(useEditorStore.getState().settings).toEqual(
+        createTestSettings({ themeColor: "#059669" })
+      );
+    });
+
+    it("複数の項目（用途別プリセット）をまとめて更新し、履歴は 1 件になる", () => {
+      useEditorStore.getState().updateSettings({
+        textScale: "large",
+        showCardNumbers: true,
       });
+
+      const state = useEditorStore.getState();
+      expect(state.settings).toMatchObject({
+        textScale: "large",
+        showCardNumbers: true,
+      });
+      expect(state.past).toHaveLength(1);
+    });
+
+    it("用量ラベルは中身が同じなら、新しいオブジェクトでも履歴を積まない", () => {
+      const labels = { reps: "秒数", sets: "左右", frequency: "目安" };
+      useEditorStore.getState().updateSettings({ dosageLabels: labels });
+      useEditorStore.getState().updateSettings({ dosageLabels: { ...labels } });
+
+      const state = useEditorStore.getState();
+      expect(state.settings.dosageLabels).toEqual(labels);
+      expect(state.past).toHaveLength(1);
+    });
+
+    it("用量ラベルの 1 キーだけが変わっても変更として記録する", () => {
+      const labels = { reps: "秒数", sets: "左右", frequency: "目安" };
+      useEditorStore.getState().updateSettings({ dosageLabels: labels });
+      useEditorStore
+        .getState()
+        .updateSettings({ dosageLabels: { ...labels, frequency: "強度" } });
+
+      const state = useEditorStore.getState();
+      expect(state.settings.dosageLabels.frequency).toBe("強度");
+      expect(state.past).toHaveLength(2);
     });
   });
 
@@ -833,7 +892,10 @@ describe("useEditorStore", () => {
       // 状態を変更
       useEditorStore.setState({
         items: [createTestItem()],
-        settings: { layoutType: "grid3", themeColor: "#7c3aed" },
+        settings: createTestSettings({
+          layoutType: "grid3",
+          themeColor: "#7c3aed",
+        }),
         selectedItemId: "some-id",
       });
       mockDeleteProject.mockResolvedValue(undefined);
@@ -846,6 +908,7 @@ describe("useEditorStore", () => {
       expect(state.settings).toEqual({
         layoutType: "grid2",
         themeColor: "#3b82f6",
+        ...DEFAULT_PRINT_STYLE,
       });
       expect(state.selectedItemId).toBeNull();
     });
@@ -1008,10 +1071,9 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().settings.themeColor).toBe("#059669");
 
       undo();
-      expect(useEditorStore.getState().settings).toEqual({
-        layoutType: "grid4",
-        themeColor: "#3b82f6",
-      });
+      expect(useEditorStore.getState().settings).toEqual(
+        createTestSettings({ layoutType: "grid4" })
+      );
 
       undo();
       expect(useEditorStore.getState().settings.layoutType).toBe("grid2");
@@ -1252,7 +1314,10 @@ describe("useEditorStore", () => {
         isLoaded: true,
         meta: createTestMeta({ title: "テスト" }),
         items: [createTestItem({ id: "1", title: "運動A" })],
-        settings: { layoutType: "grid3" as LayoutType, themeColor: "#ff0000" },
+        settings: createTestSettings({
+          layoutType: "grid3",
+          themeColor: "#ff0000",
+        }),
         selectedItemId: null,
         mobileImageLibraryOpen: false,
         mobilePropertyPanelOpen: false,
@@ -1272,7 +1337,7 @@ describe("useEditorStore", () => {
         isLoaded: true,
         meta: createTestMeta(),
         items: [],
-        settings: { layoutType: "grid2" as LayoutType, themeColor: "#3b82f6" },
+        settings: createTestSettings(),
         selectedItemId: "some-id",
         mobileImageLibraryOpen: true,
         mobilePropertyPanelOpen: true,

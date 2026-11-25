@@ -547,10 +547,67 @@ export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 
 /** デザイン設定ダイアログの説明 */
 export const DESIGN_SETTINGS_DESCRIPTION =
-  "指導箋の列数と色を変更できます。変更はすぐに反映されます";
+  "指導箋の見た目と印刷の設定を変更できます。変更はすぐに反映されます";
 
 /** デザイン設定ダイアログの列数セクションの見出し */
 export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+
+/** デザイン設定ダイアログの用紙の向きセクションの見出し */
+export const DESIGN_SETTINGS_ORIENTATION_HEADING = "用紙の向き（PDF）";
+
+/** 用紙の向き「自動」の説明 */
+export const PAGE_ORIENTATION_AUTO_HINT = "自動：1〜2列は縦、3〜4列は横";
+
+/** 1列のときに横向きを選べない理由 */
+export const PAGE_ORIENTATION_SINGLE_COLUMN_NOTE =
+  "1列は縦向き固定です（横向きでは1枚のカードがページに収まりません）";
+
+/** 4列を縦向きにしたときの注意 */
+export const PAGE_ORIENTATION_NARROW_NOTE =
+  "4列を縦向きにするとカードが細くなり、回数などの数値が窮屈になります";
+
+/** デザイン設定ダイアログの用途別プリセットセクションの見出し */
+export const DESIGN_SETTINGS_PRESET_HEADING = "用途別プリセット";
+
+/** 用途別プリセットの説明（どの設定が変わるか） */
+export const DESIGN_SETTINGS_PRESET_DESCRIPTION =
+  "よく使う組み合わせをまとめて設定します（列数・色・用量のラベルは変わりません）";
+
+/** デザイン設定ダイアログの印刷の色セクションの見出し */
+export const DESIGN_SETTINGS_PRINT_COLOR_HEADING = "印刷の色";
+
+/** 白黒・インク節約モードの説明 */
+export const PRINT_COLOR_MONOCHROME_HINT =
+  "白黒：注意点の塗りつぶしをなくし、白黒コピーでも読みやすくします（画像はカラーのまま）";
+
+/** デザイン設定ダイアログの文字サイズセクションの見出し */
+export const DESIGN_SETTINGS_TEXT_SCALE_HEADING = "文字サイズ";
+
+/** 1列のときに文字サイズが変わらない理由 */
+export const TEXT_SCALE_SINGLE_COLUMN_NOTE =
+  "1列は常に大きめの文字で表示されます";
+
+/** デザイン設定ダイアログのカード番号セクションの見出し */
+export const DESIGN_SETTINGS_CARD_NUMBER_HEADING = "カード番号";
+
+/** カード番号の表示切り替えのラベル */
+export const CARD_NUMBER_TOGGLE_LABEL = "運動名の左に番号（①②…）を表示する";
+
+/** デザイン設定ダイアログの用量ラベルセクションの見出し */
+export const DESIGN_SETTINGS_DOSAGE_LABEL_HEADING = "用量のラベル";
+
+/** 用量ラベルの説明 */
+export const DOSAGE_LABEL_DESCRIPTION =
+  "「回数」「セット」「頻度」の欄の名前を変えられます（6文字まで。空欄にすると元に戻ります）";
+
+/**
+ * 用量ラベルの入力欄のラベルを作る
+ *
+ * @param defaultLabel - その欄のデフォルトのラベル（例: 「回数」）
+ * @returns 入力欄のラベル（例: 「回数」の欄）
+ */
+export const createDosageLabelInputLabel = (defaultLabel: string): string =>
+  `「${defaultLabel}」の欄`;
 
 /** デザイン設定ダイアログのテーマカラーセクションの見出し */
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
