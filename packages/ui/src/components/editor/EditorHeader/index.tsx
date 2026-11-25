@@ -12,6 +12,7 @@ import {
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
   IMPORT_SUCCESS_MESSAGE,
+  LIBRARY_SAVE_FAILED_MESSAGE,
   PDF_DOWNLOAD_SUCCESS,
   PDF_GENERATE_FAILED,
   PDF_GENERATING_MESSAGE,
@@ -29,13 +30,18 @@ import {
   TEMPLATE_LOAD_ERROR,
   UNDO_TOOLTIP,
   UNKNOWN_ERROR_MESSAGE,
+  USER_TEMPLATE_SAVE_SUCCESS_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
+import { saveUserTemplate } from "@rehab-grid/core/lib/db";
 import {
   stateToProjectFile,
   useEditorStore,
 } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
-import { type ImportOpenMode } from "@rehab-grid/core/types";
+import {
+  type ImportOpenMode,
+  type TemplateSource,
+} from "@rehab-grid/core/types";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
@@ -46,7 +52,10 @@ import {
   generatePdfFilename,
   preparePdfGenerationData,
 } from "@rehab-grid/core/utils/pdf";
-import { loadTemplate } from "@rehab-grid/core/utils/template";
+import {
+  loadTemplate,
+  loadUserTemplate,
+} from "@rehab-grid/core/utils/template";
 import { DesignSettingsDialog } from "@rehab-grid/ui/components/editor/DesignSettingsDialog";
 import { PdfPreviewModal } from "@rehab-grid/ui/components/editor/PdfPreviewModal";
 import { ProjectListModal } from "@rehab-grid/ui/components/editor/ProjectListModal";
@@ -153,6 +162,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   );
   const designSettingsSection = useModalStore(
     (state) => state.designSettingsSection
+  );
+  const setExerciseCardLibraryOpen = useModalStore(
+    (state) => state.setExerciseCardLibraryOpen
   );
 
   // モバイルメニュー関連の状態
@@ -356,12 +368,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, []);
 
   /**
-   * テンプレート選択時の処理
+   * テンプレート選択時の処理（公式テンプレート・マイテンプレート）
    */
   const handleTemplateSelect = useCallback(
-    async (templateId: string, mode: ImportOpenMode) => {
+    async (templateId: string, mode: ImportOpenMode, source: TemplateSource) => {
       try {
-        const result = await loadTemplate(templateId);
+        const result =
+          source === "user"
+            ? await loadUserTemplate(templateId)
+            : await loadTemplate(templateId);
         await openImportResult(result, mode);
         toast.success(TEMPLATE_APPLY_SUCCESS);
       } catch (error) {
@@ -372,6 +387,33 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     },
     [openImportResult],
   );
+
+  /**
+   * 編集中の指導箋をマイテンプレートとして保存する
+   */
+  const handleSaveAsUserTemplate = useCallback(
+    async (name: string) => {
+      try {
+        await saveUserTemplate(
+          name,
+          stateToProjectFile({ meta, settings, items }),
+        );
+        toast.success(USER_TEMPLATE_SAVE_SUCCESS_MESSAGE);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : LIBRARY_SAVE_FAILED_MESSAGE;
+        toast.error(message);
+      }
+    },
+    [meta, settings, items],
+  );
+
+  /**
+   * マイ運動モーダルを開く（モバイルのメニューから）
+   */
+  const handleOpenExerciseCards = useCallback(() => {
+    setExerciseCardLibraryOpen(true);
+  }, [setExerciseCardLibraryOpen]);
 
   /**
    * 指導箋一覧を開く
@@ -516,6 +558,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               layoutType={settings.layoutType}
               onDesignSettingsClick={handleOpenDesignSettings}
               onTemplateClick={handleTemplateButtonClick}
+              onExerciseCardsClick={handleOpenExerciseCards}
               onOpenClick={handleOpenClick}
               isImporting={isImporting}
               onExportJSON={handleExportJSON}
@@ -528,12 +571,12 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       ) : (
         /* デスクトップ版ヘッダー */
         <header className="h-14 border-b border-border/40 bg-white">
-          <div className="relative flex h-full items-center px-8">
-            {/* 左側: ロゴ + アプリ名 */}
-            <div className="relative z-10 flex items-center">
+          <div className="relative flex h-full items-center gap-4 px-4 xl:px-8">
+            {/* 左側: ロゴ + アプリ名（右側のボタンに押されて縦に折り返さないよう縮めない） */}
+            <div className="relative z-10 flex shrink-0 items-center">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-lg font-bold tracking-tight transition-colors hover:text-primary"
+                className="flex items-center gap-2 whitespace-nowrap text-lg font-bold tracking-tight transition-colors hover:text-primary"
                 title={HOME_LINK_TOOLTIP}
               >
                 <Image
@@ -583,8 +626,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 aria-label={PROJECT_LIST_LABEL}
               >
                 <Files className="size-4 text-orange-500" />
-                {/* ヘッダーに余裕のない幅ではアイコンのみ（ツールチップで補う） */}
-                <span className="hidden xl:inline">
+                {/* ヘッダーに余裕のない幅（2xl 未満）ではアイコンのみ（ツールチップで補う）。
+                    xl で出すと、長いタイトルのときに 1280px 前後で収まらない */}
+                <span className="hidden 2xl:inline">
                   {PROJECT_LIST_LABEL}
                 </span>
               </Button>
@@ -602,15 +646,18 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
               {/* セパレーター */}
               <div className="mx-1 h-6 w-px bg-border" />
+              {/* ヘッダーに余裕のない幅（xl 未満）ではアイコンのみ（ツールチップで補う） */}
               {/* デザイン設定ボタン */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenDesignSettings}
+                title={DESIGN_SETTINGS_LABEL}
+                aria-label={DESIGN_SETTINGS_LABEL}
               >
                 <Palette className="size-4 text-sky-500" />
-                <span>{DESIGN_SETTINGS_LABEL}</span>
+                <span className="hidden xl:inline">{DESIGN_SETTINGS_LABEL}</span>
               </Button>
 
               {/* テンプレートボタン */}
@@ -619,9 +666,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleTemplateButtonClick}
+                title={TEMPLATE_BUTTON_LABEL}
+                aria-label={TEMPLATE_BUTTON_LABEL}
               >
                 <LayoutTemplate className="size-4 text-violet-500" />
-                <span>{TEMPLATE_BUTTON_LABEL}</span>
+                <span className="hidden xl:inline">{TEMPLATE_BUTTON_LABEL}</span>
               </Button>
 
               {/* 開くボタン */}
@@ -631,13 +680,17 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenClick}
                 disabled={isImporting}
+                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+                aria-label={
+                  isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL
+                }
               >
                 {isImporting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <FolderOpen className="size-4 text-emerald-500" />
                 )}
-                <span>
+                <span className="hidden xl:inline">
                   {isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
                 </span>
               </Button>
@@ -691,6 +744,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         onOpenChange={handleTemplateModalOpenChange}
         onSelect={handleTemplateSelect}
         requireConfirmation={items.length > 0}
+        currentTitle={meta.title}
+        canSaveCurrent={items.length > 0}
+        onSaveCurrent={handleSaveAsUserTemplate}
       />
 
       {/* デザイン設定ダイアログ */}

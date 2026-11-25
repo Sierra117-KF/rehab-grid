@@ -299,7 +299,6 @@ export function ProjectListModal({
   };
 
   return (
-    <>
       <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col">
           <DialogHeader>
@@ -362,36 +361,36 @@ export function ProjectListModal({
             <Info className="mt-0.5 size-3.5 shrink-0" />
             <span>{PROJECT_LIST_BACKUP_NOTICE}</span>
           </p>
+
+          {/* 削除確認ダイアログ（React ツリー上で一覧のモーダルの中に置き、
+              確認ダイアログ内のクリックを一覧の「外側のクリック」とみなして閉じないようにする） */}
+          <AlertDialog
+            open={deleteTarget !== null}
+            onOpenChange={(nextOpen) => {
+              if (!nextOpen) setDeleteTarget(null);
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{PROJECT_DELETE_CONFIRM_TITLE}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {createProjectDeleteConfirmDescription(
+                    getDisplayTitle(deleteTarget?.title ?? "")
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{BUTTON_CANCEL}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => void handleConfirmDelete()}
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                >
+                  {BUTTON_DELETE}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </DialogContent>
       </Dialog>
-
-      {/* 削除確認ダイアログ */}
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{PROJECT_DELETE_CONFIRM_TITLE}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {createProjectDeleteConfirmDescription(
-                getDisplayTitle(deleteTarget?.title ?? "")
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{BUTTON_CANCEL}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => void handleConfirmDelete()}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
-              {BUTTON_DELETE}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   );
 }

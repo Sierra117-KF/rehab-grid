@@ -33,13 +33,16 @@ import {
  * Vitest v4 では vi.mock 内で参照するモック関数は
  * vi.hoisted で定義する必要がある
  */
-const { mockNanoid, mockGetTemplateById } = vi.hoisted(() => {
-  let nanoidCounter = 0;
-  return {
-    mockNanoid: vi.fn(() => `mock-id-${++nanoidCounter}`),
-    mockGetTemplateById: vi.fn(),
-  };
-});
+const { mockNanoid, mockGetTemplateById, mockGetUserTemplate } = vi.hoisted(
+  () => {
+    let nanoidCounter = 0;
+    return {
+      mockNanoid: vi.fn(() => `mock-id-${++nanoidCounter}`),
+      mockGetTemplateById: vi.fn(),
+      mockGetUserTemplate: vi.fn(),
+    };
+  }
+);
 
 // nanoid モック
 vi.mock("nanoid", () => ({ nanoid: mockNanoid }));
@@ -47,8 +50,15 @@ vi.mock("nanoid", () => ({ nanoid: mockNanoid }));
 // @/lib/templates モック
 vi.mock("@/lib/templates", () => ({ getTemplateById: mockGetTemplateById }));
 
+// @/lib/db モック（マイテンプレートの読み込み）
+vi.mock("@/lib/db", () => ({ getUserTemplate: mockGetUserTemplate }));
+
 // モック定義後に実装ファイルをインポート（順序重要）
-import { loadTemplate } from "@rehab-grid/core/utils/template";
+import {
+  cloneItemWithNewIds,
+  loadTemplate,
+  loadUserTemplate,
+} from "@rehab-grid/core/utils/template";
 
 // ============================================================================
 // テストヘルパー
@@ -490,5 +500,131 @@ describe("loadTemplate", () => {
       expect(result.images.has("mock-id-1")).toBeTruthy();
       expect(result.images.has("mock-id-2")).toBeTruthy();
     });
+  });
+});
+
+describe("cloneItemWithNewIds", () => {
+  beforeEach(() => {
+    let counter = 0;
+    mockNanoid.mockImplementation(() => `new-id-${++counter}`);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("カードと注意点の ID を振り直し、ほかの値は保つ", () => {
+    const item = {
+      id: "orig",
+      order: 2,
+      title: "スクワット",
+      imageSource: "img-1",
+      description: "膝を曲げる",
+      dosages: { reps: "10回", sets: "3セット", frequency: "毎日" },
+      precautions: [
+        { id: "p1", value: "膝を前に出さない" },
+        { id: "p2", value: "痛みが出たら中止" },
+      ],
+    };
+
+    expect(cloneItemWithNewIds(item)).toEqual({
+      id: "new-id-1",
+      order: 2,
+      title: "スクワット",
+      imageSource: "img-1",
+      description: "膝を曲げる",
+      dosages: { reps: "10回", sets: "3セット", frequency: "毎日" },
+      precautions: [
+        { id: "new-id-2", value: "膝を前に出さない" },
+        { id: "new-id-3", value: "痛みが出たら中止" },
+      ],
+    });
+  });
+
+  it("用量・注意点のオブジェクトを元のカードと共有しない", () => {
+    const item = {
+      id: "orig",
+      order: 0,
+      title: "運動",
+      imageSource: "",
+      description: "",
+      dosages: { reps: "", sets: "", frequency: "" },
+      precautions: [{ id: "p1", value: "" }],
+    };
+
+    const copy = cloneItemWithNewIds(item);
+
+    expect(copy.dosages).not.toBe(item.dosages);
+    expect(copy.precautions).not.toBe(item.precautions);
+  });
+});
+
+describe("loadUserTemplate", () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  beforeEach(() => {
+    vi.setSystemTime(FIXED_DATE);
+    let counter = 0;
+    mockNanoid.mockImplementation(() => `new-id-${++counter}`);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("ID を振り直し、タイトルをテンプレート名・日時を現在時刻にした内容を返す（画像は複製しない）", async () => {
+    mockGetUserTemplate.mockResolvedValue({
+      id: "template-1",
+      name: "膝の自主トレ",
+      updatedAt: new Date("2024-01-01T00:00:00.000Z"),
+      data: createValidProjectData({
+        items: [
+          {
+            id: "orig",
+            order: 0,
+            title: "スクワット",
+            imageSource: "imported-image",
+            description: "",
+            precautions: [{ id: "p1", value: "膝を前に出さない" }],
+          },
+        ],
+      }),
+    });
+
+    const { project, images } = await loadUserTemplate("template-1");
+
+    expect(mockGetUserTemplate).toHaveBeenCalledWith("template-1");
+    expect(images.size).toBe(0);
+    expect(project.meta).toMatchObject({
+      title: "膝の自主トレ",
+      version: APP_VERSION,
+      createdAt: FIXED_DATE.toISOString(),
+      updatedAt: FIXED_DATE.toISOString(),
+    });
+    expect(project.items).toEqual([
+      {
+        id: "new-id-1",
+        order: 0,
+        title: "スクワット",
+        // 取り込み画像はライブラリの ID をそのまま参照する
+        imageSource: "imported-image",
+        description: "",
+        precautions: [{ id: "new-id-2", value: "膝を前に出さない" }],
+      },
+    ]);
+  });
+
+  it("マイテンプレートが見つからない場合はエラーになる", async () => {
+    mockGetUserTemplate.mockResolvedValue(undefined);
+
+    await expect(loadUserTemplate("missing")).rejects.toThrow(
+      TEMPLATE_NOT_FOUND_ERROR
+    );
   });
 });

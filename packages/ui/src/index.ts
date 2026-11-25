@@ -14,6 +14,7 @@
 export { Canvas } from "./components/editor/Canvas";
 export { DesignSettingsDialog } from "./components/editor/DesignSettingsDialog";
 export { EditorHeader } from "./components/editor/EditorHeader";
+export { ExerciseCardLibraryModal } from "./components/editor/ExerciseCardLibraryModal";
 export type { ImageEditResult } from "./components/editor/ImageEditModal";
 export { ImageEditModal } from "./components/editor/ImageEditModal";
 export { ImageLibraryPanel } from "./components/editor/ImageLibraryPanel";

@@ -2,10 +2,15 @@ import {
   APP_VERSION,
   DEFAULT_PROJECT_TITLE,
   LEGACY_PROJECT_ID,
+  LIBRARY_SAVE_FAILED_MESSAGE,
   PROJECT_COPY_SUFFIX,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
-import { type ProjectFile, type ProjectRecord } from "@rehab-grid/core/types";
+import {
+  type EditorItem,
+  type ProjectFile,
+  type ProjectRecord,
+} from "@rehab-grid/core/types";
 import {
   afterAll,
   afterEach,
@@ -34,7 +39,27 @@ const {
   mockImagesDelete,
   mockImagesBulkGet,
   mockStores,
+  mockUserTemplatesPut,
+  mockUserTemplatesGet,
+  mockUserTemplatesDelete,
+  mockUserTemplatesToArray,
+  mockExerciseCardsPut,
+  mockExerciseCardsDelete,
+  mockExerciseCardsToArray,
+  mockCustomSnippetsPut,
+  mockCustomSnippetsDelete,
+  mockCustomSnippetsToArray,
 } = vi.hoisted(() => ({
+  mockUserTemplatesPut: vi.fn(),
+  mockUserTemplatesGet: vi.fn(),
+  mockUserTemplatesDelete: vi.fn(),
+  mockUserTemplatesToArray: vi.fn(),
+  mockExerciseCardsPut: vi.fn(),
+  mockExerciseCardsDelete: vi.fn(),
+  mockExerciseCardsToArray: vi.fn(),
+  mockCustomSnippetsPut: vi.fn(),
+  mockCustomSnippetsDelete: vi.fn(),
+  mockCustomSnippetsToArray: vi.fn(),
   mockProjectsPut: vi.fn(),
   mockProjectsGet: vi.fn(),
   mockProjectsDelete: vi.fn(),
@@ -58,6 +83,9 @@ vi.mock("dexie", () => {
   class MockDexie {
     projects: unknown;
     images: unknown;
+    userTemplates: unknown;
+    exerciseCards: unknown;
+    customSnippets: unknown;
 
     version(_v: number) {
       return {
@@ -79,6 +107,25 @@ vi.mock("dexie", () => {
             bulkGet: mockImagesBulkGet,
           };
 
+          this.userTemplates = {
+            put: mockUserTemplatesPut,
+            get: mockUserTemplatesGet,
+            delete: mockUserTemplatesDelete,
+            toArray: mockUserTemplatesToArray,
+          };
+
+          this.exerciseCards = {
+            put: mockExerciseCardsPut,
+            delete: mockExerciseCardsDelete,
+            toArray: mockExerciseCardsToArray,
+          };
+
+          this.customSnippets = {
+            put: mockCustomSnippetsPut,
+            delete: mockCustomSnippetsDelete,
+            toArray: mockCustomSnippetsToArray,
+          };
+
           // stores は this (Dexie インスタンス) を返す
           return this;
         },
@@ -93,18 +140,28 @@ vi.mock("dexie", () => {
 
 // モック定義後に実装ファイルをインポート（順序重要）
 import {
+  addCustomSnippet,
   collectReferencedImageIds,
   createNewProject,
+  deleteCustomSnippet,
+  deleteExerciseCard,
   deleteImage,
   deleteProject,
+  deleteUserTemplate,
   duplicateProject,
   getImage,
   getImageRecord,
   getImages,
+  getUserTemplate,
+  listCustomSnippets,
+  listExerciseCards,
   listProjects,
+  listUserTemplates,
   loadProject,
+  saveExerciseCard,
   saveImage,
   saveProject,
+  saveUserTemplate,
 } from "@rehab-grid/core/lib/db";
 
 /**
@@ -170,6 +227,15 @@ describe("lib/db", () => {
       expect(mockStores).toHaveBeenCalledWith({
         projects: "id, title, updatedAt",
         images: "id, createdAt",
+      });
+      // version 2 で既存テーブルを残したままマイライブラリのテーブルを追加する
+      // （呼び出し履歴は afterEach で消えるため、同じテストで確かめる）
+      expect(mockStores).toHaveBeenCalledWith({
+        projects: "id, title, updatedAt",
+        images: "id, createdAt",
+        userTemplates: "id, name, updatedAt",
+        exerciseCards: "id, title, updatedAt",
+        customSnippets: "id, createdAt",
       });
     });
   });
@@ -428,6 +494,42 @@ describe("lib/db", () => {
         })),
       });
 
+    beforeEach(() => {
+      mockUserTemplatesToArray.mockResolvedValue([]);
+      mockExerciseCardsToArray.mockResolvedValue([]);
+    });
+
+    it("マイテンプレート・マイ運動のカードが参照する画像IDも集めること", async () => {
+      mockProjectsToArray.mockResolvedValue([
+        createTestRecord(
+          "project-1",
+          "2024-01-01T00:00:00.000Z",
+          createProjectWithImages("img-project")
+        ),
+      ]);
+      mockUserTemplatesToArray.mockResolvedValue([
+        {
+          id: "template-1",
+          name: "テンプレート",
+          data: createProjectWithImages("img-template", ""),
+          updatedAt: FIXED_DATE,
+        },
+      ]);
+      mockExerciseCardsToArray.mockResolvedValue([
+        {
+          id: "card-1",
+          title: "運動",
+          item: { id: "x", order: 0, title: "運動", imageSource: "img-card", description: "" },
+          updatedAt: FIXED_DATE,
+        },
+      ]);
+
+      // 編集中のプロジェクトを除いても、マイテンプレート・マイ運動の参照は残る
+      expect(await collectReferencedImageIds("project-1")).toEqual(
+        new Set(["img-template", "img-card"])
+      );
+    });
+
     it("全プロジェクトのカードが参照する画像IDを集め、空の参照は含めないこと", async () => {
       mockProjectsToArray.mockResolvedValue([
         createTestRecord(
@@ -464,6 +566,177 @@ describe("lib/db", () => {
       expect(await collectReferencedImageIds("project-1")).toEqual(
         new Set(["img-2"])
       );
+    });
+  });
+
+  describe("マイテンプレート", () => {
+    it("スキーマを通した内容と名前・更新日時で保存し、IDを返すこと", async () => {
+      const data = createTestProjectFile({
+        items: [
+          {
+            id: "item-1",
+            order: 0,
+            title: "<b>スクワット</b>",
+            imageSource: "img-1",
+            description: "",
+          },
+        ],
+      });
+
+      const id = await saveUserTemplate("  膝の自主トレ  ", data);
+
+      expect(id).toEqual(expect.any(String));
+      expect(mockUserTemplatesPut).toHaveBeenCalledWith({
+        id,
+        name: "膝の自主トレ",
+        // HTML タグはサニタイズされる（インポートと同じ検証）
+        data: expect.objectContaining({
+          items: [expect.objectContaining({ title: "スクワット", imageSource: "img-1" })],
+        }),
+        updatedAt: FIXED_DATE,
+      });
+    });
+
+    it("名前が空なら既定のタイトル、長すぎる名前は切り詰めて保存すること", async () => {
+      await saveUserTemplate("   ", createTestProjectFile());
+      await saveUserTemplate("あ".repeat(30), createTestProjectFile());
+
+      expect(mockUserTemplatesPut).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ name: DEFAULT_PROJECT_TITLE })
+      );
+      expect(mockUserTemplatesPut).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          name: "あ".repeat(TEXT_LIMITS.projectTitle),
+        })
+      );
+    });
+
+    it("スキーマに合わない内容は保存せずにエラーにすること", async () => {
+      const invalid = {
+        ...createTestProjectFile(),
+        items: "not-array",
+      } as unknown as ProjectFile;
+
+      await expect(saveUserTemplate("壊れたデータ", invalid)).rejects.toThrow(
+        LIBRARY_SAVE_FAILED_MESSAGE
+      );
+      expect(mockUserTemplatesPut).not.toHaveBeenCalled();
+    });
+
+    it("一覧は更新日時の新しい順に返すこと", async () => {
+      const record = (id: string, updatedAt: string) => ({
+        id,
+        name: id,
+        data: createTestProjectFile(),
+        updatedAt: new Date(updatedAt),
+      });
+      mockUserTemplatesToArray.mockResolvedValue([
+        record("old", "2024-01-01T00:00:00.000Z"),
+        record("new", "2024-03-01T00:00:00.000Z"),
+      ]);
+
+      const result = await listUserTemplates();
+
+      expect(result.map((r) => r.id)).toEqual(["new", "old"]);
+    });
+
+    it("ID を指定して取得・削除できること", async () => {
+      mockUserTemplatesGet.mockResolvedValue(undefined);
+
+      expect(await getUserTemplate("missing")).toBeUndefined();
+      await deleteUserTemplate("template-1");
+
+      expect(mockUserTemplatesGet).toHaveBeenCalledWith("missing");
+      expect(mockUserTemplatesDelete).toHaveBeenCalledWith("template-1");
+    });
+  });
+
+  describe("マイ運動", () => {
+    it("並び順を 0 にそろえ、運動名をインデックス用に持たせて保存すること", async () => {
+      const id = await saveExerciseCard({
+        id: "item-1",
+        order: 3,
+        title: "スクワット",
+        imageSource: "img-1",
+        description: "膝を曲げる",
+        dosages: { reps: "10回", sets: "3セット", frequency: "" },
+      });
+
+      expect(mockExerciseCardsPut).toHaveBeenCalledWith({
+        id,
+        title: "スクワット",
+        item: {
+          id: "item-1",
+          order: 0,
+          title: "スクワット",
+          imageSource: "img-1",
+          description: "膝を曲げる",
+          dosages: { reps: "10回", sets: "3セット", frequency: "" },
+        },
+        updatedAt: FIXED_DATE,
+      });
+    });
+
+    it("スキーマに合わないカードは保存せずにエラーにすること", async () => {
+      const invalid = { id: "x", title: "運動" } as unknown as EditorItem;
+
+      await expect(saveExerciseCard(invalid)).rejects.toThrow(
+        LIBRARY_SAVE_FAILED_MESSAGE
+      );
+      expect(mockExerciseCardsPut).not.toHaveBeenCalled();
+    });
+
+    it("一覧は更新日時の新しい順に返し、ID を指定して削除できること", async () => {
+      const record = (id: string, updatedAt: string) => ({
+        id,
+        title: id,
+        item: { id, order: 0, title: id, imageSource: "", description: "" },
+        updatedAt: new Date(updatedAt),
+      });
+      mockExerciseCardsToArray.mockResolvedValue([
+        record("old", "2024-01-01T00:00:00.000Z"),
+        record("new", "2024-03-01T00:00:00.000Z"),
+      ]);
+
+      expect((await listExerciseCards()).map((r) => r.id)).toEqual([
+        "new",
+        "old",
+      ]);
+
+      await deleteExerciseCard("card-1");
+      expect(mockExerciseCardsDelete).toHaveBeenCalledWith("card-1");
+    });
+  });
+
+  describe("マイ定型文", () => {
+    it("前後の空白を除き、注意点の文字数上限で切り詰めて登録すること", async () => {
+      const record = await addCustomSnippet(
+        `  ${"あ".repeat(TEXT_LIMITS.precaution + 5)}  `
+      );
+
+      expect(record).toEqual({
+        id: expect.any(String),
+        value: "あ".repeat(TEXT_LIMITS.precaution),
+        createdAt: FIXED_DATE,
+      });
+      expect(mockCustomSnippetsPut).toHaveBeenCalledWith(record);
+    });
+
+    it("一覧は登録した順に返し、ID を指定して削除できること", async () => {
+      mockCustomSnippetsToArray.mockResolvedValue([
+        { id: "second", value: "2", createdAt: new Date("2024-02-01") },
+        { id: "first", value: "1", createdAt: new Date("2024-01-01") },
+      ]);
+
+      expect((await listCustomSnippets()).map((r) => r.id)).toEqual([
+        "first",
+        "second",
+      ]);
+
+      await deleteCustomSnippet("first");
+      expect(mockCustomSnippetsDelete).toHaveBeenCalledWith("first");
     });
   });
 

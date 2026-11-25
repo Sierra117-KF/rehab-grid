@@ -12,20 +12,66 @@ import {
   PROJECT_COPY_SUFFIX,
 } from "@rehab-grid/core/lib/constants";
 import {
+  addCustomSnippet,
   collectReferencedImageIds,
   db,
+  deleteExerciseCard,
   deleteImage,
   deleteProject,
+  deleteUserTemplate,
   duplicateProject,
   getImage,
   getImages,
+  getUserTemplate,
+  listCustomSnippets,
+  listExerciseCards,
   listProjects,
+  listUserTemplates,
   loadProject,
+  saveExerciseCard,
   saveImage,
   saveProject,
+  saveUserTemplate,
 } from "@rehab-grid/core/lib/db";
-import type { ProjectFile } from "@rehab-grid/core/types";
+import type {
+  ImageRecord,
+  ProjectFile,
+  ProjectRecord,
+} from "@rehab-grid/core/types";
 import { beforeEach, describe, expect, it } from "vitest";
+
+/**
+ * 旧バージョン（Dexie の version 1 = IndexedDB の version 10）の DB を作り、データを 1 件ずつ入れる
+ *
+ * @remarks
+ * apps/web は dexie に直接依存しないため、IndexedDB の API で作る
+ */
+async function createLegacyDb(records: {
+  project: ProjectRecord;
+  image: ImageRecord;
+}): Promise<void> {
+  const request = indexedDB.open("RehabGridDB", 10);
+  request.onupgradeneeded = () => {
+    const legacy = request.result;
+    const projects = legacy.createObjectStore("projects", { keyPath: "id" });
+    projects.createIndex("title", "title");
+    projects.createIndex("updatedAt", "updatedAt");
+    const images = legacy.createObjectStore("images", { keyPath: "id" });
+    images.createIndex("createdAt", "createdAt");
+  };
+  const legacy = await new Promise<IDBDatabase>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(new Error(String(request.error)));
+  });
+  const tx = legacy.transaction(["projects", "images"], "readwrite");
+  tx.objectStore("projects").put(records.project);
+  tx.objectStore("images").put(records.image);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(new Error(String(tx.error)));
+  });
+  legacy.close();
+}
 
 /**
  * DBを空状態にリセットする
@@ -226,5 +272,66 @@ describe("lib/db（実IndexedDB）", { concurrent: false }, () => {
 
     await deleteImage(id);
     expect(await getImage(id)).toBeUndefined();
+  });
+
+  it("version 1 の DB から更新しても、既存の指導箋・画像が残り、マイライブラリのテーブルが使える", async () => {
+    // 旧バージョン（Dexie の version 1）のアプリが作った DB を再現する
+    db.close();
+    await db.delete();
+    await createLegacyDb({
+      project: {
+        id: LEGACY_PROJECT_ID,
+        title: "旧データ",
+        data: createProject("旧データ", ["img-legacy"]),
+        updatedAt: new Date("2024-01-01T00:00:00.000Z"),
+      },
+      image: { id: "img-legacy", blob: new Blob(["L"]), createdAt: new Date() },
+    });
+
+    // 現行の DB（version 2）として開き直す
+    await db.open();
+
+    expect((await loadProject(LEGACY_PROJECT_ID))?.meta.title).toBe("旧データ");
+    await expect((await getImage("img-legacy"))?.text()).resolves.toBe("L");
+    await addCustomSnippet("息を止めない");
+    expect((await listCustomSnippets()).map((s) => s.value)).toEqual([
+      "息を止めない",
+    ]);
+  });
+
+  it("マイテンプレート: 保存 → 一覧 → 取得 → 削除ができる", async () => {
+    const id = await saveUserTemplate("膝の自主トレ", createProject("元の指導箋", ["img-1"]));
+
+    const [listed] = await listUserTemplates();
+    expect(listed?.name).toBe("膝の自主トレ");
+    expect((await getUserTemplate(id))?.data.items[0]?.imageSource).toBe("img-1");
+
+    await deleteUserTemplate(id);
+    expect(await listUserTemplates()).toEqual([]);
+  });
+
+  it("マイ運動: 保存 → 一覧 → 削除ができる", async () => {
+    const [item] = createProject("指導箋", ["img-1"]).items;
+    if (item === undefined) throw new Error("テストデータのカードがありません");
+
+    const id = await saveExerciseCard({ ...item, order: 4 });
+
+    const [listed] = await listExerciseCards();
+    expect(listed).toMatchObject({ id, title: item.title, item: { order: 0 } });
+
+    await deleteExerciseCard(id);
+    expect(await listExerciseCards()).toEqual([]);
+  });
+
+  it("collectReferencedImageIds: マイテンプレート・マイ運動が参照する画像も集める", async () => {
+    await saveProject("editing", createProject("編集中", ["img-editing"]));
+    await saveUserTemplate("テンプレート", createProject("テンプレート", ["img-template"]));
+    const [cardItem] = createProject("カード", ["img-card"]).items;
+    if (cardItem === undefined) throw new Error("テストデータのカードがありません");
+    await saveExerciseCard(cardItem);
+
+    expect(await collectReferencedImageIds("editing")).toEqual(
+      new Set(["img-template", "img-card"])
+    );
   });
 });

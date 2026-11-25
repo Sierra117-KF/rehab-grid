@@ -40,6 +40,7 @@ packages/ui/
 │   │   │   │   ├── ThumbnailGrid.tsx
 │   │   │   │   └── UsedInOtherProjectsWarning.tsx
 │   │   │   ├── DesignSettingsDialog.tsx
+│   │   │   ├── ExerciseCardLibraryModal.tsx
 │   │   │   ├── GridLayoutSelector.tsx
 │   │   │   ├── ImageEditModal.tsx
 │   │   │   ├── PdfPreviewModal.tsx
@@ -134,10 +135,11 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 | `DesignSettingsDialog` | デザイン設定（列数・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
 | `ImageEditModal` | カード画像の編集（左右反転・90°回転・5:3 トリミング・矢印/丸/四角の注釈） | - |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
-| `PrecautionSnippetDialog` | 注意点スニペット挿入 | - |
+| `ExerciseCardLibraryModal` | マイ運動（保存したカードの一覧・検索・追加・削除） | - |
+| `PrecautionSnippetDialog` | 注意点スニペット挿入（先頭の「マイ定型文」は登録・削除できる） | - |
 | `ProjectListModal` | マイ指導箋（保存した指導箋の一覧・タイトル検索・切り替え・新規作成・複製・削除） | - |
 | `PropertyPanel` | 選択カードの編集パネル | - |
-| `TemplateSelectModal` | プリセットテンプレート選択（新しい指導箋で開く／上書きを選択） | - |
+| `TemplateSelectModal` | 公式テンプレート／マイテンプレートのタブで選択（新しい指導箋で開く／上書きを選択）。マイテンプレートの保存・削除 | - |
 
 #### Canvas
 
@@ -319,15 +321,17 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 ```
 tests/
 └── components/
-    ├── editor/          # 10ファイル
+    ├── editor/          # 12ファイル
     │   ├── Canvas.test.tsx
     │   ├── DesignSettingsDialog.test.tsx
     │   ├── EditorHeader.test.tsx
+    │   ├── ExerciseCardLibraryModal.test.tsx
     │   ├── ImageEditModal.test.tsx
     │   ├── ImageLibraryPanel.test.tsx
     │   ├── MobileEditorMenu.test.tsx
     │   ├── PdfPreviewModal.test.tsx
     │   ├── PrecautionSnippetDialog.test.tsx
+    │   ├── ProjectListModal.test.tsx
     │   ├── PropertyPanel.test.tsx
     │   └── TemplateSelectModal.test.tsx
     └── layout/          # 10ファイル

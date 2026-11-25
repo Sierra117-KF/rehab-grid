@@ -3,6 +3,7 @@
 import {
   BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
+  EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
   HOME_LINK_TOOLTIP,
@@ -19,6 +20,7 @@ import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
+  Bookmark,
   ChevronDown,
   ChevronRight,
   Download,
@@ -57,6 +59,8 @@ type MobileEditorMenuProps = {
   onDesignSettingsClick: () => void;
   /** テンプレートモーダルを開く */
   onTemplateClick: () => void;
+  /** マイ運動モーダルを開く */
+  onExerciseCardsClick: () => void;
   /** ファイルを開くダイアログを開く */
   onOpenClick: () => void;
   /** インポート中かどうか */
@@ -145,6 +149,7 @@ export function MobileEditorMenu({
   layoutType,
   onDesignSettingsClick,
   onTemplateClick,
+  onExerciseCardsClick,
   onOpenClick,
   isImporting,
   onExportJSON,
@@ -194,6 +199,14 @@ export function MobileEditorMenu({
     onClose();
     onTemplateClick();
   }, [onClose, onTemplateClick]);
+
+  /**
+   * マイ運動クリックハンドラ
+   */
+  const handleExerciseCardsClick = useCallback(() => {
+    onClose();
+    onExerciseCardsClick();
+  }, [onClose, onExerciseCardsClick]);
 
   /**
    * ファイルを開くクリックハンドラ
@@ -283,6 +296,14 @@ export function MobileEditorMenu({
         label={TEMPLATE_BUTTON_LABEL}
         onClick={handleTemplateClick}
         iconColor="text-violet-500"
+      />
+
+      {/* マイ運動から追加 */}
+      <MenuItem
+        icon={Bookmark}
+        label={EXERCISE_CARD_ADD_BUTTON_LABEL}
+        onClick={handleExerciseCardsClick}
+        iconColor="text-teal-600"
       />
 
       {/* ファイルを開く */}

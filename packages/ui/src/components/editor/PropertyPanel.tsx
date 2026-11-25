@@ -7,6 +7,8 @@ import {
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
+  EXERCISE_CARD_SAVE_LABEL,
+  EXERCISE_CARD_SAVE_TOOLTIP,
   IMAGE_EDIT_LABEL,
   IMAGE_FLIP_BUTTON_LABEL,
   IMAGE_FLIP_TOOLTIP,
@@ -39,6 +41,7 @@ import { Label } from "@rehab-grid/ui/components/wrapped/Label";
 import { Textarea } from "@rehab-grid/ui/components/wrapped/Textarea";
 import {
   AlertTriangle,
+  BookmarkPlus,
   Copy,
   CopyCheck,
   FileText,
@@ -102,6 +105,8 @@ export type PropertyPanelProps = {
   onItemDelete?: (id: string) => void;
   /** アイテム複製時のコールバック（未指定なら複製ボタンを表示しない） */
   onItemDuplicate?: (id: string) => void;
+  /** カードをマイ運動に保存するコールバック（未指定なら保存ボタンを表示しない） */
+  onSaveAsExerciseCard?: (item: EditorItem) => void;
   /**
    * 用量を全カードに反映するコールバック
    *
@@ -149,6 +154,7 @@ export function PropertyPanel({
   onItemChange,
   onItemDelete,
   onItemDuplicate,
+  onSaveAsExerciseCard,
   onApplyDosagesToAll,
   onApplyPrecautionsToAll,
   onImageFlip,
@@ -524,9 +530,21 @@ export function PropertyPanel({
               </div>
             </div>
 
-            {/* 複製・削除ボタン */}
-            {onItemDuplicate || onItemDelete ? (
+            {/* マイ運動に保存・複製・削除ボタン */}
+            {onSaveAsExerciseCard || onItemDuplicate || onItemDelete ? (
               <div className="mt-4 space-y-2 border-t border-border/40 pt-3">
+                {onSaveAsExerciseCard ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 bg-white"
+                    title={EXERCISE_CARD_SAVE_TOOLTIP}
+                    onClick={() => onSaveAsExerciseCard(selectedItem)}
+                  >
+                    <BookmarkPlus className="size-4 text-teal-600" />
+                    {EXERCISE_CARD_SAVE_LABEL}
+                  </Button>
+                ) : null}
                 {onItemDuplicate ? (
                   <Button
                     variant="outline"

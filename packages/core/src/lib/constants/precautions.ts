@@ -7,8 +7,15 @@
 
 /**
  * 定型文カテゴリの識別子
+ *
+ * @remarks
+ * custom はユーザーが登録したマイ定型文（IndexedDB の customSnippets）
  */
-export type PrecautionSnippetCategoryId = "breathing" | "safety" | "technique";
+export type PrecautionSnippetCategoryId =
+  | "custom"
+  | "breathing"
+  | "safety"
+  | "technique";
 
 /**
  * 定型文カテゴリの定義
@@ -33,10 +40,11 @@ export type PrecautionSnippet = {
 /**
  * 定型文カテゴリ一覧
  *
- * 表示順序はこの配列の順番に従う
+ * 表示順序はこの配列の順番に従う（よく使う自分の定型文を先頭に置く）
  */
 export const PRECAUTION_SNIPPET_CATEGORIES: readonly PrecautionSnippetCategory[] =
   [
+    { id: "custom", label: "マイ定型文" },
     { id: "breathing", label: "呼吸・姿勢" },
     { id: "safety", label: "痛み・安全管理" },
     { id: "technique", label: "動作のコツ" },
@@ -82,3 +90,22 @@ export const SNIPPET_BUTTON_LABEL = "定型文";
 
 /** 最大件数超過時のメッセージ */
 export const SNIPPET_MAX_EXCEEDED_MESSAGE = "注意点の最大登録数に達しています";
+
+/** マイ定型文の入力欄のラベル */
+export const CUSTOM_SNIPPET_INPUT_LABEL = "マイ定型文を登録";
+
+/** マイ定型文の入力欄のプレースホルダー */
+export const CUSTOM_SNIPPET_INPUT_PLACEHOLDER = "よく使う注意点を入力";
+
+/** マイ定型文の登録ボタンのラベル */
+export const CUSTOM_SNIPPET_ADD_LABEL = "登録";
+
+/** マイ定型文の削除ボタンのラベル（後ろに定型文の内容を付けて読み上げる） */
+export const CUSTOM_SNIPPET_DELETE_LABEL = "マイ定型文から削除";
+
+/** マイ定型文が 1 件もないときの案内 */
+export const CUSTOM_SNIPPET_EMPTY_MESSAGE =
+  "よく使う注意点を登録しておくと、ここから選べます。";
+
+/** 同じ文言の定型文（組み込み・登録済み）があるとき */
+export const CUSTOM_SNIPPET_DUPLICATE_MESSAGE = "同じ定型文がすでにあります";

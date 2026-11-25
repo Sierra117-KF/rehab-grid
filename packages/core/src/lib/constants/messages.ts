@@ -565,7 +565,7 @@ export function createSelectedImagesDeleteDescription(count: number): string {
 
 /** 他の指導箋でも使われている画像を削除するときの警告 */
 export const IMAGE_USED_IN_OTHER_PROJECTS_WARNING =
-  "この画像は他の指導箋でも使われています。削除すると、それらの指導箋のカードは画像なしになります。";
+  "この画像は他の指導箋（またはマイテンプレート・マイ運動）でも使われています。削除すると、それらのカードは画像なしになります。";
 
 /**
  * 他の指導箋でも使われている画像をまとめて削除するときの警告を生成
@@ -574,7 +574,7 @@ export const IMAGE_USED_IN_OTHER_PROJECTS_WARNING =
  * @returns 警告文
  */
 export function createImagesUsedInOtherProjectsWarning(count: number): string {
-  return `うち${String(count)}件の画像は他の指導箋でも使われています。削除すると、それらの指導箋のカードは画像なしになります。`;
+  return `うち${String(count)}件の画像は他の指導箋（またはマイテンプレート・マイ運動）でも使われています。削除すると、それらのカードは画像なしになります。`;
 }
 
 /**

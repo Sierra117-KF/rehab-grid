@@ -8,14 +8,24 @@ import {
   APP_VERSION,
   DEFAULT_PROJECT_TITLE,
   DEFAULT_THEME_COLOR,
+  LIBRARY_SAVE_FAILED_MESSAGE,
   PROJECT_COPY_SUFFIX,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
+  editorItemSchema,
+  projectFileSchema,
+  sanitizeText,
+} from "@rehab-grid/core/lib/schemas";
+import {
+  type CustomSnippetRecord,
+  type EditorItem,
+  type ExerciseCardRecord,
   type ImageRecord,
   type ProjectFile,
   type ProjectRecord,
   type ProjectSummary,
+  type UserTemplateRecord,
 } from "@rehab-grid/core/types";
 import Dexie, { type EntityTable } from "dexie";
 import { nanoid } from "nanoid";
@@ -24,18 +34,32 @@ import { nanoid } from "nanoid";
  * RehabGrid データベースクラス
  *
  * @remarks
- * Dexie を継承し、projects と images テーブルを定義
+ * Dexie を継承し、指導箋（projects）・画像（images）と、
+ * マイライブラリ（userTemplates / exerciseCards / customSnippets）のテーブルを定義
  */
 class RehabGridDB extends Dexie {
   projects!: EntityTable<ProjectRecord, "id">;
   images!: EntityTable<ImageRecord, "id">;
+  userTemplates!: EntityTable<UserTemplateRecord, "id">;
+  exerciseCards!: EntityTable<ExerciseCardRecord, "id">;
+  customSnippets!: EntityTable<CustomSnippetRecord, "id">;
 
   constructor() {
     super("RehabGridDB");
 
+    // 旧バージョンの DB から更新できるよう、version(1) の宣言は残す
     this.version(1).stores({
       projects: "id, title, updatedAt",
       images: "id, createdAt",
+    });
+
+    // テーブルを足すだけなので upgrade() でのデータ移行は不要
+    this.version(2).stores({
+      projects: "id, title, updatedAt",
+      images: "id, createdAt",
+      userTemplates: "id, name, updatedAt",
+      exerciseCards: "id, title, updatedAt",
+      customSnippets: "id, createdAt",
     });
   }
 }
@@ -146,10 +170,10 @@ export async function duplicateProject(
 }
 
 /**
- * プロジェクトのカードが参照している画像IDを集める
+ * 指導箋・マイテンプレート・マイ運動のカードが参照している画像IDを集める
  *
  * @remarks
- * 画像ライブラリから画像を削除する前に、他のプロジェクトで使われているかを確かめるために使う。
+ * 画像ライブラリから画像を削除する前に、他の場所で使われているかを確かめるために使う。
  * 編集中のプロジェクトは保存前の変更がストアにしかないため、呼び出し側で除外して別に判定する。
  *
  * @param excludeProjectId - 対象から除くプロジェクトID（編集中のプロジェクト）
@@ -158,15 +182,176 @@ export async function duplicateProject(
 export async function collectReferencedImageIds(
   excludeProjectId?: string
 ): Promise<Set<string>> {
-  const records = await db.projects.toArray();
+  const [projects, templates, cards] = await Promise.all([
+    db.projects.toArray(),
+    db.userTemplates.toArray(),
+    db.exerciseCards.toArray(),
+  ]);
+  const items: EditorItem[] = [
+    ...projects
+      .filter((record) => record.id !== excludeProjectId)
+      .flatMap((record) => record.data.items),
+    ...templates.flatMap((record) => record.data.items),
+    ...cards.map((record) => record.item),
+  ];
+
   const ids = new Set<string>();
-  for (const record of records) {
-    if (record.id === excludeProjectId) continue;
-    for (const item of record.data.items) {
-      if (item.imageSource !== "") ids.add(item.imageSource);
-    }
+  for (const item of items) {
+    if (item.imageSource !== "") ids.add(item.imageSource);
   }
   return ids;
+}
+
+/**
+ * マイテンプレートとして保存する
+ *
+ * @remarks
+ * 将来の書き出し・読み込みに備え、インポートと同じスキーマで検証してから保存する。
+ * 名前が空ならプロジェクトの既定のタイトルにする。
+ *
+ * @param name - テンプレート名
+ * @param data - 保存する指導箋の内容
+ * @returns 保存したテンプレートのID
+ * @throws 内容がスキーマに合わないとき
+ */
+export async function saveUserTemplate(
+  name: string,
+  data: ProjectFile
+): Promise<string> {
+  const result = projectFileSchema.safeParse(data);
+  if (!result.success) throw new Error(LIBRARY_SAVE_FAILED_MESSAGE);
+
+  const id = nanoid();
+  const normalizedName = sanitizeText(name.trim()).slice(
+    0,
+    TEXT_LIMITS.projectTitle
+  );
+  await db.userTemplates.put({
+    id,
+    name: normalizedName || DEFAULT_PROJECT_TITLE,
+    data: result.data,
+    updatedAt: new Date(),
+  });
+  return id;
+}
+
+/**
+ * マイテンプレートの一覧を取得（更新日時の新しい順）
+ *
+ * @returns マイテンプレート
+ */
+export async function listUserTemplates(): Promise<UserTemplateRecord[]> {
+  const records = await db.userTemplates.toArray();
+  return records.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+/**
+ * マイテンプレートを取得
+ *
+ * @param id - テンプレートID
+ * @returns マイテンプレート、存在しない場合は undefined
+ */
+export async function getUserTemplate(
+  id: string
+): Promise<UserTemplateRecord | undefined> {
+  return db.userTemplates.get(id);
+}
+
+/**
+ * マイテンプレートを削除
+ *
+ * @remarks
+ * 取り込み画像は画像ライブラリの資産として残す
+ *
+ * @param id - 削除するテンプレートID
+ */
+export async function deleteUserTemplate(id: string): Promise<void> {
+  await db.userTemplates.delete(id);
+}
+
+/**
+ * カードをマイ運動として保存する
+ *
+ * @remarks
+ * インポートと同じスキーマで検証してから保存する。
+ * 呼び出し時に ID と並び順を振り直すため、order は 0 にそろえる。
+ *
+ * @param item - 保存するカード
+ * @returns 保存したマイ運動のID
+ * @throws 内容がスキーマに合わないとき
+ */
+export async function saveExerciseCard(item: EditorItem): Promise<string> {
+  const result = editorItemSchema.safeParse(item);
+  if (!result.success) throw new Error(LIBRARY_SAVE_FAILED_MESSAGE);
+
+  const id = nanoid();
+  await db.exerciseCards.put({
+    id,
+    title: result.data.title,
+    item: { ...result.data, order: 0 },
+    updatedAt: new Date(),
+  });
+  return id;
+}
+
+/**
+ * マイ運動の一覧を取得（更新日時の新しい順）
+ *
+ * @returns マイ運動
+ */
+export async function listExerciseCards(): Promise<ExerciseCardRecord[]> {
+  const records = await db.exerciseCards.toArray();
+  return records.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+/**
+ * マイ運動を削除
+ *
+ * @param id - 削除するマイ運動のID
+ */
+export async function deleteExerciseCard(id: string): Promise<void> {
+  await db.exerciseCards.delete(id);
+}
+
+/**
+ * マイ定型文を登録する
+ *
+ * @remarks
+ * 前後の空白を除き、注意点の文字数上限で切り詰める。
+ * 組み込みの定型文・登録済みの定型文との重複は呼び出し側で確かめる。
+ *
+ * @param value - 定型文の内容
+ * @returns 登録したマイ定型文
+ */
+export async function addCustomSnippet(
+  value: string
+): Promise<CustomSnippetRecord> {
+  const record: CustomSnippetRecord = {
+    id: nanoid(),
+    value: sanitizeText(value.trim()).slice(0, TEXT_LIMITS.precaution),
+    createdAt: new Date(),
+  };
+  await db.customSnippets.put(record);
+  return record;
+}
+
+/**
+ * マイ定型文の一覧を取得（登録した順）
+ *
+ * @returns マイ定型文
+ */
+export async function listCustomSnippets(): Promise<CustomSnippetRecord[]> {
+  const records = await db.customSnippets.toArray();
+  return records.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+}
+
+/**
+ * マイ定型文を削除
+ *
+ * @param id - 削除するマイ定型文のID
+ */
+export async function deleteCustomSnippet(id: string): Promise<void> {
+  await db.customSnippets.delete(id);
 }
 
 /**

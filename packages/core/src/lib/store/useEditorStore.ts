@@ -41,6 +41,7 @@ import {
   requestPersistentStorage,
   writeLocalStorage,
 } from "@rehab-grid/core/utils/storage";
+import { cloneItemWithNewIds } from "@rehab-grid/core/utils/template";
 import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -172,8 +173,15 @@ type EditorActions = {
   openImportResult: (result: ImportResult, mode: ImportOpenMode) => Promise<void>;
   /** アイテム一覧を設定 */
   setItems: (items: EditorItem[]) => void;
-  /** アイテムを追加 */
-  addItem: (item: EditorItem) => void;
+  /**
+   * 保存済みのカード（マイ運動）のコピーを末尾に追加し、選択する
+   *
+   * @remarks
+   * カード・注意点の ID を振り直すため、同じカードを何度追加しても重ならない
+   *
+   * @returns 追加したアイテムのID（最大数に達している場合は null）
+   */
+  addItem: (item: EditorItem) => string | null;
   /** 新しいアイテムを作成して追加（ID自動生成、選択状態も設定） */
   addNewItem: (options?: AddNewItemOptions) => string | null;
   /** アイテムを更新 */
@@ -423,23 +431,6 @@ function clearImageReferencesInHistory(
       ? snapshot
       : { ...snapshot, items: nextItems };
   });
-}
-
-/**
- * アイテムを複製する（ID・注意点ID は振り直し、参照も共有しない）
- */
-function cloneItem(item: EditorItem): EditorItem {
-  return {
-    ...item,
-    id: nanoid(),
-    ...(item.dosages && { dosages: { ...item.dosages } }),
-    ...(item.precautions && {
-      precautions: item.precautions.map((precaution) => ({
-        ...precaution,
-        id: nanoid(),
-      })),
-    }),
-  };
 }
 
 /**
@@ -694,11 +685,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       setItems: (items) => commit({ items }),
 
       addItem: (item) => {
-        // UI以外の経路（貼り付け等）でも最大数を超えないよう、ストア側で保証する
+        // UI以外の経路でも最大数を超えないよう、ストア側で保証する
         const { items } = get();
-        if (items.length >= MAX_ITEM_COUNT) return;
+        if (items.length >= MAX_ITEM_COUNT) return null;
 
-        commit({ items: [...items, item] });
+        const newItem = { ...cloneItemWithNewIds(item), order: items.length };
+        commit({ items: [...items, newItem], selectedItemId: newItem.id });
+        return newItem.id;
       },
 
       addNewItem: ({ title = "新しい運動", imageSource = "" } = {}) => {
@@ -757,7 +750,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         }
 
         // PDF は order、Canvas は配列順で描画するため、挿入後に order を振り直して一致させる
-        const copy = cloneItem(source);
+        const copy = cloneItemWithNewIds(source);
         const nextItems = [
           ...items.slice(0, index + 1),
           copy,
