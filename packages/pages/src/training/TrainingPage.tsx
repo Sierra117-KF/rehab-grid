@@ -16,13 +16,64 @@ import { useEditorShortcuts } from "@rehab-grid/core/hooks/useEditorShortcuts";
 import { useIsMobile } from "@rehab-grid/core/hooks/useMediaQuery";
 import { usePasteImage } from "@rehab-grid/core/hooks/usePasteImage";
 import {
+  IMAGE_EDIT_FAILED_MESSAGE,
+  IMAGE_EDIT_LOAD_FAILED_MESSAGE,
+  IMAGE_EDIT_STALE_MESSAGE,
+} from "@rehab-grid/core/lib/constants";
+import {
+  createEditedImageBlob,
+  flipAndSaveImage,
+  type ImageEditSource,
+  loadImageEditSource,
+  saveEditedImage,
+} from "@rehab-grid/core/utils/imageEdit";
+import {
   Canvas,
+  ImageEditModal,
+  type ImageEditResult,
   ImageLibraryPanel,
   MobileSidebar,
   PropertyPanel,
 } from "@rehab-grid/ui";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
+
+/**
+ * 画像編集モーダルで編集中の対象
+ */
+type ImageEditTarget = {
+  /** 編集するカードのID */
+  itemId: string;
+  /** 編集を始めたときのカードの画像ID（保存時に差し替わっていないか確認する） */
+  imageId: string;
+  /** 読み込んだ元画像 */
+  source: ImageEditSource;
+};
+
+/**
+ * 編集した画像をカードに反映する
+ *
+ * @remarks
+ * 画像の処理は非同期のため、その間にカードの画像が差し替えられていたら反映しない
+ * （編集した画像はライブラリに残る）。反映は 1 件の履歴になり、元に戻せる
+ *
+ * @param itemId - カードのID
+ * @param originalImageId - 編集を始めたときの画像ID
+ * @param editedImageId - 編集した画像のID
+ */
+function applyEditedImage(
+  itemId: string,
+  originalImageId: string,
+  editedImageId: string
+) {
+  const { items, updateItem } = useEditorStore.getState();
+  const item = items.find((i) => i.id === itemId);
+  if (item?.imageSource !== originalImageId) {
+    toast.info(IMAGE_EDIT_STALE_MESSAGE);
+    return;
+  }
+  updateItem(itemId, { imageSource: editedImageId });
+}
 
 /**
  * 「元に戻す」付きの完了トーストを表示する
@@ -96,6 +147,11 @@ export function TrainingPage() {
   const setMobilePropertyPanelOpen = useEditorStore(
     (state) => state.setMobilePropertyPanelOpen
   );
+
+  // 画像の反転・編集用ステート
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [imageEditTarget, setImageEditTarget] =
+    useState<ImageEditTarget | null>(null);
 
   // キャンバス表示用の画像URLを生成（IndexedDB + サンプル画像）
   const cardImageUrls = useCanvasImages(items);
@@ -222,6 +278,93 @@ export function TrainingPage() {
     [appendPrecautionsToAll]
   );
 
+  /**
+   * カードの画像を左右反転して新しい画像として保存し、カードに反映する
+   *
+   * @remarks
+   * サンプル画像（2 コマ構成）はコマの順番を保ったまま 2 コマずつ反転する
+   */
+  const handleImageFlip = useCallback(
+    async (itemId: string) => {
+      const imageId = items.find((item) => item.id === itemId)?.imageSource;
+      if (imageId === undefined || imageId === "") return;
+
+      setIsImageProcessing(true);
+      try {
+        const flippedImageId = await flipAndSaveImage(imageId);
+        applyEditedImage(itemId, imageId, flippedImageId);
+      } catch {
+        toast.error(IMAGE_EDIT_FAILED_MESSAGE);
+      } finally {
+        setIsImageProcessing(false);
+      }
+    },
+    [items]
+  );
+
+  /**
+   * カードの画像を読み込んで画像編集モーダルを開く
+   */
+  const handleImageEditOpen = useCallback(
+    async (itemId: string) => {
+      const imageId = items.find((item) => item.id === itemId)?.imageSource;
+      if (imageId === undefined || imageId === "") return;
+
+      setIsImageProcessing(true);
+      try {
+        const source = await loadImageEditSource(imageId);
+        setImageEditTarget({ itemId, imageId, source });
+      } catch {
+        toast.error(IMAGE_EDIT_LOAD_FAILED_MESSAGE);
+      } finally {
+        setIsImageProcessing(false);
+      }
+    },
+    [items]
+  );
+
+  /**
+   * 画像編集モーダルの編集結果を新しい画像として保存し、カードに反映する
+   */
+  const handleImageEditSave = useCallback(
+    async ({ image, crop, annotations }: ImageEditResult) => {
+      if (imageEditTarget === null) return;
+
+      try {
+        const blob = await createEditedImageBlob(image, crop, annotations);
+        const editedImageId = await saveEditedImage(
+          blob,
+          imageEditTarget.source.displayName
+        );
+        applyEditedImage(
+          imageEditTarget.itemId,
+          imageEditTarget.imageId,
+          editedImageId
+        );
+        setImageEditTarget(null);
+      } catch {
+        // モーダルは開いたままにして、もう一度保存できるようにする
+        toast.error(IMAGE_EDIT_FAILED_MESSAGE);
+      }
+    },
+    [imageEditTarget]
+  );
+
+  /**
+   * 画像編集モーダルを閉じる（編集内容は破棄）
+   */
+  const handleImageEditClose = useCallback(() => {
+    setImageEditTarget(null);
+  }, []);
+
+  // イベントハンドラとして渡すため、Promise を返さない関数にする
+  const handleImageFlipClick = (itemId: string) => {
+    void handleImageFlip(itemId);
+  };
+  const handleImageEditClick = (itemId: string) => {
+    void handleImageEditOpen(itemId);
+  };
+
   // 反映先となる他のカードがあるときだけ「全カードに反映」を出す
   const canApplyToAll = items.length > 1;
 
@@ -304,6 +447,8 @@ export function TrainingPage() {
           onAddCardWithImage={handleAddCardWithImage}
           canAddCard={canAddCard}
           onItemDuplicate={handleItemDuplicate}
+          onItemImageFlip={handleImageFlipClick}
+          isImageProcessing={isImageProcessing}
           onImageAreaClick={handleMobileImageAreaClick}
           onSettingsClick={handleMobileSettingsClick}
           isMobile={isMobile}
@@ -323,6 +468,9 @@ export function TrainingPage() {
           onApplyPrecautionsToAll={
             canApplyToAll ? handleApplyPrecautionsToAll : undefined
           }
+          onImageFlip={handleImageFlipClick}
+          onImageEdit={handleImageEditClick}
+          isImageProcessing={isImageProcessing}
         />
       </aside>
 
@@ -361,8 +509,21 @@ export function TrainingPage() {
           onApplyPrecautionsToAll={
             canApplyToAll ? handleApplyPrecautionsToAll : undefined
           }
+          onImageFlip={handleImageFlipClick}
+          onImageEdit={handleImageEditClick}
+          isImageProcessing={isImageProcessing}
         />
       </MobileSidebar>
+
+      {/* 画像編集モーダル（開いている間だけ描画し、閉じると編集状態を破棄する） */}
+      {imageEditTarget !== null ? (
+        <ImageEditModal
+          key={imageEditTarget.itemId}
+          image={imageEditTarget.source.image}
+          onClose={handleImageEditClose}
+          onSave={handleImageEditSave}
+        />
+      ) : null}
     </div>
   );
 }

@@ -92,6 +92,7 @@ import {
   deleteImage,
   deleteProject,
   getImage,
+  getImageRecord,
   getImages,
   loadProject,
   saveImage,
@@ -341,6 +342,29 @@ describe("lib/db", () => {
       const result = await getImage("non-existent");
 
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe("getImageRecord", () => {
+    it("指定したIDの画像レコード（Blob とファイル名）を返すこと", async () => {
+      const record = {
+        id: "img-123",
+        blob: new Blob(["test"], { type: "image/webp" }),
+        createdAt: new Date(),
+        fileName: "スクワット",
+      };
+      mockImagesGet.mockResolvedValue(record);
+
+      const result = await getImageRecord("img-123");
+
+      expect(mockImagesGet).toHaveBeenCalledWith("img-123");
+      expect(result).toBe(record);
+    });
+
+    it("指定したIDの画像が存在しない場合、undefinedを返すこと", async () => {
+      mockImagesGet.mockResolvedValue(undefined);
+
+      expect(await getImageRecord("non-existent")).toBeUndefined();
     });
   });
 

@@ -39,6 +39,7 @@ packages/ui/
 │   │   │   │   └── ThumbnailGrid.tsx
 │   │   │   ├── DesignSettingsDialog.tsx
 │   │   │   ├── GridLayoutSelector.tsx
+│   │   │   ├── ImageEditModal.tsx
 │   │   │   ├── PdfPreviewModal.tsx
 │   │   │   ├── PrecautionSnippetDialog.tsx
 │   │   │   ├── PropertyPanel.tsx
@@ -128,6 +129,7 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons` |
 | `DesignSettingsDialog` | デザイン設定（列数 1-4・テーマカラー）。開閉は `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector` |
+| `ImageEditModal` | カード画像の編集（左右反転・90°回転・5:3 トリミング・矢印/丸/四角の注釈） | - |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
 | `PrecautionSnippetDialog` | 注意点スニペット挿入 | - |
 | `PropertyPanel` | 選択カードの編集パネル | - |

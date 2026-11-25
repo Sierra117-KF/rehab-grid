@@ -129,6 +129,18 @@ export async function getImage(id: string): Promise<Blob | undefined> {
 }
 
 /**
+ * 画像レコード（Blob とファイル名）を取得
+ *
+ * @param id - 画像ID
+ * @returns 画像レコード、存在しない場合は undefined
+ */
+export async function getImageRecord(
+  id: string
+): Promise<ImageRecord | undefined> {
+  return db.images.get(id);
+}
+
+/**
  * 画像を削除
  *
  * @param id - 削除する画像ID

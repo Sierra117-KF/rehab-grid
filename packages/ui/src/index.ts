@@ -14,6 +14,8 @@
 export { Canvas } from "./components/editor/Canvas";
 export { DesignSettingsDialog } from "./components/editor/DesignSettingsDialog";
 export { EditorHeader } from "./components/editor/EditorHeader";
+export type { ImageEditResult } from "./components/editor/ImageEditModal";
+export { ImageEditModal } from "./components/editor/ImageEditModal";
 export { ImageLibraryPanel } from "./components/editor/ImageLibraryPanel";
 export { PdfPreviewModal } from "./components/editor/PdfPreviewModal";
 export { PrecautionSnippetDialog } from "./components/editor/PrecautionSnippetDialog";
