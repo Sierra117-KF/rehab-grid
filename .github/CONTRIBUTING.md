@@ -64,11 +64,11 @@ contact_links: [] # 外部リンク（未設定）
 
 ### ワークフロー一覧
 
-| ファイル               | 名前            | トリガー                  | 説明                                      |
-| ---------------------- | --------------- | ------------------------- | ----------------------------------------- |
-| `ci.yml`               | CI              | main ブランチへの push/PR | リント、型チェック、テスト、ビルド        |
-| `release-desktop.yml`  | Release Desktop | `v*` タグ push            | Desktop版インストーラーのビルドとリリース |
-| `lighthouse.yml`       | Lighthouse CI   | main ブランチへの push/PR | PWA品質チェック                           |
+| ファイル               | 名前            | トリガー                      | 説明                                      |
+| ---------------------- | --------------- | ----------------------------- | ----------------------------------------- |
+| `ci.yml`               | CI              | main・`phase/**` への push/PR | リント、型チェック、テスト、ビルド        |
+| `release-desktop.yml`  | Release Desktop | `v*` タグ push                | Desktop版インストーラーのビルドとリリース |
+| `lighthouse.yml`       | Lighthouse CI   | main・`phase/**` への push/PR | PWA品質チェック                           |
 
 ---
 
@@ -76,7 +76,7 @@ contact_links: [] # 外部リンク（未設定）
 
 #### 概要
 
-プルリクエストとmainブランチへのpush時に、コード品質とビルドの検証を行います。
+main・`phase/**` ブランチへのプルリクエストとpush時に、コード品質とビルドの検証を行います。
 
 #### ジョブ構成
 
@@ -95,8 +95,8 @@ audit ────────┘    test-browser ─┴──→ build
 
 #### 実行条件
 
-- `main` ブランチへの push
-- `main` ブランチへの PR
+- `main`・`phase/**` ブランチへの push
+- `main`・`phase/**` ブランチへの PR
 - 手動実行（workflow_dispatch）
 
 ---
