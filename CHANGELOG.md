@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-25
+
 ### Added
 
 - カード画像のクイック左右反転（プロパティパネルとカードのホバーアクション）。サンプル画像は「左＝開始肢位、右＝終了肢位」の 2 コマ構成のため、コマの順番を保ったまま 2 コマずつ反転する
@@ -39,7 +41,6 @@
 - 関係のない画像をライブラリから削除した際に、直前のトーストの「元に戻す」が無効になる不具合を修正
 - 注意点の「全カードに反映」で、他の全カードが上限（5件）に達しているため追加できなかった場合に上限到達の案内を表示するように改善（あわせて、用量ラベル変更時の反映ボタンの説明文追従・白黒モード選択時のテーマカラー注記を追加）
 - PDF の運動名が長いとき、「…」で切り詰めたうえで 2 行に折り返していた（日本語の文字幅で 1 行に収まるよう切り詰める）
-
 - PDF のファイル名の日付が UTC で付けられ、日本時間 0〜9 時に前日の日付になっていた
 - デザイン設定ダイアログの本文が画面の高さを超えたときにスクロールできず、下の項目と「閉じる」が画面外にはみ出していた
 
@@ -83,6 +84,7 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Sierra117-KF/rehab-grid/releases/tag/v1.0.0
