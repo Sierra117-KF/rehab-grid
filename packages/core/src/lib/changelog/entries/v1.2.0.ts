@@ -5,7 +5,7 @@ import type { ChangelogEntry } from "@rehab-grid/core/types";
  */
 export const entryV120: ChangelogEntry = {
   version: "v1.2.0",
-  date: "2026-11-25",
+  date: "2026-11-26",
   title: "画像編集とデザインのカスタマイズ",
   categories: {
     features: [
