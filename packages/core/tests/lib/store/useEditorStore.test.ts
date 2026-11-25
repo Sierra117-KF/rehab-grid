@@ -1237,6 +1237,7 @@ describe("useEditorStore", () => {
         const before = useEditorStore.getState().settings;
         updateSettings({ layoutType: "grid2" });
         updateSettings({ layoutType: "grid2", themeColor: "#3b82f6" });
+        updateSettings({ themeColor: "#3B82F6" });
         updateSettings({});
         setProjectTitle("無題のプロジェクト");
 
@@ -1301,6 +1302,15 @@ describe("useEditorStore", () => {
 
         expect(useEditorStore.getState().past).toHaveLength(2);
       });
+
+      it("マージ中に元の値へ戻すと、変化のない履歴を取り除く", () => {
+        const { updateItem } = useEditorStore.getState();
+        updateItem("a", { title: "運動A1" }, { mergeKey: "a:title" });
+        expect(useEditorStore.getState().past).toHaveLength(1);
+
+        updateItem("a", { title: "運動A" }, { mergeKey: "a:title" });
+        expect(useEditorStore.getState().past).toEqual([]);
+      });
     });
 
     describe("履歴のクリア", () => {
@@ -1351,6 +1361,25 @@ describe("useEditorStore", () => {
       undo();
       undo();
       expect(imageSources()).toEqual(["", ""]);
+    });
+
+    it("履歴で参照していない無関係な画像を削除しても、past / future の参照を維持する", async () => {
+      mockDeleteImage.mockResolvedValue(undefined);
+      const { updateItem, undo } = useEditorStore.getState();
+      updateItem("a", { title: "変更1" });
+      updateItem("a", { title: "変更2" });
+      undo();
+      const pastBefore = useEditorStore.getState().past;
+      const pastLastBefore = pastBefore.at(-1);
+      const futureBefore = useEditorStore.getState().future;
+
+      await useEditorStore
+        .getState()
+        .deleteImageAndClearReferences("unrelated-image");
+
+      expect(useEditorStore.getState().past).toBe(pastBefore);
+      expect(useEditorStore.getState().past.at(-1)).toBe(pastLastBefore);
+      expect(useEditorStore.getState().future).toBe(futureBefore);
     });
   });
 

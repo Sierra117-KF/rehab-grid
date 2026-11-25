@@ -234,7 +234,6 @@ export const PDF_TEXT_STYLE = {
  * 用量表示の色設定
  *
  * shared.ts の DOSAGE_COLORS を参照（信頼できる単一の情報源）
- * 数値強調型デザイン: グレースケール + blue-500アクセント
  * 区切り線の色はテーマカラーから求める（lib/pdf/card.ts）
  */
 export const PDF_DOSAGE_COLORS = {
@@ -242,8 +241,6 @@ export const PDF_DOSAGE_COLORS = {
   value: DOSAGE_COLORS.value,
   /** ラベル色: slate-400 */
   label: DOSAGE_COLORS.label,
-  /** アクセント色: blue-500 */
-  accent: DOSAGE_COLORS.accent,
 } as const;
 
 /**
@@ -381,8 +378,6 @@ export const PDF_SPACING = {
  * 日本語の全角文字幅を経験的に近似した値
  */
 export const PDF_CHAR_WIDTH_RATIO = {
-  /** タイトル（太字） */
-  title: 0.6,
   /** 説明文・注意点 */
   body: 0.55,
   /** 全角 1 文字分（行数を多めに見積もって、高さ不足やはみ出しを防ぐ箇所で使う） */

@@ -34,6 +34,16 @@ type GridLayoutCardProps = {
 };
 
 /**
+ * 選択中カードの枠線色
+ *
+ * globals.css のレイヤー外の `* { border-color }` が Tailwind の `border-*` 色クラスに
+ * 勝つため、インライン style で orange-500 を指定する
+ */
+const SELECTED_BORDER_STYLE: React.CSSProperties = {
+  borderColor: "#f97316",
+};
+
+/**
  * グリッドレイアウトカードコンポーネント
  *
  * 各レイアウトオプションを視覚的に表示するカード
@@ -50,6 +60,7 @@ function GridLayoutCard({
       type="button"
       onClick={handleClick}
       aria-pressed={isSelected}
+      style={isSelected ? SELECTED_BORDER_STYLE : undefined}
       className={cn(
         "group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all",
         "hover:border-orange-400/50 hover:bg-orange-50/50 dark:hover:bg-orange-950/20",

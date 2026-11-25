@@ -14,20 +14,27 @@ import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useEffect } from "react";
 
 /**
- * ブラウザ標準のキー操作に任せる要素のセレクタ
+ * ブラウザ標準のキー操作に任せる入力要素のセレクタ
  *
  * @remarks
  * 入力欄の中の Ctrl+Z はブラウザ標準の文字単位の取り消しにする。
- * ダイアログ内ではエディタ本体の状態を変えない。
  */
 const NATIVE_KEY_HANDLING_SELECTOR = [
   "input",
   "textarea",
   "select",
   '[contenteditable]:not([contenteditable="false"])',
-  '[role="dialog"]',
-  '[role="alertdialog"]',
 ].join(",");
+
+/**
+ * 開いているダイアログを検出するセレクタ
+ *
+ * @remarks
+ * ダイアログのオーバーレイをクリックした場合や、ダイアログ内のボタンが押下直後に
+ * disabled になってフォーカスが document.body へ落ちた場合でも、背後のエディタが
+ * Undo / Redo されないよう DOM 上の存在で判定する。
+ */
+const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
 
 /**
  * キー入力からショートカットの種類を判定する
@@ -42,7 +49,9 @@ function getShortcutAction(event: KeyboardEvent): "undo" | "redo" | null {
   const key = event.key.toLowerCase();
   if (key === "z") return event.shiftKey ? "redo" : "undo";
   // Ctrl+Y は Windows の慣例（Mac の Cmd+Y は割り当てない）
-  if (key === "y" && event.ctrlKey && !event.shiftKey) return "redo";
+  if (key === "y" && event.ctrlKey && !event.metaKey && !event.shiftKey) {
+    return "redo";
+  }
   return null;
 }
 
@@ -52,7 +61,7 @@ function getShortcutAction(event: KeyboardEvent): "undo" | "redo" | null {
  * - `Ctrl/Cmd + Z`：元に戻す
  * - `Ctrl/Cmd + Shift + Z`、`Ctrl + Y`：やり直す
  *
- * IME 変換中、入力欄・ダイアログにフォーカスがあるときは何もしない。
+ * IME 変換中、ダイアログ表示中、入力欄にフォーカスがあるときは何もしない。
  * 実行できる履歴があるときだけ `preventDefault()` する。
  *
  * @example
@@ -78,6 +87,10 @@ export function useEditorShortcuts(): void {
 
       const action = getShortcutAction(event);
       if (action === null) return;
+
+      // ダイアログ（モーダル・モバイルサイドバー等）が開いている間は、
+      // フォーカス位置に関わらず背後のエディタの状態を変えない
+      if (document.querySelector(DIALOG_SELECTOR) !== null) return;
 
       if (
         event.target instanceof Element &&

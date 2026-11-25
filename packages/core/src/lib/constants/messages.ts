@@ -82,9 +82,24 @@ export const DUPLICATE_TOOLTIP = "カードを複製";
 /** 全カードに反映ボタンのラベル */
 export const APPLY_TO_ALL_LABEL = "全カードに反映";
 
-/** 用量の全カード反映ボタンのツールチップ */
-export const APPLY_DOSAGES_TO_ALL_TOOLTIP =
-  "このカードの回数・セット・頻度を全カードに反映";
+/**
+ * 用量の全カード反映ボタンのツールチップ（兼 aria-label）を生成
+ *
+ * @param labels - 現在の用量ラベル（省略時はデフォルトの回数・セット・頻度）
+ * @returns 表示用文言
+ */
+export function createApplyDosagesToAllTooltip(
+  labels: { reps: string; sets: string; frequency: string } = {
+    reps: "回数",
+    sets: "セット",
+    frequency: "頻度",
+  }
+): string {
+  return `このカードの${labels.reps}・${labels.sets}・${labels.frequency}を全カードに反映`;
+}
+
+/** 用量の全カード反映ボタンのデフォルトツールチップ */
+export const APPLY_DOSAGES_TO_ALL_TOOLTIP = createApplyDosagesToAllTooltip();
 
 /** 注意点の全カード反映ボタンのツールチップ */
 export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
@@ -92,6 +107,10 @@ export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
 
 /** 一括適用で値が変わるカードがなかった場合のメッセージ */
 export const APPLY_TO_ALL_NO_TARGET_MESSAGE = "反映するカードがありません";
+
+/** 注意点の一括適用で、他の全カードが上限に達しているため追加できなかった場合のメッセージ */
+export const APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE =
+  "他のカードは注意点が上限に達しているため追加できませんでした";
 
 /**
  * 一括適用が完了したときのメッセージを生成
@@ -738,7 +757,12 @@ export function createInlineDosageInputLabel(dosageLabel: string): string {
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
 
 /** テーマカラーの説明（どこに反映されるか） */
-export const THEME_COLOR_DESCRIPTION = "運動カードの枠線の色に使われます";
+export const THEME_COLOR_DESCRIPTION =
+  "運動カードの枠線・用量の区切り線・カード番号の色に使われます";
+
+/** 白黒モード選択中にテーマカラーが反映されないことの案内 */
+export const THEME_COLOR_MONOCHROME_NOTE =
+  "印刷の色が「白黒」のときは反映されません";
 
 /** テーマカラーのカラーピッカーのラベル */
 export const THEME_COLOR_PICKER_LABEL = "色を選ぶ";

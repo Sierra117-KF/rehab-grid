@@ -234,6 +234,89 @@ function isSameDosages(a: Dosages | undefined, b: Dosages | undefined) {
 }
 
 /**
+ * 注意点一覧が同じ値かどうか
+ */
+function isSamePrecautions(
+  a: Precaution[] | undefined,
+  b: Precaution[] | undefined
+) {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const other = b[index];
+    if (other === undefined) return false;
+    return item.id === other.id && item.value === other.value;
+  });
+}
+
+/**
+ * アイテム 1 件が同じ値かどうか
+ */
+function isSameItem(a: EditorItem, b: EditorItem) {
+  if (a === b) return true;
+  return (
+    a.id === b.id &&
+    a.order === b.order &&
+    a.title === b.title &&
+    a.imageSource === b.imageSource &&
+    a.description === b.description &&
+    isSameDosages(a.dosages, b.dosages) &&
+    isSamePrecautions(a.precautions, b.precautions)
+  );
+}
+
+/**
+ * 設定の 1 項目が同じ値かどうか
+ *
+ * @remarks
+ * テーマカラーは大文字・小文字を区別しない（インポートした大文字 HEX と
+ * UI からの小文字 HEX を同じ色とみなす）。
+ * 用量ラベル・ヘッダーの項目は毎回新しいオブジェクトで渡されるため shallow で中身を比べる。
+ */
+function isSameSettingValue<K extends keyof ResolvedProjectSettings>(
+  key: K,
+  current: ResolvedProjectSettings[K],
+  next: ResolvedProjectSettings[K] | undefined
+): boolean {
+  if (key === "themeColor") {
+    return (
+      typeof current === "string" &&
+      typeof next === "string" &&
+      current.toLowerCase() === next.toLowerCase()
+    );
+  }
+  return shallow(current, next);
+}
+
+/**
+ * プロジェクト設定がすべて同じ値かどうか
+ */
+function isSameSettings(
+  a: ResolvedProjectSettings,
+  b: ResolvedProjectSettings
+) {
+  if (a === b) return true;
+  return (Object.keys(a) as (keyof ResolvedProjectSettings)[]).every((key) =>
+    isSameSettingValue(key, a[key], b[key])
+  );
+}
+
+/**
+ * 2 つのスナップショットが同じ内容かどうか
+ */
+function isSameSnapshot(a: EditorSnapshot, b: EditorSnapshot) {
+  if (!shallow(a.meta, b.meta)) return false;
+  if (!isSameSettings(a.settings, b.settings)) return false;
+  if (a.items === b.items) return true;
+  if (a.items.length !== b.items.length) return false;
+  return a.items.every((item, index) => {
+    const other = b.items[index];
+    return other !== undefined && isSameItem(item, other);
+  });
+}
+
+/**
  * updates がアイテムの値を 1 つでも変えるかどうか
  *
  * @remarks
@@ -259,6 +342,32 @@ function clearImageReferences(items: EditorItem[], imageId: string) {
   return items.map((item) =>
     item.imageSource === imageId ? { ...item, imageSource: "" } : item
   );
+}
+
+/**
+ * 履歴内のスナップショットから指定画像への参照を除去する
+ *
+ * @remarks
+ * 参照がないスナップショットは同じオブジェクト参照を返す
+ * （トーストの「元に戻す」が past 末尾の参照一致で有効性を判定するため）
+ */
+function clearImageReferencesInHistory(
+  history: EditorSnapshot[],
+  imageId: string
+): EditorSnapshot[] {
+  if (
+    !history.some((snapshot) =>
+      snapshot.items.some((item) => item.imageSource === imageId)
+    )
+  ) {
+    return history;
+  }
+  return history.map((snapshot) => {
+    const nextItems = clearImageReferences(snapshot.items, imageId);
+    return nextItems === snapshot.items
+      ? snapshot
+      : { ...snapshot, items: nextItems };
+  });
 }
 
 /**
@@ -353,6 +462,20 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           mergeKey !== undefined &&
           last?.mergeKey === mergeKey &&
           now - last.at <= HISTORY_MERGE_WINDOW_MS;
+
+        if (shouldMerge) {
+          const base = state.past.at(-1);
+          const nextSnapshot = toSnapshot({ ...state, ...next });
+          // マージ中に変更前の状態と完全に同じ値に戻ったら、空振りの履歴を取り除く
+          if (base !== undefined && isSameSnapshot(base, nextSnapshot)) {
+            return {
+              ...next,
+              past: state.past.slice(0, -1),
+              future: [],
+              lastHistoryCommit: null,
+            };
+          }
+        }
 
         return {
           ...next,
@@ -492,11 +615,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         const { settings } = get();
         const hasChanges = (
           Object.keys(updates) as (keyof ResolvedProjectSettings)[]
-        ).some(
-          // 用量ラベル・ヘッダーの項目は毎回新しいオブジェクトで渡されるため、中身で比べる
-          // （shallow はプリミティブ値なら Object.is と同じ結果になる）
-          (key) => !shallow(settings[key], updates[key])
-        );
+        ).some((key) => !isSameSettingValue(key, settings[key], updates[key]));
         if (!hasChanges) return;
 
         commit({ settings: { ...settings, ...updates } }, options?.mergeKey);
@@ -563,14 +682,8 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         // そのためこの操作は履歴に積まず、履歴内の同じ画像への参照も空にする。
         set((state) => ({
           items: clearImageReferences(state.items, imageId),
-          past: state.past.map((snapshot) => ({
-            ...snapshot,
-            items: clearImageReferences(snapshot.items, imageId),
-          })),
-          future: state.future.map((snapshot) => ({
-            ...snapshot,
-            items: clearImageReferences(snapshot.items, imageId),
-          })),
+          past: clearImageReferencesInHistory(state.past, imageId),
+          future: clearImageReferencesInHistory(state.future, imageId),
         }));
 
         // IndexedDBから画像を削除

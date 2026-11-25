@@ -90,7 +90,11 @@ export function ThemeColorSelector({ value, onChange }: ThemeColorSelectorProps)
                 "hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
                 isSelected ? "border-foreground" : "border-transparent"
               )}
-              style={{ backgroundColor: preset.value }}
+              // globals.css のレイヤー外の `* { border-color }` が優先されるため、枠線色はインライン style で指定する
+              style={{
+                backgroundColor: preset.value,
+                borderColor: isSelected ? "var(--foreground)" : "transparent",
+              }}
             >
               {isSelected ? <Check className="size-4 text-white" /> : null}
             </button>

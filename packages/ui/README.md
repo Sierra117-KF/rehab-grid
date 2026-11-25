@@ -34,6 +34,7 @@ packages/ui/
 │   │   │   │   ├── BulkDeleteControls.tsx
 │   │   │   │   ├── CategoryFilter.tsx
 │   │   │   │   ├── ImageDropzone.tsx
+│   │   │   │   ├── ImageSearchInput.tsx
 │   │   │   │   ├── MobileImageButtons.tsx
 │   │   │   │   ├── ThumbnailCard.tsx
 │   │   │   │   └── ThumbnailGrid.tsx
@@ -127,7 +128,7 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 |--------------|------|------------------|
 | `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド | `EmptyState`, `SortableCard` |
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
-| `ImageLibraryPanel` | 画像アップロード・管理・一括削除 | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons` |
+| `ImageLibraryPanel` | 画像アップロード・管理・検索・一括削除 | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ImageSearchInput`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons` |
 | `DesignSettingsDialog` | デザイン設定（列数・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
 | `ImageEditModal` | カード画像の編集（左右反転・90°回転・5:3 トリミング・矢印/丸/四角の注釈） | - |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
@@ -308,18 +309,20 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 
 - **テストランナー**: Vitest
 - **環境**: jsdom
-- **テストファイル数**: 18
+- **テストファイル数**: 20
 
 ### テストファイル配置
 
 ```
 tests/
 └── components/
-    ├── editor/          # 8ファイル
+    ├── editor/          # 10ファイル
     │   ├── Canvas.test.tsx
     │   ├── DesignSettingsDialog.test.tsx
     │   ├── EditorHeader.test.tsx
+    │   ├── ImageEditModal.test.tsx
     │   ├── ImageLibraryPanel.test.tsx
+    │   ├── MobileEditorMenu.test.tsx
     │   ├── PdfPreviewModal.test.tsx
     │   ├── PrecautionSnippetDialog.test.tsx
     │   ├── PropertyPanel.test.tsx
