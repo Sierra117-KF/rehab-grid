@@ -37,12 +37,14 @@ packages/ui/
 │   │   │   │   ├── ImageSearchInput.tsx
 │   │   │   │   ├── MobileImageButtons.tsx
 │   │   │   │   ├── ThumbnailCard.tsx
-│   │   │   │   └── ThumbnailGrid.tsx
+│   │   │   │   ├── ThumbnailGrid.tsx
+│   │   │   │   └── UsedInOtherProjectsWarning.tsx
 │   │   │   ├── DesignSettingsDialog.tsx
 │   │   │   ├── GridLayoutSelector.tsx
 │   │   │   ├── ImageEditModal.tsx
 │   │   │   ├── PdfPreviewModal.tsx
 │   │   │   ├── PrecautionSnippetDialog.tsx
+│   │   │   ├── ProjectListModal.tsx
 │   │   │   ├── PropertyPanel.tsx
 │   │   │   ├── TemplateSelectModal.tsx
 │   │   │   └── ThemeColorSelector.tsx
@@ -128,13 +130,14 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 |--------------|------|------------------|
 | `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド | `EmptyState`, `SortableCard` |
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
-| `ImageLibraryPanel` | 画像アップロード・管理・検索・一括削除 | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ImageSearchInput`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons` |
+| `ImageLibraryPanel` | 画像アップロード・管理・検索・一括削除（他の指導箋で使われている画像は削除確認で警告） | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ImageSearchInput`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons`, `UsedInOtherProjectsWarning` |
 | `DesignSettingsDialog` | デザイン設定（列数・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
 | `ImageEditModal` | カード画像の編集（左右反転・90°回転・5:3 トリミング・矢印/丸/四角の注釈） | - |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
 | `PrecautionSnippetDialog` | 注意点スニペット挿入 | - |
+| `ProjectListModal` | マイ指導箋（保存した指導箋の一覧・タイトル検索・切り替え・新規作成・複製・削除） | - |
 | `PropertyPanel` | 選択カードの編集パネル | - |
-| `TemplateSelectModal` | プリセットテンプレート選択 | - |
+| `TemplateSelectModal` | プリセットテンプレート選択（新しい指導箋で開く／上書きを選択） | - |
 
 #### Canvas
 

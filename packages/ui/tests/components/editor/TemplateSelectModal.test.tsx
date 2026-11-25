@@ -1,7 +1,8 @@
 import {
   BUTTON_CANCEL,
+  OPEN_AS_NEW_PROJECT_LABEL,
+  OVERWRITE_CURRENT_PROJECT_LABEL,
   TEMPLATE_CARD_COUNT_LABEL,
-  TEMPLATE_CONFIRM_BUTTON,
   TEMPLATE_CONFIRM_DESCRIPTION,
   TEMPLATE_CONFIRM_TITLE,
   TEMPLATE_LOADING_LABEL,
@@ -141,7 +142,7 @@ describe("TemplateSelectModal", () => {
   });
 
   describe("テンプレート選択（確認不要: requireConfirmation=false）", () => {
-    it("テンプレートカードクリックで onSelect が呼ばれる", async () => {
+    it("テンプレートカードクリックで onSelect が上書き（現在の空の指導箋へ適用）で呼ばれる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: false });
 
@@ -150,7 +151,7 @@ describe("TemplateSelectModal", () => {
       });
       await user.click(templateCard);
 
-      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id);
+      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id, "overwrite");
     });
 
     it("選択後にモーダルが閉じる", async () => {
@@ -203,7 +204,7 @@ describe("TemplateSelectModal", () => {
       ).toBeInTheDocument();
     });
 
-    it("「適用する」ボタンクリックで onSelect が呼ばれる", async () => {
+    it("「新しい指導箋で開く」クリックで onSelect が new で呼ばれる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: true });
 
@@ -213,14 +214,31 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
-      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id);
+      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id, "new");
     });
 
-    it("「適用する」ボタンクリック後にモーダルが閉じる", async () => {
+    it("「現在の指導箋に上書き」クリックで onSelect が overwrite で呼ばれる", async () => {
+      const user = userEvent.setup();
+      const props = setupModal({ requireConfirmation: true });
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEST_TEMPLATE.name) }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: OVERWRITE_CURRENT_PROJECT_LABEL }),
+      );
+
+      expect(props.onSelect).toHaveBeenCalledWith(
+        TEST_TEMPLATE.id,
+        "overwrite",
+      );
+    });
+
+    it("「新しい指導箋で開く」クリック後にモーダルが閉じる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: true });
 
@@ -230,7 +248,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
@@ -301,7 +319,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
@@ -314,6 +332,9 @@ describe("TemplateSelectModal", () => {
         ).toBeDisabled();
         expect(
           screen.getByRole("button", { name: BUTTON_CANCEL }),
+        ).toBeDisabled();
+        expect(
+          screen.getByRole("button", { name: OVERWRITE_CURRENT_PROJECT_LABEL }),
         ).toBeDisabled();
       });
     });
@@ -332,7 +353,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 

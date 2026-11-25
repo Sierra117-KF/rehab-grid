@@ -166,14 +166,17 @@ Dexie を使用した IndexedDB ラッパー。2 つのテーブルを管理し�
 
 | テーブル | 用途 | 主キー |
 |---------|------|--------|
-| `projects` | プロジェクトデータ | `id` |
-| `images` | 画像 Blob | `id` |
+| `projects` | プロジェクトデータ（複数保存。旧バージョンのデータは ID `"current"` のまま 1 件目として扱う） | `id` |
+| `images` | 画像 Blob（全プロジェクト共通のライブラリ） | `id` |
 
 ```typescript
 import {
   db,
   saveProject,
   loadProject,
+  listProjects,
+  duplicateProject,
+  collectReferencedImageIds,
   createNewProject,
   saveImage,
   getImage,
@@ -182,10 +185,16 @@ import {
   deleteProject,
 } from "@rehab-grid/core";
 
-// プロジェクト操作
-await saveProject(projectData);
-const project = await loadProject();
-await createNewProject("新しい指導箋");
+// プロジェクト操作（ID を指定する）
+await saveProject(projectId, projectData);
+const project = await loadProject(projectId);
+const summaries = await listProjects(); // 更新日時の新しい順（タイトル・カード枚数・レイアウト）
+const copyId = await duplicateProject(projectId); // タイトルに「のコピー」を付けて別 ID で保存
+await deleteProject(projectId);
+const newProject = createNewProject("新しい指導箋");
+
+// 他のプロジェクトが参照している画像 ID（画像削除時の警告に使う）
+const usedElsewhere = await collectReferencedImageIds(currentProjectId);
 
 // 画像操作
 await saveImage("img_001", blob, "exercise.webp");
@@ -203,6 +212,8 @@ await deleteImage("img_001");
 ```typescript
 const {
   // 状態
+  projectId, // 編集中のプロジェクト ID（オートセーブの保存先。予約時点の ID へ保存する）
+  isSwitchingProject, // 切り替え・作成・複製・削除・インポートの処理中か
   items,
   meta,
   settings, // { layoutType, themeColor }（resolveProjectSettings でデフォルト値を補完済み）
@@ -221,8 +232,13 @@ const {
   setProjectTitle,
   undo,
   redo,
-  initializeFromDB, // 読み込み・インポート・テンプレート適用（履歴はクリア）
-  deleteProject,
+  initializeFromDB, // 編集中の ID のままデータを読み込む（履歴はクリア）
+  openProject, // openProject(id, data) 指定 ID として開き、次回起動時に開く ID を localStorage に記録
+  switchProject, // 保留中のオートセーブを元のプロジェクトへ保存し終えてから切り替える
+  createProject, // 新しい空のプロジェクトを開く（編集した時点で保存される）
+  duplicateProject, // 複製して保存（開いているプロジェクトは変えない）
+  openImportResult, // openImportResult(result, "new" | "overwrite") インポート・テンプレート適用
+  deleteProject, // deleteProject(id?) 編集中を消すと残りの最新（なければ新規）を開く
 } = useEditorStore();
 
 // 履歴の有無はセレクタで購読する
@@ -275,7 +291,7 @@ const safeText = sanitizeText(userInput);
 
 | モジュール | 主な定数 |
 |-----------|---------|
-| `app.ts` | `APP_NAME`, `APP_VERSION`, `AUTOSAVE_DELAY`, `CURRENT_PROJECT_ID` |
+| `app.ts` | `APP_NAME`, `APP_VERSION`, `AUTOSAVE_DELAY`, `LEGACY_PROJECT_ID`, `ACTIVE_PROJECT_ID_STORAGE_KEY` |
 | `shared.ts` | `LAYOUT_COLUMNS`, `FONT_SIZES`, `LABELS`, `TEXT_LIMITS` |
 | `editor.ts` | `DEFAULT_PROJECT_TITLE`, `MAX_ITEM_COUNT`, `LAYOUT_OPTIONS` |
 | `messages.ts` | UI メッセージ（140 以上） |
@@ -335,7 +351,7 @@ type TemplateMetadata = {
 |---------|---------|------|
 | `color.ts` | `mixWithWhite()` | HEX 色と白の合成色生成 |
 | `date.ts` | `getDateString()`, `formatJapaneseDate()` | ローカル日付の文字列整形 |
-| `debounce.ts` | `debounce()` | 関数呼び出しの遅延実行 |
+| `debounce.ts` | `debounce()`（`flush()` / `cancel()` 付き） | 関数呼び出しの遅延実行。保留中の実行の確定・破棄 |
 | `download.ts` | `downloadBlob()`, `downloadJSON()` | ファイルダウンロード |
 | `editor.ts` | `reorderEditorItems()`, `getDosageBadgeLayout()` | エディタ並び替え・バッジレイアウト計算 |
 | `export.ts` | `exportToJSON()`, `exportToZIP()`, `importProject()` | プロジェクトのエクスポート・インポート |
@@ -343,8 +359,9 @@ type TemplateMetadata = {
 | `image.ts` | `processAndSaveImage()`, `isValidImageBlob()`, `partitionImageIds()` | 画像処理・検証 |
 | `imageEdit.ts` | `flipAndSaveImage()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
 | `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()`, `preparePdfGenerationData()` | PDF レイアウト計算・生成データ準備 |
-| `project.ts` | `applyImportResult()` | インポート／テンプレート結果の適用 |
+| `project.ts` | `applyImportResult()` | インポート／テンプレート結果を指定 ID で IndexedDB に保存（ストアへの反映は `openImportResult`） |
 | `search.ts` | `normalizeSearchText()`, `matchesSearchQuery()` | 表記揺れを吸収したキーワード検索 |
+| `storage.ts` | `requestPersistentStorage()`, `readLocalStorage()`, `writeLocalStorage()` | ストレージ永続化の要求・例外を出さない localStorage 読み書き |
 | `template.ts` | `loadTemplate()` | テンプレート読み込み |
 
 ### 使用例
@@ -376,8 +393,11 @@ const imageId = await processAndSaveImage(file, {
   maxWidthOrHeight: 1200,
 });
 
-// デバウンス
+// デバウンス（保存先 ID は予約した時点の値を引数で渡す）
 const debouncedSave = debounce(saveProject, 1000);
+debouncedSave(projectId, projectData);
+await debouncedSave.flush(); // 保留中の保存を今すぐ実行して完了を待つ
+debouncedSave.cancel(); // 保留中の保存を捨てる
 ```
 
 ---

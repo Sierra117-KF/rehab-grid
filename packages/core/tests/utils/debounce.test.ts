@@ -159,6 +159,105 @@ describe("debounce", () => {
     });
   });
 
+  describe("flush", () => {
+    it("保留中の実行を delay を待たずに最後の引数で実行し、以後のタイマーでは実行しない", async () => {
+      const mockFn = vi.fn<(value: string) => void>();
+      const debouncedFn = debounce(mockFn, 1000);
+
+      debouncedFn("first");
+      debouncedFn("second");
+      await debouncedFn.flush();
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+      expect(mockFn).toHaveBeenCalledWith("second");
+
+      vi.advanceTimersByTime(1000);
+      expect(mockFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("fn が返した Promise の完了まで待つ", async () => {
+      let resolveSave: () => void = () => undefined;
+      const order: string[] = [];
+      const debouncedFn = debounce(async () => {
+        await new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        });
+        order.push("saved");
+      }, 1000);
+
+      debouncedFn();
+      const flushed = debouncedFn.flush().then(() => order.push("flushed"));
+      resolveSave();
+      await flushed;
+
+      expect(order).toEqual(["saved", "flushed"]);
+    });
+
+    it("保留がなくても、タイマーで始まった実行の完了を待つ", async () => {
+      let resolveSave: () => void = () => undefined;
+      const order: string[] = [];
+      const debouncedFn = debounce(async () => {
+        await new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        });
+        order.push("saved");
+      }, 1000);
+
+      debouncedFn();
+      vi.advanceTimersByTime(1000);
+      const flushed = debouncedFn.flush().then(() => order.push("flushed"));
+      resolveSave();
+      await flushed;
+
+      expect(order).toEqual(["saved", "flushed"]);
+    });
+
+    it("保留がなければ fn を呼ばない", async () => {
+      const mockFn = vi.fn();
+      const debouncedFn = debounce(mockFn, 1000);
+
+      await debouncedFn.flush();
+
+      expect(mockFn).not.toHaveBeenCalled();
+    });
+
+    it("flush した実行の失敗は flush の呼び出し元に返し、次の flush には持ち越さない", async () => {
+      const debouncedFn = debounce(async () => {
+        await Promise.reject(new Error("保存失敗"));
+      }, 1000);
+
+      debouncedFn();
+      await expect(debouncedFn.flush()).rejects.toThrow("保存失敗");
+      await expect(debouncedFn.flush()).resolves.toBeUndefined();
+    });
+  });
+
+  describe("cancel", () => {
+    it("保留中の実行を捨てる", async () => {
+      const mockFn = vi.fn();
+      const debouncedFn = debounce(mockFn, 1000);
+
+      debouncedFn();
+      debouncedFn.cancel();
+      vi.advanceTimersByTime(1000);
+      await debouncedFn.flush();
+
+      expect(mockFn).not.toHaveBeenCalled();
+    });
+
+    it("cancel の後に呼び出せば再び実行される", () => {
+      const mockFn = vi.fn();
+      const debouncedFn = debounce(mockFn, 1000);
+
+      debouncedFn();
+      debouncedFn.cancel();
+      debouncedFn();
+      vi.advanceTimersByTime(1000);
+
+      expect(mockFn).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("エッジケース", () => {
     it("delay=0 の場合も正しく動作する", () => {
       const mockFn = vi.fn();

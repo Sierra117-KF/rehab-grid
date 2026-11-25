@@ -141,7 +141,12 @@ export type ProjectFile = {
  * IndexedDB に保存するプロジェクトレコード
  */
 export type ProjectRecord = {
-  /** プロジェクトID（単一プロジェクトの場合は固定値 'current'） */
+  /**
+   * プロジェクトID（nanoid で生成）
+   *
+   * @remarks
+   * 旧バージョン（単一プロジェクト保存）で作成したデータは固定値 'current'（LEGACY_PROJECT_ID）のまま
+   */
   id: string;
   /** プロジェクトタイトル （data.meta.title と同期が必要）*/
   title: string;
@@ -149,6 +154,22 @@ export type ProjectRecord = {
   data: ProjectFile;
   /** 更新日時 （IndexedDB 保存用、data.meta.updatedAt と同期が必要）*/
   updatedAt: Date;
+};
+
+/**
+ * 指導箋一覧に表示するプロジェクトの概要
+ */
+export type ProjectSummary = {
+  /** プロジェクトID */
+  id: string;
+  /** プロジェクトタイトル */
+  title: string;
+  /** 更新日時 */
+  updatedAt: Date;
+  /** カード枚数 */
+  cardCount: number;
+  /** グリッドレイアウトタイプ */
+  layoutType: LayoutType;
 };
 
 /**
@@ -164,6 +185,14 @@ export type ImageRecord = {
   /** ファイル名（拡張子なし、オプショナル - 既存データとの互換性のため） */
   fileName?: string;
 };
+
+/**
+ * インポート結果（ファイル・テンプレート）の開き方
+ *
+ * @remarks
+ * new: 新しい指導箋として開く（現在の指導箋は残す） / overwrite: 現在の指導箋に上書き
+ */
+export type ImportOpenMode = "new" | "overwrite";
 
 /**
  * インポート結果の型

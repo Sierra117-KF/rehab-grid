@@ -6,16 +6,19 @@
 
 import {
   APP_VERSION,
-  CURRENT_PROJECT_ID,
   DEFAULT_PROJECT_TITLE,
   DEFAULT_THEME_COLOR,
+  PROJECT_COPY_SUFFIX,
+  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
   type ImageRecord,
   type ProjectFile,
   type ProjectRecord,
+  type ProjectSummary,
 } from "@rehab-grid/core/types";
 import Dexie, { type EntityTable } from "dexie";
+import { nanoid } from "nanoid";
 
 /**
  * RehabGrid データベースクラス
@@ -41,36 +44,129 @@ class RehabGridDB extends Dexie {
 export const db = new RehabGridDB();
 
 /**
- * 現在のプロジェクトを保存
+ * 保存用のプロジェクトレコードを作る（更新日時を現在時刻にそろえる）
  *
+ * @param id - プロジェクトID
  * @param data - 保存するプロジェクトデータ
+ * @returns IndexedDB に保存するレコード
  */
-export async function saveProject(data: ProjectFile): Promise<void> {
+export function createProjectRecord(
+  id: string,
+  data: ProjectFile
+): ProjectRecord {
   const now = new Date();
-  const updatedData: ProjectFile = {
-    ...data,
-    meta: {
-      ...data.meta,
-      updatedAt: now.toISOString(),
+  return {
+    id,
+    title: data.meta.title,
+    data: {
+      ...data,
+      meta: {
+        ...data.meta,
+        updatedAt: now.toISOString(),
+      },
     },
-  };
-
-  await db.projects.put({
-    id: CURRENT_PROJECT_ID,
-    title: updatedData.meta.title,
-    data: updatedData,
     updatedAt: now,
-  });
+  };
 }
 
 /**
- * 現在のプロジェクトを読み込み
+ * プロジェクトを保存
  *
+ * @param id - 保存先のプロジェクトID
+ * @param data - 保存するプロジェクトデータ
+ */
+export async function saveProject(id: string, data: ProjectFile): Promise<void> {
+  await db.projects.put(createProjectRecord(id, data));
+}
+
+/**
+ * プロジェクトを読み込み
+ *
+ * @param id - プロジェクトID
  * @returns プロジェクトデータ、存在しない場合は undefined
  */
-export async function loadProject(): Promise<ProjectFile | undefined> {
-  const record = await db.projects.get(CURRENT_PROJECT_ID);
+export async function loadProject(
+  id: string
+): Promise<ProjectFile | undefined> {
+  const record = await db.projects.get(id);
   return record?.data;
+}
+
+/**
+ * 保存済みのプロジェクト一覧を取得（更新日時の新しい順）
+ *
+ * @remarks
+ * 件数は多くないため全件を読み込む
+ *
+ * @returns 一覧表示用のプロジェクトの概要
+ */
+export async function listProjects(): Promise<ProjectSummary[]> {
+  const records = await db.projects.toArray();
+  return records
+    .map((record) => ({
+      id: record.id,
+      title: record.title,
+      updatedAt: record.updatedAt,
+      cardCount: record.data.items.length,
+      layoutType: record.data.settings.layoutType,
+    }))
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+/**
+ * プロジェクトを複製して保存
+ *
+ * @remarks
+ * タイトルの末尾に「のコピー」を付ける（プロジェクト名の文字数上限に収まるよう元のタイトルを切り詰める）。
+ * 取り込み画像は ID で参照しているため、画像そのものは複製しない。
+ *
+ * @param id - 複製元のプロジェクトID
+ * @returns 複製したプロジェクトのID（複製元が存在しない場合は undefined）
+ */
+export async function duplicateProject(
+  id: string
+): Promise<string | undefined> {
+  const source = await loadProject(id);
+  if (!source) return undefined;
+
+  const newId = nanoid();
+  const baseTitle = source.meta.title.slice(
+    0,
+    TEXT_LIMITS.projectTitle - PROJECT_COPY_SUFFIX.length
+  );
+  await saveProject(newId, {
+    ...source,
+    meta: {
+      ...source.meta,
+      title: `${baseTitle}${PROJECT_COPY_SUFFIX}`,
+      createdAt: new Date().toISOString(),
+    },
+  });
+  return newId;
+}
+
+/**
+ * プロジェクトのカードが参照している画像IDを集める
+ *
+ * @remarks
+ * 画像ライブラリから画像を削除する前に、他のプロジェクトで使われているかを確かめるために使う。
+ * 編集中のプロジェクトは保存前の変更がストアにしかないため、呼び出し側で除外して別に判定する。
+ *
+ * @param excludeProjectId - 対象から除くプロジェクトID（編集中のプロジェクト）
+ * @returns 参照されている画像IDの集合（サンプル画像のIDも含む）
+ */
+export async function collectReferencedImageIds(
+  excludeProjectId?: string
+): Promise<Set<string>> {
+  const records = await db.projects.toArray();
+  const ids = new Set<string>();
+  for (const record of records) {
+    if (record.id === excludeProjectId) continue;
+    for (const item of record.data.items) {
+      if (item.imageSource !== "") ids.add(item.imageSource);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -150,14 +246,15 @@ export async function deleteImage(id: string): Promise<void> {
 }
 
 /**
- * 現在のプロジェクトを削除
+ * プロジェクトを削除
  *
  * @remarks
- * プロジェクト削除時に即座にIndexedDBからデータを削除する。
- * オートセーブのdebounce遅延に関係なく、確実にデータを削除するために使用。
+ * 取り込み画像は他のプロジェクトやライブラリの資産として残すため削除しない。
+ *
+ * @param id - 削除するプロジェクトID
  */
-export async function deleteProject(): Promise<void> {
-  await db.projects.delete(CURRENT_PROJECT_ID);
+export async function deleteProject(id: string): Promise<void> {
+  await db.projects.delete(id);
 }
 
 /**

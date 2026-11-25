@@ -12,6 +12,7 @@ import {
   BUTTON_CANCEL,
   BUTTON_DELETE,
   createDeleteAllLabel,
+  createImagesUsedInOtherProjectsWarning,
   createSelectedImagesDeleteLabel,
   IMAGE_DELETE_DESCRIPTION,
   IMAGE_DELETE_TITLE,
@@ -23,6 +24,7 @@ import {
   IMAGE_LIBRARY_SEARCH_CLEAR,
   IMAGE_LIBRARY_SEARCH_LABEL,
   IMAGE_LIBRARY_UPLOADING,
+  IMAGE_USED_IN_OTHER_PROJECTS_WARNING,
   SAMPLE_IMAGES,
 } from "@rehab-grid/core/lib/constants";
 import { ImageLibraryPanel } from "@rehab-grid/ui/components/editor/ImageLibraryPanel";
@@ -103,6 +105,8 @@ function createTestImage(
  */
 type SetupOptions = {
   images?: ReturnType<typeof createTestImage>[];
+  /** 他の指導箋で使われている画像ID（collectReferencedImageIds の結果） */
+  otherProjectImageIds?: string[];
   isUploading?: boolean;
   error?: string | null;
 };
@@ -119,10 +123,19 @@ function setupImageLibraryPanel(
   }> = {},
   options: SetupOptions = {}
 ) {
-  const { images, isUploading = false, error = null } = options;
+  const {
+    images,
+    otherProjectImageIds = [],
+    isUploading = false,
+    error = null,
+  } = options;
 
   // デフォルトのモック戻り値を設定
-  mockUseLiveQuery.mockReturnValue(images);
+  // 画像一覧は依存配列なし、他の指導箋の参照は [projectId] を依存配列に持つ
+  mockUseLiveQuery.mockImplementation(
+    (_query: unknown, deps: unknown[] = []) =>
+      deps.length === 0 ? images : otherProjectImageIds
+  );
   mockUseObjectUrls.mockReturnValue(
     new Map(
       images?.map((img) => [img.id, `blob:http://localhost/${img.id}`]) ?? []
@@ -360,6 +373,87 @@ describe("ImageLibraryPanel", () => {
 
       // ストアの削除関数が呼ばれることを確認
       expect(mockDeleteImageAndClearReferences).toHaveBeenCalledWith("img-1");
+    });
+
+    it("他の指導箋で使われている画像は、確認ダイアログで警告を出す", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        {
+          images: [createTestImage({ id: "img-1" })],
+          otherProjectImageIds: ["img-1"],
+        }
+      );
+
+      await user.click(screen.getByRole("button", { name: /画像を削除/i }));
+
+      expect(
+        screen.getByText(IMAGE_USED_IN_OTHER_PROJECTS_WARNING)
+      ).toBeInTheDocument();
+    });
+
+    it("他の指導箋で使われていない画像には警告を出さない", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        {
+          images: [createTestImage({ id: "img-1" })],
+          otherProjectImageIds: ["img-other"],
+        }
+      );
+
+      await user.click(screen.getByRole("button", { name: /画像を削除/i }));
+
+      expect(
+        screen.queryByText(IMAGE_USED_IN_OTHER_PROJECTS_WARNING)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("他の指導箋で使われている画像のまとめて削除", () => {
+    const importedImages = [
+      createTestImage({ id: "img-1", fileName: "knee_exercise" }),
+      createTestImage({ id: "img-2", fileName: "shoulder_exercise" }),
+    ];
+
+    it("選択した画像のうち他の指導箋で使われている件数を警告する", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        { images: importedImages, otherProjectImageIds: ["img-1"] }
+      );
+
+      await user.click(
+        screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+      );
+      await user.click(screen.getByAltText("knee_exercise"));
+      await user.click(screen.getByAltText("shoulder_exercise"));
+      await user.click(
+        screen.getByRole("button", { name: /選択した画像を削除/ })
+      );
+
+      expect(
+        screen.getByText(createImagesUsedInOtherProjectsWarning(1))
+      ).toBeInTheDocument();
+    });
+
+    it("表示中の画像を削除するときも他の指導箋で使われている件数を警告する", async () => {
+      const user = userEvent.setup();
+      setupImageLibraryPanel(
+        {},
+        { images: importedImages, otherProjectImageIds: ["img-1", "img-2"] }
+      );
+
+      await user.click(
+        screen.getByRole("button", { name: IMAGE_LIBRARY_BULK_DELETE })
+      );
+      await user.click(
+        screen.getByRole("button", { name: createDeleteAllLabel(2, true) })
+      );
+
+      expect(
+        screen.getByText(createImagesUsedInOtherProjectsWarning(2))
+      ).toBeInTheDocument();
     });
   });
 

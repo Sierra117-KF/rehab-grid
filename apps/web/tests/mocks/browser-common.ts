@@ -111,6 +111,10 @@ export function createDbMock() {
     getImage: vi.fn().mockResolvedValue(undefined),
     getImages: vi.fn().mockResolvedValue(new Map()),
     getImageRecord: vi.fn().mockResolvedValue(undefined),
+    listProjects: vi.fn().mockResolvedValue([]),
+    duplicateProject: vi.fn().mockResolvedValue(undefined),
+    collectReferencedImageIds: vi.fn().mockResolvedValue(new Set()),
+    createProjectRecord: vi.fn((id: string, data: unknown) => ({ id, data })),
   };
 }
 

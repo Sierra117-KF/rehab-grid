@@ -2,8 +2,9 @@
 
 import {
   BUTTON_CANCEL,
+  OPEN_AS_NEW_PROJECT_LABEL,
+  OVERWRITE_CURRENT_PROJECT_LABEL,
   TEMPLATE_CARD_COUNT_LABEL,
-  TEMPLATE_CONFIRM_BUTTON,
   TEMPLATE_CONFIRM_DESCRIPTION,
   TEMPLATE_CONFIRM_TITLE,
   TEMPLATE_LOADING_LABEL,
@@ -12,7 +13,10 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { TEMPLATES } from "@rehab-grid/core/lib/templates";
 import { cn } from "@rehab-grid/core/lib/utils";
-import { type TemplateMetadata } from "@rehab-grid/core/types";
+import {
+  type ImportOpenMode,
+  type TemplateMetadata,
+} from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
   Dialog,
@@ -36,9 +40,14 @@ export type TemplateSelectModalProps = {
   open: boolean;
   /** 開閉状態変更ハンドラ */
   onOpenChange: (open: boolean) => void;
-  /** テンプレート選択時のハンドラ */
-  onSelect: (templateId: string) => Promise<void>;
-  /** 確認が必要か（既存データがある場合） */
+  /**
+   * テンプレート選択時のハンドラ
+   *
+   * @remarks
+   * 確認が不要な場合（編集中の指導箋が空）は mode に "overwrite" を渡す
+   */
+  onSelect: (templateId: string, mode: ImportOpenMode) => Promise<void>;
+  /** 確認が必要か（既存データがある場合。新しい指導箋として開くか上書きするかを選ばせる） */
   requireConfirmation: boolean;
 };
 
@@ -137,13 +146,32 @@ function TemplateCard({
 type ConfirmationViewProps = {
   /** 選択されたテンプレート */
   selectedTemplate: TemplateMetadata;
-  /** 確定ハンドラ */
-  onConfirm: () => void;
+  /** 確定ハンドラ（開き方を渡す） */
+  onConfirm: (mode: ImportOpenMode) => void;
   /** キャンセルハンドラ */
   onCancel: () => void;
-  /** ローディング状態 */
-  isLoading: boolean;
+  /** 適用中の開き方（適用中でなければ null） */
+  loadingMode: ImportOpenMode | null;
 };
+
+/**
+ * 適用ボタンの中身（適用中はスピナーを出す）
+ */
+function ApplyButtonContent({
+  label,
+  isLoading,
+}: {
+  label: string;
+  isLoading: boolean;
+}) {
+  if (!isLoading) return label;
+  return (
+    <>
+      <Loader2 className="mr-2 size-4 animate-spin" />
+      {TEMPLATE_LOADING_LABEL}
+    </>
+  );
+}
 
 /**
  * 確認ビューコンポーネント
@@ -154,8 +182,9 @@ function ConfirmationView({
   selectedTemplate,
   onConfirm: handleConfirm,
   onCancel: handleCancel,
-  isLoading,
+  loadingMode,
 }: ConfirmationViewProps) {
+  const isLoading = loadingMode !== null;
   return (
     <div className="space-y-4">
       <div className="rounded-lg border bg-muted/50 p-4">
@@ -179,19 +208,25 @@ function ConfirmationView({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
           {BUTTON_CANCEL}
         </Button>
-        <Button onClick={handleConfirm} disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 size-4 animate-spin" />
-              {TEMPLATE_LOADING_LABEL}
-            </>
-          ) : (
-            TEMPLATE_CONFIRM_BUTTON
-          )}
+        <Button
+          variant="outline"
+          onClick={() => handleConfirm("overwrite")}
+          disabled={isLoading}
+        >
+          <ApplyButtonContent
+            label={OVERWRITE_CURRENT_PROJECT_LABEL}
+            isLoading={loadingMode === "overwrite"}
+          />
+        </Button>
+        <Button onClick={() => handleConfirm("new")} disabled={isLoading}>
+          <ApplyButtonContent
+            label={OPEN_AS_NEW_PROJECT_LABEL}
+            isLoading={loadingMode === "new"}
+          />
         </Button>
       </div>
     </div>
@@ -219,8 +254,9 @@ export function TemplateSelectModal({
   // 確認画面表示状態
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // ローディング状態
-  const [isLoading, setIsLoading] = useState(false);
+  // 適用中の開き方（適用中でなければ null）
+  const [loadingMode, setLoadingMode] = useState<ImportOpenMode | null>(null);
+  const isLoading = loadingMode !== null;
 
   /**
    * 選択されたテンプレートのメタデータを取得
@@ -236,7 +272,7 @@ export function TemplateSelectModal({
         // モーダルが閉じられたときに状態をリセット
         setSelectedId(null);
         setShowConfirmation(false);
-        setIsLoading(false);
+        setLoadingMode(null);
       }
       handleOpenChange(newOpen);
     },
@@ -254,9 +290,9 @@ export function TemplateSelectModal({
         // 確認が必要な場合は確認画面を表示
         setShowConfirmation(true);
       } else {
-        // 確認不要な場合は直接適用
-        setIsLoading(true);
-        void handleSelect(templateId).finally(() => {
+        // 確認不要な場合（編集中の指導箋が空）は、そのまま現在の指導箋へ適用
+        setLoadingMode("overwrite");
+        void handleSelect(templateId, "overwrite").finally(() => {
           handleDialogOpenChange(false);
         });
       }
@@ -267,14 +303,17 @@ export function TemplateSelectModal({
   /**
    * 確認後の適用ハンドラ
    */
-  const handleConfirmApply = useCallback(() => {
-    if (selectedId === null) return;
+  const handleConfirmApply = useCallback(
+    (mode: ImportOpenMode) => {
+      if (selectedId === null) return;
 
-    setIsLoading(true);
-    void handleSelect(selectedId).finally(() => {
-      handleDialogOpenChange(false);
-    });
-  }, [selectedId, handleSelect, handleDialogOpenChange]);
+      setLoadingMode(mode);
+      void handleSelect(selectedId, mode).finally(() => {
+        handleDialogOpenChange(false);
+      });
+    },
+    [selectedId, handleSelect, handleDialogOpenChange],
+  );
 
   /**
    * 確認キャンセルハンドラ
@@ -303,7 +342,7 @@ export function TemplateSelectModal({
             selectedTemplate={selectedTemplate}
             onConfirm={handleConfirmApply}
             onCancel={handleCancelConfirmation}
-            isLoading={isLoading}
+            loadingMode={loadingMode}
           />
         ) : (
           <div className="grid max-h-[calc(90vh-10rem)] gap-3 overflow-y-auto pr-1">

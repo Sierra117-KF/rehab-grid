@@ -12,6 +12,7 @@ import type { ChangelogEntry } from "@rehab-grid/core/types";
 import { entryV100 } from "./v1.0.0";
 import { entryV110 } from "./v1.1.0";
 import { entryV120 } from "./v1.2.0";
+import { entryV130 } from "./v1.3.0";
 
 /**
  * すべての更新エントリ（古い順）
@@ -26,4 +27,5 @@ export const entries: ChangelogEntry[] = [
   entryV100,
   entryV110,
   entryV120,
+  entryV130,
 ];

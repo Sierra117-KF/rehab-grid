@@ -1,9 +1,11 @@
 import {
   APP_VERSION,
-  CURRENT_PROJECT_ID,
   DEFAULT_PROJECT_TITLE,
+  LEGACY_PROJECT_ID,
+  PROJECT_COPY_SUFFIX,
+  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
-import { type ProjectFile } from "@rehab-grid/core/types";
+import { type ProjectFile, type ProjectRecord } from "@rehab-grid/core/types";
 import {
   afterAll,
   afterEach,
@@ -26,6 +28,7 @@ const {
   mockProjectsPut,
   mockProjectsGet,
   mockProjectsDelete,
+  mockProjectsToArray,
   mockImagesPut,
   mockImagesGet,
   mockImagesDelete,
@@ -35,6 +38,7 @@ const {
   mockProjectsPut: vi.fn(),
   mockProjectsGet: vi.fn(),
   mockProjectsDelete: vi.fn(),
+  mockProjectsToArray: vi.fn(),
   mockImagesPut: vi.fn(),
   mockImagesGet: vi.fn(),
   mockImagesDelete: vi.fn(),
@@ -65,6 +69,7 @@ vi.mock("dexie", () => {
             put: mockProjectsPut,
             get: mockProjectsGet,
             delete: mockProjectsDelete,
+            toArray: mockProjectsToArray,
           };
 
           this.images = {
@@ -88,12 +93,15 @@ vi.mock("dexie", () => {
 
 // モック定義後に実装ファイルをインポート（順序重要）
 import {
+  collectReferencedImageIds,
   createNewProject,
   deleteImage,
   deleteProject,
+  duplicateProject,
   getImage,
   getImageRecord,
   getImages,
+  listProjects,
   loadProject,
   saveImage,
   saveProject,
@@ -125,6 +133,17 @@ function createTestProjectFile(
     items: [],
     ...overrides,
   };
+}
+
+/**
+ * テスト用の ProjectRecord を生成するヘルパー関数
+ */
+function createTestRecord(
+  id: string,
+  updatedAt: string,
+  data: ProjectFile = createTestProjectFile()
+): ProjectRecord {
+  return { id, title: data.meta.title, data, updatedAt: new Date(updatedAt) };
 }
 
 describe("lib/db", () => {
@@ -202,7 +221,7 @@ describe("lib/db", () => {
       const projectData = createTestProjectFile();
       const previousUpdatedAt = projectData.meta.updatedAt;
 
-      await saveProject(projectData);
+      await saveProject("project-1", projectData);
 
       // 保存されたデータを検証
       expect(mockProjectsPut).toHaveBeenCalledTimes(1);
@@ -218,7 +237,7 @@ describe("lib/db", () => {
 
       expect(savedObj).toBeDefined();
       expect(savedObj).toEqual({
-        id: CURRENT_PROJECT_ID,
+        id: "project-1",
         title: projectData.meta.title,
         data: expect.objectContaining({
           meta: expect.objectContaining({
@@ -244,7 +263,7 @@ describe("lib/db", () => {
         },
       });
 
-      await saveProject(projectData);
+      await saveProject("project-1", projectData);
 
       const { calls } = mockProjectsPut.mock;
       const savedObj = calls[0]?.[0];
@@ -258,34 +277,193 @@ describe("lib/db", () => {
     it("DBにデータが存在する場合、プロジェクトデータを返すこと", async () => {
       const projectData = createTestProjectFile();
       mockProjectsGet.mockResolvedValue({
-        id: CURRENT_PROJECT_ID,
+        id: "project-1",
         title: projectData.meta.title,
         data: projectData,
         updatedAt: new Date(),
       });
 
-      const result = await loadProject();
+      const result = await loadProject("project-1");
 
-      expect(mockProjectsGet).toHaveBeenCalledWith(CURRENT_PROJECT_ID);
+      expect(mockProjectsGet).toHaveBeenCalledWith("project-1");
+      expect(result).toEqual(projectData);
+    });
+
+    it("旧バージョンの 'current' のレコードもIDを指定して読み込めること", async () => {
+      const projectData = createTestProjectFile();
+      mockProjectsGet.mockResolvedValue(
+        createTestRecord(LEGACY_PROJECT_ID, "2024-01-01T00:00:00.000Z", projectData)
+      );
+
+      const result = await loadProject(LEGACY_PROJECT_ID);
+
+      expect(mockProjectsGet).toHaveBeenCalledWith("current");
       expect(result).toEqual(projectData);
     });
 
     it("DBにデータが存在しない場合、undefined を返すこと", async () => {
       mockProjectsGet.mockResolvedValue(undefined);
 
-      const result = await loadProject();
+      const result = await loadProject("missing");
 
-      expect(mockProjectsGet).toHaveBeenCalledWith(CURRENT_PROJECT_ID);
+      expect(mockProjectsGet).toHaveBeenCalledWith("missing");
       expect(result).toBeUndefined();
     });
   });
 
   describe("deleteProject", () => {
-    it("現在のプロジェクトIDを指定して削除を実行すること", async () => {
-      await deleteProject();
+    it("指定したプロジェクトIDの削除を実行すること", async () => {
+      await deleteProject("project-1");
 
       expect(mockProjectsDelete).toHaveBeenCalledTimes(1);
-      expect(mockProjectsDelete).toHaveBeenCalledWith(CURRENT_PROJECT_ID);
+      expect(mockProjectsDelete).toHaveBeenCalledWith("project-1");
+    });
+  });
+
+  describe("listProjects", () => {
+    it("一覧に必要な値を更新日時の新しい順で返すこと", async () => {
+      mockProjectsToArray.mockResolvedValue([
+        createTestRecord("old", "2024-01-01T00:00:00.000Z"),
+        createTestRecord(
+          "new",
+          "2024-03-01T00:00:00.000Z",
+          createTestProjectFile({
+            settings: { layoutType: "grid3", themeColor: "#3b82f6" },
+            items: [
+              {
+                id: "item-1",
+                order: 0,
+                title: "運動",
+                imageSource: "",
+                description: "",
+              },
+            ],
+          })
+        ),
+      ]);
+
+      const result = await listProjects();
+
+      expect(result).toEqual([
+        {
+          id: "new",
+          title: "テストプロジェクト",
+          updatedAt: new Date("2024-03-01T00:00:00.000Z"),
+          cardCount: 1,
+          layoutType: "grid3",
+        },
+        {
+          id: "old",
+          title: "テストプロジェクト",
+          updatedAt: new Date("2024-01-01T00:00:00.000Z"),
+          cardCount: 0,
+          layoutType: "grid2",
+        },
+      ]);
+    });
+
+    it("保存がなければ空配列を返すこと", async () => {
+      mockProjectsToArray.mockResolvedValue([]);
+
+      expect(await listProjects()).toEqual([]);
+    });
+  });
+
+  describe("duplicateProject", () => {
+    it("タイトルに「のコピー」を付けて新しいIDで保存し、そのIDを返すこと", async () => {
+      const source = createTestProjectFile();
+      mockProjectsGet.mockResolvedValue(
+        createTestRecord("project-1", "2024-01-01T00:00:00.000Z", source)
+      );
+
+      const newId = await duplicateProject("project-1");
+
+      expect(newId).toBeDefined();
+      expect(newId).not.toBe("project-1");
+      const saved = mockProjectsPut.mock.calls[0]?.[0] as ProjectRecord;
+      expect(saved.id).toBe(newId);
+      expect(saved.title).toBe(`テストプロジェクト${PROJECT_COPY_SUFFIX}`);
+      expect(saved.data.meta.title).toBe(saved.title);
+      expect(saved.data.meta.createdAt).toBe(FIXED_DATE.toISOString());
+      expect(saved.data.items).toEqual(source.items);
+    });
+
+    it("タイトルが長い場合は文字数上限に収まるよう元のタイトルを切り詰めること", async () => {
+      const longTitle = "あ".repeat(TEXT_LIMITS.projectTitle);
+      mockProjectsGet.mockResolvedValue(
+        createTestRecord(
+          "project-1",
+          "2024-01-01T00:00:00.000Z",
+          createTestProjectFile({
+            meta: { ...createTestProjectFile().meta, title: longTitle },
+          })
+        )
+      );
+
+      await duplicateProject("project-1");
+
+      const saved = mockProjectsPut.mock.calls[0]?.[0] as ProjectRecord;
+      expect(saved.title).toHaveLength(TEXT_LIMITS.projectTitle);
+      expect(saved.title.endsWith(PROJECT_COPY_SUFFIX)).toBeTruthy();
+    });
+
+    it("複製元が存在しない場合は何も保存せず undefined を返すこと", async () => {
+      mockProjectsGet.mockResolvedValue(undefined);
+
+      expect(await duplicateProject("missing")).toBeUndefined();
+      expect(mockProjectsPut).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("collectReferencedImageIds", () => {
+    /** 指定画像を参照するカードを持つプロジェクト */
+    const createProjectWithImages = (...imageSources: string[]) =>
+      createTestProjectFile({
+        items: imageSources.map((imageSource, index) => ({
+          id: `item-${String(index)}`,
+          order: index,
+          title: "運動",
+          imageSource,
+          description: "",
+        })),
+      });
+
+    it("全プロジェクトのカードが参照する画像IDを集め、空の参照は含めないこと", async () => {
+      mockProjectsToArray.mockResolvedValue([
+        createTestRecord(
+          "project-1",
+          "2024-01-01T00:00:00.000Z",
+          createProjectWithImages("img-1", "")
+        ),
+        createTestRecord(
+          "project-2",
+          "2024-01-01T00:00:00.000Z",
+          createProjectWithImages("img-2", "img-1")
+        ),
+      ]);
+
+      expect(await collectReferencedImageIds()).toEqual(
+        new Set(["img-1", "img-2"])
+      );
+    });
+
+    it("除外したプロジェクトの参照は含めないこと", async () => {
+      mockProjectsToArray.mockResolvedValue([
+        createTestRecord(
+          "project-1",
+          "2024-01-01T00:00:00.000Z",
+          createProjectWithImages("img-1")
+        ),
+        createTestRecord(
+          "project-2",
+          "2024-01-01T00:00:00.000Z",
+          createProjectWithImages("img-2")
+        ),
+      ]);
+
+      expect(await collectReferencedImageIds("project-1")).toEqual(
+        new Set(["img-2"])
+      );
     });
   });
 

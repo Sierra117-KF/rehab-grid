@@ -495,8 +495,8 @@ export function SortableCard({
                 "absolute inset-0 z-10",
                 "flex flex-col items-center justify-center gap-2",
                 "text-white transition-opacity",
-                // 画像がない場合のみオーバーレイを表示
-                item.imageSource === ""
+                // 画像がない場合（参照切れを含む）のみオーバーレイを表示
+                !hasImage
                   ? "bg-black/20 opacity-100"
                   : "bg-transparent opacity-0"
               )}
@@ -507,7 +507,7 @@ export function SortableCard({
               aria-label="画像を選択"
             >
               {/* 画像がない場合のみメッセージを表示 */}
-              {item.imageSource === "" ? (
+              {!hasImage ? (
                 <>
                   <ImagePlus className="size-6" />
                   <span className="text-xs font-medium">
