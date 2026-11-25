@@ -390,6 +390,33 @@ export const PDF_CHAR_WIDTH_RATIO = {
 } as const;
 
 /**
+ * 文字幅から折り返しを見積もるときの、半角文字（ASCII）1 文字の幅（フォントサイズに対する比率）
+ *
+ * 全角文字（日本語・全角記号・「•」「…」など）は NotoSansJP では 1em 幅のため 1 として扱う。
+ * 半角は指導箋に多い数字の実測（Regular 0.555、Bold 0.59）に合わせている。
+ */
+export const PDF_HALF_WIDTH_CHAR_RATIO = {
+  /** 通常の太さ */
+  regular: 0.56,
+  /** 太字 */
+  bold: 0.6,
+} as const;
+
+/**
+ * lineHeight を指定していない Text の 1 行の高さ（フォントサイズに対する比率）
+ *
+ * NotoSansJP の ascent（1.16）と descent（0.288）の和。react-pdf はこの値で行の高さを決める
+ */
+export const PDF_DEFAULT_LINE_HEIGHT = 1.448;
+
+/**
+ * A4 収容見積もりで、ページ下端に近い行を次のページ扱いにする余裕（ポイント単位）
+ *
+ * 文字の折り返しは概算のため、「収まる」と言って溢れるより「溢れる」と言って収まる側に倒す
+ */
+export const PDF_PAGE_ESTIMATE_MARGIN = 8;
+
+/**
  * PDFでサポートする画像形式のプレフィックス
  *
  * @remarks

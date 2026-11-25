@@ -671,6 +671,69 @@ export const SHEET_SUMMARY_OVERALL_NOTE = "メモ";
 export const SHEET_SUMMARY_BUTTON_LABEL =
   "PDFのヘッダー・チェック表の設定を開く";
 
+/**
+ * キャンバス上部の A4 ページ数の目安
+ *
+ * @param pageCount - 見積もったページ数
+ * @returns 「目安: A4 2ページ」形式の文言
+ */
+export function createPageEstimateLabel(pageCount: number): string {
+  return `目安: A4 ${String(pageCount)}ページ`;
+}
+
+/**
+ * 2 ページ目に送られるカードの案内
+ *
+ * @param cardNumber - 2 ページ目の先頭になるカードの番号（1 始まり）
+ * @returns 「7枚目から2ページ目」形式の文言
+ */
+export function createPageEstimateCardDetail(cardNumber: number): string {
+  return `${String(cardNumber)}枚目から2ページ目`;
+}
+
+/**
+ * カードは 1 ページに収まり、実施チェック表だけが次のページになるときの案内
+ *
+ * @param page - チェック表のページ（1 始まり）
+ * @returns 「チェック表は2ページ目」形式の文言
+ */
+export function createPageEstimateCheckTableDetail(page: number): string {
+  return `チェック表は${String(page)}ページ目`;
+}
+
+/** ページ数の目安の説明（見積もりであること） */
+export const PAGE_ESTIMATE_DESCRIPTION =
+  "文字数と設定から見積もった目安です。仕上がりはPDFプレビューで確認してください";
+
+/**
+ * キャンバスのカードの間に出す改ページの目安の文言
+ *
+ * @param page - ここから始まるページ（1 始まり）
+ * @returns 「ここから2ページ目（目安）」形式の文言
+ */
+export function createPageBreakLabel(page: number): string {
+  return `ここから${String(page)}ページ目（目安）`;
+}
+
+/** 選択中のカードのタイトル・用量に出すインライン編集の案内 */
+export const INLINE_EDIT_HINT = "ダブルクリックで編集";
+
+/** インライン編集の入力欄の説明（Enter で確定、Esc で取り消し） */
+export const INLINE_EDIT_INPUT_HINT = "Enterで確定、Escで取り消し";
+
+/** カード上で運動名を編集する入力欄のラベル（プロパティパネルの「運動名」と区別する） */
+export const INLINE_EDIT_TITLE_LABEL = "運動名（カード上で編集）";
+
+/**
+ * カード上で用量を編集する入力欄のラベル
+ *
+ * @param dosageLabel - 用量のラベル（「回数」など）
+ * @returns 「回数（カード上で編集）」形式の文言
+ */
+export function createInlineDosageInputLabel(dosageLabel: string): string {
+  return `${dosageLabel}（カード上で編集）`;
+}
+
 /** デザイン設定ダイアログのテーマカラーセクションの見出し */
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
 

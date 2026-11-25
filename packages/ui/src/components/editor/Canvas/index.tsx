@@ -20,12 +20,14 @@ import {
 import {
   ANIMATION_STAGGER_DELAY,
   BUTTON_ADD_CARD,
+  createPageBreakLabel,
   DOSAGE_DIVIDER_OPACITY,
   IMAGE_DRAG_TYPE,
   LABELS,
   LAYOUT_COLUMNS,
   MONOCHROME_COLORS,
 } from "@rehab-grid/core/lib/constants";
+import { type PdfLayoutEstimate } from "@rehab-grid/core/lib/pdf/layout";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   CheckTableType,
@@ -40,11 +42,33 @@ import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { reorderEditorItems } from "@rehab-grid/core/utils/editor";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 
 import { EmptyState } from "./EmptyState";
+import { PageEstimateBadge } from "./PageEstimateBadge";
 import { SheetSummary } from "./SheetSummary";
-import { SortableCard } from "./SortableCard";
+import { type InlineEditUpdates, SortableCard } from "./SortableCard";
+
+/**
+ * カードの間に出す改ページの目安（グリッドの行の切れ目に、横幅いっぱいで置く）
+ *
+ * @remarks
+ * 一覧（role="list"）の子は listitem だけにするため、支援技術からは隠す
+ * （ページ数と改ページの位置はキャンバス上部の目安で伝わる）
+ */
+function PageBreakDivider({ page }: { page: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="page-break"
+      className="col-span-full flex items-center gap-2 text-xs font-medium text-amber-700"
+    >
+      <span className="h-px flex-1 bg-amber-400" />
+      {createPageBreakLabel(page)}
+      <span className="h-px flex-1 bg-amber-400" />
+    </div>
+  );
+}
 
 /**
  * CSS 変数（--xxx）を含められる style の型
@@ -145,6 +169,20 @@ export type CanvasProps = {
    * sheetHeader・checkTable と一緒に渡したときだけ、カードがあれば要約を表示する
    */
   onSheetSettingsClick?: () => void;
+  /**
+   * PDF のページ収容の見積もり（キャンバス上部の A4 ページ数の目安と、カードの間の改ページの目安に使う）
+   *
+   * @remarks
+   * items と同じ並び順で見積もったもの。省略時は目安を出さない
+   */
+  pageEstimate?: PdfLayoutEstimate;
+  /**
+   * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
+   *
+   * @remarks
+   * 省略時はカード上で編集できない
+   */
+  onItemInlineEdit?: (itemId: string, updates: InlineEditUpdates) => void;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
   /** アイテムが選択されたときのコールバック */
@@ -204,6 +242,8 @@ export function Canvas({
   sheetHeader,
   checkTable,
   onSheetSettingsClick,
+  pageEstimate,
+  onItemInlineEdit,
   selectedItemId,
   onItemSelect,
   onAddCard,
@@ -299,6 +339,27 @@ export function Canvas({
 
   // テーマカラー・白黒モードをカードの色（CSS 変数）に反映する
   const themeStyle = getCardColorVariables(themeColor, printColorMode);
+
+  const sheetSummary =
+    sheetHeader !== undefined &&
+    checkTable !== undefined &&
+    onSheetSettingsClick !== undefined ? (
+      <SheetSummary
+        header={sheetHeader}
+        checkTable={checkTable}
+        onClick={onSheetSettingsClick}
+      />
+    ) : null;
+
+  // 改ページの目安（各ページの先頭のカードの位置 → ページ番号）。モバイルは常に 1 列表示で
+  // グリッドの行の切れ目と PDF の改ページが一致しないため、区切り線を出さない
+  const pageStartByIndex = new Map(
+    isMobile || pageEstimate === undefined
+      ? []
+      : pageEstimate.firstCardIndexByPage
+          .map((index, page) => [index, page + 1] as const)
+          .filter(([index]) => index > 0)
+  );
 
   // アクティブなアイテム（ドラッグ中のオーバーレイ用）
   const activeItem =
@@ -402,16 +463,14 @@ export function Canvas({
         )}
         style={themeStyle}
       >
-        {/* ヘッダー・チェック表はキャンバスに描かないため、PDF に出る内容の要約を出す */}
-        {items.length > 0 &&
-        sheetHeader !== undefined &&
-        checkTable !== undefined &&
-        onSheetSettingsClick !== undefined ? (
-          <SheetSummary
-            header={sheetHeader}
-            checkTable={checkTable}
-            onClick={onSheetSettingsClick}
-          />
+        {/* ヘッダー・チェック表はキャンバスに描かないため、PDF に出る内容の要約と A4 ページ数の目安を出す */}
+        {items.length > 0 && (sheetSummary !== null || pageEstimate !== undefined) ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {sheetSummary}
+            {pageEstimate !== undefined ? (
+              <PageEstimateBadge estimate={pageEstimate} />
+            ) : null}
+          </div>
         ) : null}
 
         {items.length === 0 ? (
@@ -436,8 +495,11 @@ export function Canvas({
                 }}
               >
                 {items.map((item, index) => (
+                  <Fragment key={item.id}>
+                    {pageStartByIndex.has(index) ? (
+                      <PageBreakDivider page={pageStartByIndex.get(index) ?? 0} />
+                    ) : null}
                   <div
-                    key={item.id}
                     role="listitem"
                     style={{
                       animationDelay: `${String(index * ANIMATION_STAGGER_DELAY)}s`,
@@ -473,8 +535,14 @@ export function Canvas({
                       textScale={textScale}
                       cardNumber={showCardNumbers ? index + 1 : undefined}
                       dosageLabels={dosageLabels}
+                      onInlineEdit={
+                        !isMobile && onItemInlineEdit
+                          ? (updates) => onItemInlineEdit(item.id, updates)
+                          : undefined
+                      }
                     />
                   </div>
+                  </Fragment>
                 ))}
               </div>
             </SortableContext>

@@ -74,9 +74,20 @@ describe("createCard", () => {
     });
 
     it("上限を超えるタイトルは TEXT_LIMITS の文字数でカットされる", () => {
-      const card = createCard(createTestItem({ title: "あ".repeat(100) }), 200);
+      // 20 文字（14pt × 20 = 280pt）が 1 行に入る幅のカード
+      const card = createCard(createTestItem({ title: "あ".repeat(100) }), 400);
 
       expect(extractTextContent(card)).toContain("あ".repeat(TEXT_LIMITS.title));
+    });
+
+    it("日本語のタイトルは全角の幅で 1 行に収まるよう切り詰められる", () => {
+      // コンテンツ幅 184pt ÷ 14pt = 13 文字分。「…」の 1 文字分を空けて 12 文字残る
+      const card = createCard(
+        createTestItem({ title: "あ".repeat(TEXT_LIMITS.title) }),
+        200
+      );
+
+      expect(extractTextContent(card)).toContain(`${"あ".repeat(12)}…`);
     });
 
     it("カード幅の1行に収まらないタイトルは省略記号付きで切り詰められる", () => {

@@ -6,6 +6,7 @@ import { Document, type DocumentProps, Page, View } from "@react-pdf/renderer";
 import {
   getPdfContentSize,
   getPdfPageSize,
+  LAYOUT_COLUMNS,
   PDF_COLORS,
   PDF_PAGE_SIZE_LANDSCAPE,
 } from "@rehab-grid/core/lib/constants";
@@ -26,7 +27,7 @@ import { pdfStyles as styles } from "./styles";
 /**
  * PDF生成データからPDFドキュメント全体の要素を生成する
  *
- * 1ページ目の先頭にヘッダーを置き、その下にカードを折り返しグリッドで並べる。
+ * 1ページ目の先頭にヘッダーを置き、その下にカードを列数ごとの行にまとめて並べる。
  * 実施チェック表は、1週間ならカードの後ろに、1か月なら A4 横の別ページに置く。
  * 2 ページ以上になるときは全ページの下端にページ番号を出す。
  * Worker へはメッセージ経由でデータが渡るため、設定の不正値はデフォルト値として扱う
@@ -62,9 +63,22 @@ export function buildPdfDocument(
     )
   );
 
+  // 列数ごとに行の View にまとめる。行は wrap={false} にし、ページに収まらなければ行ごと次のページへ送る
+  // （A4 収容見積もり（layout.ts）と同じ規則で改ページさせるため）
+  const columns = LAYOUT_COLUMNS[layoutType];
+  const rows = Array.from(
+    { length: Math.ceil(cards.length / columns) },
+    (_, rowIndex) =>
+      createElement(
+        View,
+        { key: `row-${String(rowIndex)}`, wrap: false, style: styles.gridRow },
+        ...cards.slice(rowIndex * columns, (rowIndex + 1) * columns)
+      )
+  );
+
   const pageContent = [
     createHeader(data.meta.title, settings, outputDate),
-    createElement(View, { key: "grid", style: styles.gridContainer }, ...cards),
+    createElement(View, { key: "grid", style: styles.gridContainer }, ...rows),
   ];
   if (checkTable === "weekly") {
     pageContent.push(

@@ -6,10 +6,12 @@ import {
   EDITOR_TEXT_STYLE_LARGE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_FLIP_TOOLTIP,
+  INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LAYOUT_COLUMNS,
   MOBILE_TAP_TO_SELECT_IMAGE,
   SHEET_SUMMARY_BUTTON_LABEL,
+  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
@@ -575,6 +577,188 @@ describe("Canvas", () => {
 
       expect(
         screen.queryByTitle(SHEET_SUMMARY_BUTTON_LABEL)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("A4 ページ数の目安", () => {
+    /** 3 枚のカード */
+    const threeItems = [1, 2, 3].map((n) =>
+      createTestItem({ id: `item-${String(n)}`, order: n - 1, title: `運動${String(n)}` })
+    );
+
+    it("1 ページに収まるときは「目安: A4 1ページ」だけを表示し、区切り線は出さない", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 1,
+          firstCardIndexByPage: [0],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 1ページ"
+      );
+      expect(screen.queryByTestId("page-break")).not.toBeInTheDocument();
+    });
+
+    it("2 ページ以上になるときは次のページの先頭のカードを案内し、その手前に区切り線を出す", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 2],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 2ページ（3枚目から2ページ目）"
+      );
+      const divider = screen.getByTestId("page-break");
+      expect(divider).toHaveTextContent("ここから2ページ目（目安）");
+      // 区切り線は 2 枚目と 3 枚目のカードの間（一覧の項目としては数えない）
+      expect(screen.getByTestId("canvas-grid")).toHaveTextContent(
+        /運動2.*ここから2ページ目（目安）.*運動3/
+      );
+      expect(divider).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("カードは 1 ページに収まり、チェック表だけ次のページになるときはそれを案内する", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0],
+          checkTablePage: 2,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 2ページ（チェック表は2ページ目）"
+      );
+    });
+
+    it("モバイルでは目安だけを表示し、区切り線は出さない", () => {
+      setupCanvas({
+        items: threeItems,
+        isMobile: true,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 2],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toBeInTheDocument();
+      expect(screen.queryByTestId("page-break")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("カード上のインライン編集", () => {
+    const item = createTestItem({
+      title: "スクワット",
+      dosages: { reps: "10回", sets: "3セット", frequency: "" },
+    });
+
+    function setupSelected(overrides: Partial<CanvasProps> = {}) {
+      return setupCanvas({
+        items: [item],
+        selectedItemId: item.id,
+        onItemInlineEdit: vi.fn(),
+        ...overrides,
+      });
+    }
+
+    it("選択中のカードのタイトルをダブルクリックすると入力欄になり、Enter で 1 回だけ確定する", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      const input = screen.getByLabelText(INLINE_EDIT_TITLE_LABEL);
+      expect(input).toHaveValue("スクワット");
+      expect(input).toHaveAttribute("maxLength", String(TEXT_LIMITS.title));
+
+      await user.clear(input);
+      await user.type(input, "ランジ{Enter}");
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledTimes(1);
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        title: "ランジ",
+      });
+      expect(
+        screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
+      ).not.toBeInTheDocument();
+    });
+
+    it("Esc で取り消すと確定しない", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      await user.type(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL), "改{Escape}");
+
+      expect(props.onItemInlineEdit).not.toHaveBeenCalled();
+      expect(screen.getByText("スクワット")).toBeInTheDocument();
+    });
+
+    it("フォーカスが外れると確定する", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      await user.type(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL), "改");
+      await user.tab();
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        title: "スクワット改",
+      });
+    });
+
+    it("用量の数値も編集でき、ほかの用量はそのまま渡す", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("10回"));
+      const input = screen.getByLabelText(`${LABELS.reps}（カード上で編集）`);
+      expect(input).toHaveAttribute("maxLength", String(TEXT_LIMITS.reps));
+      await user.clear(input);
+      await user.type(input, "15回{Enter}");
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        dosages: { reps: "15回", sets: "3セット", frequency: "" },
+      });
+    });
+
+    it("入力中のクリックはカードの選択に伝えない", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      vi.mocked(props.onItemSelect!).mockClear();
+      await user.click(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL));
+
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("選択していないカードやコールバックがないときは編集に入らない", async () => {
+      const user = userEvent.setup();
+      setupCanvas({ items: [item], selectedItemId: null, onItemInlineEdit: vi.fn() });
+
+      await user.dblClick(screen.getByText("10回"));
+      expect(
+        screen.queryByLabelText(`${LABELS.reps}（カード上で編集）`)
+      ).not.toBeInTheDocument();
+    });
+
+    it("モバイルでは編集に入らない", async () => {
+      const user = userEvent.setup();
+      setupSelected({ isMobile: true });
+
+      await user.dblClick(screen.getByText("スクワット"));
+      expect(
+        screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
       ).not.toBeInTheDocument();
     });
   });

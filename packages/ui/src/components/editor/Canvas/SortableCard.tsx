@@ -5,12 +5,15 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   CANVAS_DROP_HERE,
   CARD_NUMBER_BADGE_RATIO,
+  createInlineDosageInputLabel,
   DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE,
   EDITOR_TEXT_STYLE_LARGE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_DRAG_TYPE,
   IMAGE_FLIP_TOOLTIP,
+  INLINE_EDIT_HINT,
+  INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LONG_PRESS_DURATION,
   MOBILE_TAP_TO_SELECT_IMAGE,
@@ -18,6 +21,7 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
+  BadgeType,
   DosageLabels,
   EditorItem,
   LayoutType,
@@ -33,6 +37,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
+
+import { InlineEditInput } from "./InlineEditInput";
 
 /**
  * 用量の区切り線の色（Canvas がテーマカラーから上書きする CSS 変数を参照する）
@@ -166,7 +172,22 @@ export type SortableCardProps = {
   cardNumber?: number;
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
   dosageLabels?: DosageLabels;
+  /**
+   * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
+   *
+   * @remarks
+   * 指定したときだけ、選択中のカードのタイトル・用量の数値をダブルクリックで編集できる
+   */
+  onInlineEdit?: (updates: InlineEditUpdates) => void;
 };
+
+/**
+ * カード上のインライン編集で変更する項目
+ */
+export type InlineEditUpdates = Partial<Pick<EditorItem, "title" | "dosages">>;
+
+/** インライン編集中の項目（タイトルまたは用量の種類） */
+type InlineEditField = "title" | BadgeType;
 
 /**
  * ソート可能なカードコンポーネント
@@ -191,9 +212,51 @@ export function SortableCard({
   textScale = "standard",
   cardNumber,
   dosageLabels = LABELS,
+  onInlineEdit,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
   const textStyle = getCardTextStyle(layoutType, textScale, isMobile);
+
+  // インライン編集は選択中のカードだけ。選択が外れたら編集をやめる（レンダー中に前回の選択状態と比べる）
+  const canInlineEdit = isSelected && onInlineEdit !== undefined;
+  const [editingField, setEditingField] = useState<InlineEditField | null>(
+    null
+  );
+  const [wasSelected, setWasSelected] = useState(isSelected);
+  if (wasSelected !== isSelected) {
+    setWasSelected(isSelected);
+    if (!isSelected) setEditingField(null);
+  }
+
+  /**
+   * インライン編集を確定する（変化がなければストア側で履歴を積まない）
+   */
+  const commitInlineEdit = (field: InlineEditField, value: string) => {
+    setEditingField(null);
+    if (field === "title") {
+      onInlineEdit?.({ title: value });
+      return;
+    }
+    onInlineEdit?.({
+      dosages: {
+        reps: item.dosages?.reps ?? "",
+        sets: item.dosages?.sets ?? "",
+        frequency: item.dosages?.frequency ?? "",
+        [field]: value,
+      },
+    });
+  };
+
+  /**
+   * ダブルクリックで編集を始めるための props（編集できないときは何も付けない）
+   */
+  const inlineEditTriggerProps = (field: InlineEditField) =>
+    canInlineEdit
+      ? {
+          title: INLINE_EDIT_HINT,
+          onDoubleClick: () => setEditingField(field),
+        }
+      : {};
 
   // ロングプレス用タイマーRef
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -479,16 +542,29 @@ export function SortableCard({
                 {cardNumber}
               </span>
             ) : null}
-            <span
-              className={cn(
-                "min-w-0 truncate",
-                !item.title && "text-muted-foreground/50 italic"
-              )}
-            >
-              {item.title
-                ? item.title.slice(0, TEXT_LIMITS.title)
-                : LABELS.untitledExercise}
-            </span>
+            {canInlineEdit && editingField === "title" ? (
+              <InlineEditInput
+                value={item.title}
+                maxLength={TEXT_LIMITS.title}
+                label={INLINE_EDIT_TITLE_LABEL}
+                className="font-semibold"
+                onCommit={(value) => commitInlineEdit("title", value)}
+                onCancel={() => setEditingField(null)}
+              />
+            ) : (
+              <span
+                className={cn(
+                  "min-w-0 truncate",
+                  !item.title && "text-muted-foreground/50 italic",
+                  canInlineEdit && "cursor-text"
+                )}
+                {...inlineEditTriggerProps("title")}
+              >
+                {item.title
+                  ? item.title.slice(0, TEXT_LIMITS.title)
+                  : LABELS.untitledExercise}
+              </span>
+            )}
           </h3>
 
           {/* 説明（あれば） */}
@@ -542,16 +618,38 @@ export function SortableCard({
                         )}
                       >
                         {/* 数値（大きく強調） */}
-                        <span
-                          className={cn(
-                            textStyle.dosageValueSize,
-                            "font-bold text-dosage-value"
-                          )}
-                        >
-                          {badge.hasValue
-                            ? badge.value.slice(0, TEXT_LIMITS[badge.type])
-                            : "-"}
-                        </span>
+                        {canInlineEdit && editingField === badge.type ? (
+                          <InlineEditInput
+                            value={badge.value}
+                            maxLength={TEXT_LIMITS[badge.type]}
+                            label={createInlineDosageInputLabel(
+                              dosageLabels[badge.type]
+                            )}
+                            className={cn(
+                              textStyle.dosageValueSize,
+                              "font-bold"
+                            )}
+                            onCommit={(value) =>
+                              commitInlineEdit(badge.type, value)
+                            }
+                            onCancel={() => setEditingField(null)}
+                          />
+                        ) : (
+                          <span
+                            className={cn(
+                              textStyle.dosageValueSize,
+                              "font-bold text-dosage-value",
+                              canInlineEdit && badge.hasValue && "cursor-text"
+                            )}
+                            {...(badge.hasValue
+                              ? inlineEditTriggerProps(badge.type)
+                              : {})}
+                          >
+                            {badge.hasValue
+                              ? badge.value.slice(0, TEXT_LIMITS[badge.type])
+                              : "-"}
+                          </span>
+                        )}
                         {/* ラベル（下線付き）
                             線の色はテーマカラー（Canvas が上書きする CSS 変数）。globals.css のレイヤー外の
                             `* { border-color }` は Tailwind のユーティリティより強いため、インライン style で指定する */}

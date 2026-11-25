@@ -18,6 +18,7 @@
 import {
   DUPLICATE_TOOLTIP,
   IMAGE_DRAG_TYPE,
+  INLINE_EDIT_TITLE_LABEL,
   MAX_ITEM_COUNT,
   SAMPLE_IMAGES,
 } from "@rehab-grid/core/lib/constants";
@@ -31,7 +32,7 @@ import {
   type MockInstance,
   vi,
 } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 
 import TrainingEditorPage from "@/app/(editor)/training/page";
@@ -448,6 +449,41 @@ describe("D&D機能", () => {
       await expect.element(card).toHaveAttribute("data-selected", "false");
       // 記録された操作は複製の 1 件だけ（並び替えは記録されていない）
       expect(useEditorStore.getState().past).toHaveLength(1);
+    });
+  });
+
+  describe("カード上のインライン編集", () => {
+    it("入力中の Space・Enter でドラッグが始まらず、確定は 1 件の履歴になり Ctrl+Z で元に戻る", async () => {
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({ id: "item-1", order: 0, title: "運動A" }),
+          createTestItem({ id: "item-2", order: 1, title: "運動B" }),
+        ],
+        selectedItemId: "item-1",
+      });
+
+      await renderPage();
+
+      const card = page.getByTestId("card-item-1");
+      await userEvent.dblClick(card.getByText("運動A"));
+      const input = page.getByLabelText(INLINE_EDIT_TITLE_LABEL);
+      await expect.element(input).toHaveFocus();
+
+      // KeyboardSensor は Space / Enter でドラッグを始めて preventDefault するため、
+      // カードまで伝わると空白が入力できず、Enter でも確定しない
+      await userEvent.keyboard("{Control>}a{/Control}右 ひざ{Enter}");
+
+      await expect
+        .poll(() => useEditorStore.getState().items.map((item) => item.title))
+        .toEqual(["右 ひざ", "運動B"]);
+      await expect.element(input).not.toBeInTheDocument();
+      expect(useEditorStore.getState().past).toHaveLength(1);
+
+      await userEvent.keyboard("{Control>}z{/Control}");
+      await expect
+        .poll(() => useEditorStore.getState().items[0]?.title)
+        .toBe("運動A");
     });
   });
 });
