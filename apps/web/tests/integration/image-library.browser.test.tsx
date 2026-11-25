@@ -83,6 +83,16 @@ vi.mock("@/lib/db", () => ({
   listProjects: vi.fn().mockResolvedValue([]),
   duplicateProject: vi.fn().mockResolvedValue(undefined),
   collectReferencedImageIds: vi.fn().mockResolvedValue(new Set()),
+  saveUserTemplate: vi.fn().mockResolvedValue("user-template-id"),
+  listUserTemplates: vi.fn().mockResolvedValue([]),
+  getUserTemplate: vi.fn().mockResolvedValue(undefined),
+  deleteUserTemplate: vi.fn().mockResolvedValue(undefined),
+  saveExerciseCard: vi.fn().mockResolvedValue("exercise-card-id"),
+  listExerciseCards: vi.fn().mockResolvedValue([]),
+  deleteExerciseCard: vi.fn().mockResolvedValue(undefined),
+  addCustomSnippet: vi.fn().mockResolvedValue(undefined),
+  listCustomSnippets: vi.fn().mockResolvedValue([]),
+  deleteCustomSnippet: vi.fn().mockResolvedValue(undefined),
   createProjectRecord: vi.fn((id: string, data: unknown) => ({ id, data })),
 }));
 

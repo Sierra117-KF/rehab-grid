@@ -38,9 +38,12 @@ export function ExportMenu({
           variant="ghost"
           size="sm"
           className="gap-2 text-muted-foreground hover:text-foreground"
+          title={BUTTON_BACKUP}
+          aria-label={BUTTON_BACKUP}
         >
           <Download className="size-4 text-amber-500" />
-          <span className="hidden desktop:inline">{BUTTON_BACKUP}</span>
+          {/* ヘッダーに余裕のない幅（xl 未満）ではアイコンのみ */}
+          <span className="hidden xl:inline">{BUTTON_BACKUP}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

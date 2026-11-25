@@ -290,24 +290,49 @@ describe("useEditorStore", () => {
   });
 
   describe("addItem", () => {
-    it("アイテムを追加できる", () => {
-      const item = createTestItem({ id: "new-item", title: "新しい運動" });
+    it("カード・注意点の ID を振り直したコピーを追加し、選択する", () => {
+      const item = createTestItem({
+        id: "saved-item",
+        title: "スクワット",
+        dosages: { reps: "10回", sets: "3セット", frequency: "" },
+        precautions: [{ id: "saved-precaution", value: "膝を前に出さない" }],
+      });
 
-      useEditorStore.getState().addItem(item);
+      const newId = useEditorStore.getState().addItem(item);
 
-      expect(useEditorStore.getState().items).toHaveLength(1);
-      expect(useEditorStore.getState().items[0]).toEqual(item);
+      const [added] = useEditorStore.getState().items;
+      expect(newId).toBe(added?.id);
+      expect(added?.id).not.toBe("saved-item");
+      expect(added?.precautions?.[0]?.id).not.toBe("saved-precaution");
+      expect(added).toMatchObject({
+        title: "スクワット",
+        dosages: { reps: "10回", sets: "3セット", frequency: "" },
+        precautions: [{ value: "膝を前に出さない" }],
+      });
+      expect(useEditorStore.getState().selectedItemId).toBe(newId);
     });
 
-    it("既存のアイテムに追加される", () => {
+    it("同じカードを 2 回追加しても ID は重ならず、末尾の並び順になる", () => {
       useEditorStore.setState({
         items: [createTestItem({ id: "existing", order: 0 })],
       });
+      const saved = createTestItem({ id: "saved", title: "追加", order: 5 });
 
-      const newItem = createTestItem({ id: "new", title: "追加", order: 1 });
-      useEditorStore.getState().addItem(newItem);
+      useEditorStore.getState().addItem(saved);
+      useEditorStore.getState().addItem(saved);
 
-      expect(useEditorStore.getState().items).toHaveLength(2);
+      const { items } = useEditorStore.getState();
+      expect(items.map((item) => item.order)).toEqual([0, 1, 2]);
+      expect(new Set(items.map((item) => item.id)).size).toBe(3);
+    });
+
+    it("1 回の追加は 1 件の履歴になり、Undo で元に戻る", () => {
+      useEditorStore.getState().addItem(createTestItem({ id: "saved" }));
+
+      useEditorStore.getState().undo();
+
+      expect(useEditorStore.getState().items).toHaveLength(0);
+      expect(useEditorStore.getState().past).toHaveLength(0);
     });
 
     it("MAX_ITEM_COUNT に達すると追加されない", () => {
@@ -319,13 +344,11 @@ describe("useEditorStore", () => {
 
       // 11個目を追加しようとする
       const newItem = createTestItem({ id: "overflow", order: MAX_ITEM_COUNT });
-      useEditorStore.getState().addItem(newItem);
+      const result = useEditorStore.getState().addItem(newItem);
 
       // 追加されないことを確認
+      expect(result).toBeNull();
       expect(useEditorStore.getState().items).toHaveLength(MAX_ITEM_COUNT);
-      expect(
-        useEditorStore.getState().items.find((i) => i.id === "overflow")
-      ).toBeUndefined();
     });
 
     it("MAX_ITEM_COUNT - 1 の状態から追加できる", () => {

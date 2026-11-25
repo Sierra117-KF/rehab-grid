@@ -162,12 +162,15 @@ await generatePdf(projectData);
 
 ### db/ - IndexedDB 管理
 
-Dexie を使用した IndexedDB ラッパー。2 つのテーブルを管理します。
+Dexie を使用した IndexedDB ラッパー。5 つのテーブルを管理します（`userTemplates` 以下の 3 つは version 2 で追加。version 1 の宣言も残しているため、旧 DB はデータ移行なしで更新される）。
 
 | テーブル | 用途 | 主キー |
 |---------|------|--------|
 | `projects` | プロジェクトデータ（複数保存。旧バージョンのデータは ID `"current"` のまま 1 件目として扱う） | `id` |
 | `images` | 画像 Blob（全プロジェクト共通のライブラリ） | `id` |
+| `userTemplates` | マイテンプレート（名前付きの `ProjectFile`） | `id` |
+| `exerciseCards` | マイ運動（カード 1 枚の `EditorItem`） | `id` |
+| `customSnippets` | マイ定型文（注意点の文言） | `id` |
 
 ```typescript
 import {
@@ -193,8 +196,23 @@ const copyId = await duplicateProject(projectId); // タイトルに「のコピ
 await deleteProject(projectId);
 const newProject = createNewProject("新しい指導箋");
 
-// 他のプロジェクトが参照している画像 ID（画像削除時の警告に使う）
+// 他のプロジェクト・マイテンプレート・マイ運動が参照している画像 ID（画像削除時の警告に使う）
 const usedElsewhere = await collectReferencedImageIds(currentProjectId);
+
+// マイライブラリ（保存時は projectFileSchema / editorItemSchema で検証。一覧は新しい順、定型文は登録順）
+const templateId = await saveUserTemplate("膝の自主トレ", projectData);
+const templates = await listUserTemplates();
+await deleteUserTemplate(templateId);
+const cardId = await saveExerciseCard(item); // order は 0 にそろえて保存
+const cards = await listExerciseCards();
+await deleteExerciseCard(cardId);
+const snippet = await addCustomSnippet("息を止めない"); // 重複チェックは呼び出し側
+const snippets = await listCustomSnippets();
+await deleteCustomSnippet(snippet.id);
+
+// 呼び出し（utils/template）: ID を振り直した ImportResult を返す
+const result = await loadUserTemplate(templateId);
+const copy = cloneItemWithNewIds(item);
 
 // 画像操作
 await saveImage("img_001", blob, "exercise.webp");
@@ -222,6 +240,7 @@ const {
 
   // アクション（変更系は履歴に記録される）
   addNewItem, // addNewItem({ title?, imageSource? })
+  addItem, // 保存したカード（マイ運動）の ID を振り直して末尾に追加し選択（上限時は null）
   updateItem, // updateItem(id, updates, { mergeKey? }) 同じキーの連続入力は 1 件にまとまる
   deleteItem,
   duplicateItem, // 元カードの直後に複製を挿入して選択（上限時は null）

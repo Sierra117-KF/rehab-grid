@@ -79,7 +79,7 @@ export function ProjectInfo({ variant = "desktop" }: ProjectInfoProps) {
         {!isMobile && (
           <Label
             htmlFor="project-title-input"
-            className="hidden desktop:inline text-sm font-medium"
+            className="hidden 2xl:inline whitespace-nowrap text-sm font-medium"
           >
             {LABEL_PROJECT_TITLE}
           </Label>
@@ -135,7 +135,8 @@ export function ProjectInfo({ variant = "desktop" }: ProjectInfoProps) {
   // デスクトップ版：ラベル付きボタン
   return (
     <span className="flex items-center gap-2">
-      <span className="hidden desktop:inline text-sm font-medium text-muted-foreground">
+      {/* ヘッダーに余裕のない幅（2xl 未満）ではラベルを省く（縦に折り返さないため） */}
+      <span className="hidden 2xl:inline whitespace-nowrap text-sm font-medium text-muted-foreground">
         {LABEL_PROJECT_TITLE}
       </span>
       <button
@@ -148,8 +149,8 @@ export function ProjectInfo({ variant = "desktop" }: ProjectInfoProps) {
           "bg-white",
           // モバイル: 固定幅でテキスト切り詰め
           "w-32 truncate",
-          // デスクトップ: 幅を広げ、CSSで切り詰め
-          "desktop:w-auto desktop:min-w-[120px] desktop:max-w-[200px]",
+          // デスクトップ: 幅を広げ、CSSで切り詰め（狭いデスクトップ幅ではヘッダーに収まるよう控えめにする）
+          "desktop:w-auto desktop:min-w-[120px] desktop:max-w-[160px] xl:max-w-[200px]",
           "hover:bg-accent hover:text-accent-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         )}

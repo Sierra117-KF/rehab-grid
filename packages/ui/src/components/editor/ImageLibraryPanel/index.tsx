@@ -14,6 +14,7 @@ import {
   createDisplayedImagesDeleteMessage,
   createImageDeleteSuccessMessage,
   DEFAULT_IMAGE_FILTER,
+  EXERCISE_CARD_ADD_BUTTON_LABEL,
   IMAGE_ACCEPT_TYPES,
   IMAGE_DRAG_TYPE,
   IMAGE_FILTER_CATEGORIES,
@@ -37,7 +38,7 @@ import {
 import { matchesSearchQuery } from "@rehab-grid/core/utils/search";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertCircle, AlertTriangle, Plus } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bookmark, Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -56,6 +57,8 @@ type ImageLibraryPanelProps = {
   onAddCard?: () => void;
   /** カード追加が可能かどうか（最大数チェック用） */
   canAddCard?: boolean;
+  /** 「マイ運動から追加」ボタンが押されたときのコールバック（デスクトップのみ。未指定ならボタンを出さない） */
+  onOpenExerciseCards?: () => void;
   /** 画像選択時のコールバック（モバイル用） */
   onImageSelect?: (imageId: string) => void;
   /** モバイルモードかどうか */
@@ -68,6 +71,7 @@ type ImageLibraryPanelProps = {
 export function ImageLibraryPanel({
   onAddCard,
   canAddCard = true,
+  onOpenExerciseCards,
   onImageSelect,
   isMobile = false,
 }: ImageLibraryPanelProps) {
@@ -467,15 +471,27 @@ export function ImageLibraryPanel({
       <div className="shrink-0 space-y-4">
         {/* カード追加ボタン（デスクトップのみ表示） */}
         {!isMobile && (
-          <Button
-            variant="outline"
-            className="w-full gap-2 bg-white"
-            onClick={handleAddCardClick}
-            disabled={!canAddCard}
-          >
-            <Plus className="size-4" />
-            {BUTTON_ADD_CARD}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="w-full gap-2 bg-white"
+              onClick={handleAddCardClick}
+              disabled={!canAddCard}
+            >
+              <Plus className="size-4" />
+              {BUTTON_ADD_CARD}
+            </Button>
+            {onOpenExerciseCards ? (
+              <Button
+                variant="outline"
+                className="w-full gap-2 bg-white"
+                onClick={onOpenExerciseCards}
+              >
+                <Bookmark className="size-4 text-teal-600" />
+                {EXERCISE_CARD_ADD_BUTTON_LABEL}
+              </Button>
+            ) : null}
+          </div>
         )}
 
         {/* 非表示のファイル選択input */}

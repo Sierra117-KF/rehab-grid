@@ -24,6 +24,7 @@ import {
   REDO_TOOLTIP,
   TEMPLATE_BUTTON_LABEL,
   UNDO_TOOLTIP,
+  USER_TEMPLATE_SAVE_SUCCESS_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import type { EditorItem, LayoutType, ProjectMeta } from "@rehab-grid/core/types";
@@ -63,7 +64,13 @@ const {
   mockDownloadProjectAsZIP,
   mockImportProject,
   mockLoadTemplate,
+  mockLoadUserTemplate,
+  mockSaveUserTemplate,
 } = vi.hoisted(() => ({
+  mockLoadUserTemplate: vi
+    .fn()
+    .mockResolvedValue({ meta: {}, items: [], settings: {} }),
+  mockSaveUserTemplate: vi.fn().mockResolvedValue("user-template-1"),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
@@ -194,6 +201,7 @@ vi.mock("@/utils/export", () => ({
  */
 vi.mock("@/utils/template", () => ({
   loadTemplate: mockLoadTemplate,
+  loadUserTemplate: mockLoadUserTemplate,
 }));
 
 /**
@@ -271,17 +279,42 @@ vi.mock("@/components/editor/TemplateSelectModal", () => ({
   TemplateSelectModal: ({
     open,
     onSelect,
+    onSaveCurrent,
   }: {
     open: boolean;
-    onSelect: (id: string, mode: "new" | "overwrite") => void;
+    onSelect: (
+      id: string,
+      mode: "new" | "overwrite",
+      source: "official" | "user"
+    ) => void;
+    onSaveCurrent: (name: string) => void;
   }) =>
     open ? (
       <div data-testid="template-select-modal">
-        <button type="button" onClick={() => onSelect("template-1", "new")}>
+        <button
+          type="button"
+          onClick={() => onSelect("template-1", "new", "official")}
+        >
           テンプレート選択
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("user-template-1", "overwrite", "user")}
+        >
+          マイテンプレート選択
+        </button>
+        <button type="button" onClick={() => onSaveCurrent("膝の自主トレ")}>
+          マイテンプレートとして保存
         </button>
       </div>
     ) : null,
+}));
+
+/**
+ * マイテンプレートの保存（IndexedDB）のモック
+ */
+vi.mock("@/lib/db", () => ({
+  saveUserTemplate: mockSaveUserTemplate,
 }));
 
 /**
@@ -897,6 +930,67 @@ describe("EditorHeader", () => {
         );
       });
       expect(mockLoadTemplate).toHaveBeenCalledWith("template-1");
+    });
+
+    it("マイテンプレートは IndexedDB から読み込んで開く", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレート選択" })
+      );
+
+      await waitFor(() => {
+        expect(mockOpenImportResult).toHaveBeenCalledWith(
+          { meta: {}, items: [], settings: {} },
+          "overwrite"
+        );
+      });
+      expect(mockLoadUserTemplate).toHaveBeenCalledWith("user-template-1");
+      expect(mockLoadTemplate).not.toHaveBeenCalled();
+    });
+
+    it("編集中の指導箋をマイテンプレートとして保存し、完了を通知する", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレートとして保存" })
+      );
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith(
+          USER_TEMPLATE_SAVE_SUCCESS_MESSAGE
+        );
+      });
+      expect(mockSaveUserTemplate).toHaveBeenCalledWith("膝の自主トレ", {
+        meta: mockStoreState.meta,
+        settings: mockStoreState.settings,
+        items: mockStoreState.items,
+      });
+    });
+
+    it("マイテンプレートの保存に失敗したらエラーを通知する", async () => {
+      const user = userEvent.setup();
+      mockSaveUserTemplate.mockRejectedValueOnce(new Error("保存エラー"));
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレートとして保存" })
+      );
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("保存エラー");
+      });
     });
   });
 

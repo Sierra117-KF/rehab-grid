@@ -1,4 +1,9 @@
 import {
+  CUSTOM_SNIPPET_ADD_LABEL,
+  CUSTOM_SNIPPET_DELETE_LABEL,
+  CUSTOM_SNIPPET_DUPLICATE_MESSAGE,
+  CUSTOM_SNIPPET_EMPTY_MESSAGE,
+  CUSTOM_SNIPPET_INPUT_LABEL,
   MAX_PRECAUTIONS_COUNT,
   PRECAUTION_SNIPPET_CATEGORIES,
   PRECAUTION_SNIPPETS,
@@ -11,13 +16,38 @@ import type {
   PrecautionSnippet,
   PrecautionSnippetCategoryId,
 } from "@rehab-grid/core/lib/constants/precautions";
+import type { CustomSnippetRecord } from "@rehab-grid/core/types";
 import {
   PrecautionSnippetDialog,
   type PrecautionSnippetDialogProps,
 } from "@rehab-grid/ui/components/editor/PrecautionSnippetDialog";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { mockUseLiveQuery, mockAddCustomSnippet, mockDeleteCustomSnippet } =
+  vi.hoisted(() => ({
+    mockUseLiveQuery: vi.fn(),
+    mockAddCustomSnippet: vi.fn(),
+    mockDeleteCustomSnippet: vi.fn(),
+  }));
+
+vi.mock("dexie-react-hooks", () => ({
+  useLiveQuery: mockUseLiveQuery,
+}));
+
+vi.mock("@/lib/db", () => ({
+  listCustomSnippets: vi.fn(),
+  addCustomSnippet: mockAddCustomSnippet,
+  deleteCustomSnippet: mockDeleteCustomSnippet,
+}));
+
+/** 登録済みのマイ定型文 */
+const CUSTOM_SNIPPET: CustomSnippetRecord = {
+  id: "custom-1",
+  value: "膝がつま先より前に出ないように",
+  createdAt: new Date(2026, 10, 26),
+};
 
 /**
  * 指定カテゴリの最初のスニペットを取得
@@ -77,6 +107,14 @@ function setupDialog(
 }
 
 describe("PrecautionSnippetDialog", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // 既定ではマイ定型文なし
+    mockUseLiveQuery.mockReturnValue([]);
+    mockAddCustomSnippet.mockResolvedValue(undefined);
+    mockDeleteCustomSnippet.mockResolvedValue(undefined);
+  });
+
   describe("表示テスト", () => {
     it("ダイアログが開いているときタイトルが表示される", () => {
       setupDialog();
@@ -317,6 +355,115 @@ describe("PrecautionSnippetDialog", () => {
 
       // 選択状態がリセットされている
       expect(screen.getByText(/選択中: 0 件/)).toBeInTheDocument();
+    });
+  });
+
+  describe("マイ定型文", () => {
+    it("登録がなければ案内を表示する", () => {
+      setupDialog();
+
+      expect(screen.getByText(CUSTOM_SNIPPET_EMPTY_MESSAGE)).toBeInTheDocument();
+    });
+
+    it("入力した定型文を前後の空白を除いて登録し、入力欄を空にする", async () => {
+      const user = userEvent.setup();
+      setupDialog();
+
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+      await user.type(input, "  息を止めない  ");
+      await user.click(
+        screen.getByRole("button", { name: CUSTOM_SNIPPET_ADD_LABEL })
+      );
+
+      expect(mockAddCustomSnippet).toHaveBeenCalledWith("息を止めない");
+      expect(input).toHaveValue("");
+    });
+
+    it("Enter キーでも登録できる", async () => {
+      const user = userEvent.setup();
+      setupDialog();
+
+      await user.type(
+        screen.getByRole("textbox", { name: CUSTOM_SNIPPET_INPUT_LABEL }),
+        "息を止めない{Enter}"
+      );
+
+      expect(mockAddCustomSnippet).toHaveBeenCalledWith("息を止めない");
+    });
+
+    it("組み込み・登録済みと同じ文言は登録せず、案内を表示する", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([CUSTOM_SNIPPET]);
+      setupDialog();
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+      const builtIn = getFirstSnippetByCategory("safety").value;
+
+      await user.type(input, `${builtIn}{Enter}`);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        CUSTOM_SNIPPET_DUPLICATE_MESSAGE
+      );
+
+      await user.clear(input);
+      await user.type(input, `${CUSTOM_SNIPPET.value}{Enter}`);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        CUSTOM_SNIPPET_DUPLICATE_MESSAGE
+      );
+
+      expect(mockAddCustomSnippet).not.toHaveBeenCalled();
+    });
+
+    it("保存に失敗したら入力した文言を戻す", async () => {
+      const user = userEvent.setup();
+      mockAddCustomSnippet.mockRejectedValue(new Error("failed"));
+      setupDialog();
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+
+      await user.type(input, "息を止めない{Enter}");
+
+      await waitFor(() => {
+        expect(input).toHaveValue("息を止めない");
+      });
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
+
+    it("登録済みのマイ定型文を選んで追加できる", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([CUSTOM_SNIPPET]);
+      const props = setupDialog();
+
+      await user.click(
+        screen.getByRole("button", { name: CUSTOM_SNIPPET.value })
+      );
+      await user.click(
+        screen.getByRole("button", { name: SNIPPET_ADD_BUTTON_LABEL })
+      );
+
+      expect(props.onSelect).toHaveBeenCalledWith([CUSTOM_SNIPPET.value]);
+    });
+
+    it("マイ定型文は削除でき、組み込みの定型文には削除ボタンがない", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([CUSTOM_SNIPPET]);
+      setupDialog();
+
+      const deleteButtons = screen.getAllByRole("button", {
+        name: new RegExp(CUSTOM_SNIPPET_DELETE_LABEL),
+      });
+      expect(deleteButtons).toHaveLength(1);
+
+      await user.click(
+        screen.getByRole("button", {
+          name: `${CUSTOM_SNIPPET_DELETE_LABEL}: ${CUSTOM_SNIPPET.value}`,
+        })
+      );
+
+      expect(mockDeleteCustomSnippet).toHaveBeenCalledWith(CUSTOM_SNIPPET.id);
     });
   });
 });
