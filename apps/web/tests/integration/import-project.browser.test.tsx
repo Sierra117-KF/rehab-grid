@@ -19,6 +19,7 @@ import {
   IMPORT_ERROR_VALIDATION,
 } from "@rehab-grid/core/lib/constants";
 import { db, getImage, loadProject } from "@rehab-grid/core/lib/db";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { ProjectFile } from "@rehab-grid/core/types";
 import { importProject } from "@rehab-grid/core/utils/export";
@@ -51,7 +52,7 @@ function resetStore(): void {
       projectType: "training",
     },
     items: [],
-    settings: { layoutType: "grid2", themeColor: "#3b82f6" },
+    settings: resolveProjectSettings(undefined),
     selectedItemId: null,
     mobileImageLibraryOpen: false,
     mobilePropertyPanelOpen: false,
@@ -364,9 +365,63 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
 
       const state = useEditorStore.getState();
       expect(state.meta.title).toBe("ZIPストア更新テスト");
+      // 印刷スタイルの項目がない旧形式のファイルは、現行の見た目になるデフォルト値で補う
       expect(state.settings).toEqual({
         layoutType: "grid1",
         themeColor: "#8b5cf6",
+        printColorMode: "color",
+        textScale: "standard",
+        pageOrientation: "auto",
+        showCardNumbers: false,
+        dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+        header: {
+          showPatientNameBox: true,
+          dateMode: "none",
+          facilityName: "",
+          therapistName: "",
+          overallNote: "",
+        },
+        checkTable: "none",
+      });
+    });
+
+    it("ZIPインポートで印刷スタイル（白黒・文字サイズ・向き・番号・用量ラベル・ヘッダー・チェック表）が保たれる", async () => {
+      const printStyle = {
+        printColorMode: "monochrome",
+        textScale: "large",
+        pageOrientation: "landscape",
+        showCardNumbers: true,
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+        header: {
+          showPatientNameBox: false,
+          dateMode: "printed",
+          facilityName: "○○病院",
+          therapistName: "山田",
+          overallNote: "目標：毎日続ける\n次回：12月1日",
+        },
+        checkTable: "monthly",
+      } as const;
+      const file = await createValidZIPFile({
+        project: {
+          meta: {
+            version: APP_VERSION,
+            createdAt: "2024-01-01T00:00:00.000Z",
+            updatedAt: "2024-01-01T00:00:00.000Z",
+            title: "印刷スタイル",
+            projectType: "training",
+          },
+          settings: { layoutType: "grid2", themeColor: "#059669", ...printStyle },
+        },
+      });
+
+      const result = await importProject(file);
+      const { initializeFromDB } = useEditorStore.getState();
+      await applyImportResult(result, initializeFromDB);
+
+      expect(useEditorStore.getState().settings).toEqual({
+        layoutType: "grid2",
+        themeColor: "#059669",
+        ...printStyle,
       });
     });
   });

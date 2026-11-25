@@ -12,9 +12,13 @@
 
 import {
   BUTTON_CLOSE,
+  CHECK_TABLE_LABEL,
   DESIGN_SETTINGS_DESCRIPTION,
   DESIGN_SETTINGS_LABEL,
   LABELS,
+  PATIENT_NAME_BOX_TOGGLE_LABEL,
+  SHEET_FACILITY_NAME_LABEL,
+  SHEET_SUMMARY_BUTTON_LABEL,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
@@ -139,6 +143,7 @@ vi.mock("@/lib/db", () => ({
   saveImage: vi.fn().mockResolvedValue(undefined),
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
+  getImageRecord: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ========== ヘルパー ==========
@@ -165,7 +170,11 @@ function getDesignSettingsButton() {
  */
 function getThemeColors() {
   const card = page.getByTestId("card-item-1").element();
-  const label = page.getByText(LABELS.reps, { exact: true }).element();
+  // ダイアログにも同じ文言の候補ボタンがあるため、カード内に絞って探す
+  const label = page
+    .getByTestId("card-item-1")
+    .getByText(LABELS.reps, { exact: true })
+    .element();
   return {
     cardBorder: getComputedStyle(card).borderTopColor,
     divider: getComputedStyle(label).borderTopColor,
@@ -299,5 +308,108 @@ describe("デザイン設定（browser）", () => {
 
     await expect.poll(getThemeColors).toEqual(defaultColors);
     expect(useEditorStore.getState().settings.themeColor).toBe("#3b82f6");
+  });
+
+  it("プリセット「白黒・インク節約」で Canvas がテーマカラーの代わりに slate 系の色になり、元に戻すで戻る", async () => {
+    useEditorStore.setState({
+      items: [
+        createTestItem({
+          id: "item-1",
+          dosages: { reps: "10回", sets: "", frequency: "" },
+        }),
+      ],
+    });
+    await renderEditor();
+
+    await userEvent.click(getDesignSettingsButton());
+    await userEvent.click(
+      page.getByRole("button", { name: /白黒・インク節約/ })
+    );
+
+    // 枠線 slate-500・区切り線 slate-300
+    await expect.poll(getThemeColors).toEqual({
+      cardBorder: "rgb(100, 116, 139)",
+      divider: "rgb(203, 213, 225)",
+    });
+    expect(useEditorStore.getState().settings.printColorMode).toBe(
+      "monochrome"
+    );
+
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await userEvent.click(page.getByRole("button", { name: UNDO_TOOLTIP }));
+
+    await expect.poll(getThemeColors).toEqual({
+      cardBorder: "rgb(59, 130, 246)",
+      divider: "rgb(196, 218, 252)",
+    });
+  });
+
+  it("カード番号と用量のラベルの変更が Canvas に反映される", async () => {
+    useEditorStore.setState({
+      items: [
+        createTestItem({
+          id: "item-1",
+          title: "スクワット",
+          dosages: { reps: "30", sets: "", frequency: "" },
+        }),
+      ],
+    });
+    await renderEditor();
+    const card = page.getByTestId("card-item-1");
+
+    await userEvent.click(getDesignSettingsButton());
+    await userEvent.click(page.getByRole("checkbox", { name: /番号/ }));
+    await userEvent.click(
+      page.getByRole("button", { name: "「回数」の欄を「秒数」にする" })
+    );
+    // モーダル表示中は背後の Canvas が aria-hidden になりロールで探せないため、閉じてから確認する
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+
+    await expect
+      .element(card.getByRole("heading", { name: "1スクワット" }))
+      .toBeInTheDocument();
+    await expect
+      .element(card.getByText("秒数", { exact: true }))
+      .toBeInTheDocument();
+    expect(useEditorStore.getState().settings).toMatchObject({
+      showCardNumbers: true,
+      dosageLabels: { reps: "秒数", sets: "セット", frequency: "頻度" },
+    });
+  });
+
+  it("キャンバス上部の要約からヘッダー・チェック表の設定を開き、変更が要約に反映される", async () => {
+    await renderEditor();
+
+    const summary = page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL);
+    await expect.element(summary).toHaveTextContent("チェック表：なし");
+
+    await userEvent.click(summary);
+
+    // セクション指定で開くと、そのセクションの最初の入力（氏名欄）にフォーカスする
+    const patientNameToggle = page.getByRole("checkbox", {
+      name: PATIENT_NAME_BOX_TOGGLE_LABEL,
+    });
+    await expect.element(patientNameToggle).toHaveFocus();
+
+    await userEvent.fill(
+      page.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
+      "○○病院"
+    );
+    await userEvent.click(
+      page.getByRole("group", { name: CHECK_TABLE_LABEL }).getByRole("button", {
+        name: "1週間",
+      })
+    );
+
+    expect(useEditorStore.getState().settings).toMatchObject({
+      header: { facilityName: "○○病院" },
+      checkTable: "weekly",
+    });
+
+    // モーダル表示中は背後の Canvas が aria-hidden になるため、閉じてから確認する
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await expect
+      .element(page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL))
+      .toHaveTextContent("ヘッダー：病院・施設名・氏名欄／チェック表：1週間");
   });
 });

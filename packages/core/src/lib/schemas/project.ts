@@ -113,7 +113,47 @@ export const projectMetaSchema = z.object({
 });
 
 /**
+ * 最大文字数つきの任意の文字列のスキーマ
+ *
+ * サニタイズ後に最大文字数を超えた分はカットする。文字列以外は未指定として扱う
+ * （デフォルト値は resolveProjectSettings で補う）
+ *
+ * @param maxLength - 最大文字数
+ * @returns 文字列スキーマ
+ */
+const optionalTextSchema = (maxLength: number) =>
+  z
+    .string()
+    .transform((v) => sanitizeText(v).slice(0, maxLength))
+    .optional()
+    .catch(undefined);
+
+/** 用量ラベル 1 つ分のスキーマ */
+const dosageLabelSchema = optionalTextSchema(TEXT_LIMITS.dosageLabel);
+
+/**
+ * PDF ヘッダーの項目のスキーマ
+ *
+ * キーごとに不正な値を未指定として扱い、ほかのキーは残す
+ */
+const sheetHeaderSchema = z.object({
+  /** 氏名欄を出すか */
+  showPatientNameBox: z.boolean().optional().catch(undefined),
+  /** 日付欄 */
+  dateMode: z.enum(["none", "blank", "printed"]).optional().catch(undefined),
+  /** 病院・施設名 */
+  facilityName: optionalTextSchema(TEXT_LIMITS.facilityName),
+  /** 担当者名 */
+  therapistName: optionalTextSchema(TEXT_LIMITS.therapistName),
+  /** 全体メモ（改行可） */
+  overallNote: optionalTextSchema(TEXT_LIMITS.overallNote),
+});
+
+/**
  * プロジェクト設定スキーマ
+ *
+ * @remarks
+ * 2-2 以降の項目はオプショナルで、不正な値や型違いは未指定として扱い、インポート全体を失敗させない
  */
 export const projectSettingsSchema = z.object({
   /** グリッドレイアウトタイプ */
@@ -122,6 +162,33 @@ export const projectSettingsSchema = z.object({
   themeColor: z
     .string()
     .transform((v) => (THEME_COLOR_PATTERN.test(v) ? v : DEFAULT_THEME_COLOR)),
+  /** 印刷の色づかい */
+  printColorMode: z
+    .enum(["color", "monochrome"])
+    .optional()
+    .catch(undefined),
+  /** カード内の文字サイズ */
+  textScale: z.enum(["standard", "large"]).optional().catch(undefined),
+  /** PDF の用紙の向き */
+  pageOrientation: z
+    .enum(["auto", "portrait", "landscape"])
+    .optional()
+    .catch(undefined),
+  /** カード番号を表示するか */
+  showCardNumbers: z.boolean().optional().catch(undefined),
+  /** 用量のラベル */
+  dosageLabels: z
+    .object({
+      reps: dosageLabelSchema,
+      sets: dosageLabelSchema,
+      frequency: dosageLabelSchema,
+    })
+    .optional()
+    .catch(undefined),
+  /** PDF ヘッダーの項目 */
+  header: sheetHeaderSchema.optional().catch(undefined),
+  /** 自主トレ実施チェック表 */
+  checkTable: z.enum(["none", "weekly", "monthly"]).optional().catch(undefined),
 });
 
 /**

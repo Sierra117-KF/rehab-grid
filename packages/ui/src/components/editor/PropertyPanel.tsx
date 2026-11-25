@@ -1,18 +1,23 @@
 "use client";
 
 import {
-  APPLY_DOSAGES_TO_ALL_TOOLTIP,
   APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   APPLY_TO_ALL_LABEL,
+  createApplyDosagesToAllTooltip,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
+  IMAGE_EDIT_LABEL,
+  IMAGE_FLIP_BUTTON_LABEL,
+  IMAGE_FLIP_TOOLTIP,
+  LABELS,
   MAX_PRECAUTIONS_COUNT,
   PROPERTY_PANEL_WARNING,
   SNIPPET_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
+  type DosageLabels,
   type Dosages,
   type EditorItem,
   type Precaution,
@@ -37,8 +42,10 @@ import {
   Copy,
   CopyCheck,
   FileText,
+  FlipHorizontal2,
   MousePointerClick,
   Plus,
+  SquarePen,
   Trash2,
   X,
 } from "lucide-react";
@@ -109,6 +116,24 @@ export type PropertyPanelProps = {
    * 未指定なら反映ボタンを表示しない（カードが 1 枚のときは渡さない）
    */
   onApplyPrecautionsToAll?: (values: string[]) => void;
+  /**
+   * 画像の左右反転ボタンが押されたときのコールバック
+   *
+   * @remarks
+   * 未指定、またはカードに画像がないときはボタンを表示しない
+   */
+  onImageFlip?: (id: string) => void;
+  /**
+   * 画像の編集ボタンが押されたときのコールバック
+   *
+   * @remarks
+   * 未指定、またはカードに画像がないときはボタンを表示しない
+   */
+  onImageEdit?: (id: string) => void;
+  /** 画像の処理中かどうか（処理中は画像の操作ボタンを押せない） */
+  isImageProcessing?: boolean;
+  /** 用量の入力欄のラベル（デザイン設定の用量ラベル。省略時は LABELS の回数・セット・頻度） */
+  dosageLabels?: DosageLabels;
 };
 
 /**
@@ -126,6 +151,10 @@ export function PropertyPanel({
   onItemDuplicate,
   onApplyDosagesToAll,
   onApplyPrecautionsToAll,
+  onImageFlip,
+  onImageEdit,
+  isImageProcessing = false,
+  dosageLabels = LABELS,
 }: PropertyPanelProps) {
   // 削除確認ダイアログの状態
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -266,6 +295,40 @@ export function PropertyPanel({
         /* 編集フォーム */
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-3">
+            {/* 画像の編集（画像があるカードのみ） */}
+            {selectedItem.imageSource !== "" && (onImageFlip || onImageEdit) ? (
+              <div className="space-y-1">
+                <Label>画像</Label>
+                <div className="flex gap-2">
+                  {onImageFlip ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 bg-white"
+                      title={IMAGE_FLIP_TOOLTIP}
+                      disabled={isImageProcessing}
+                      onClick={() => onImageFlip(selectedItem.id)}
+                    >
+                      <FlipHorizontal2 className="size-3.5" />
+                      {IMAGE_FLIP_BUTTON_LABEL}
+                    </Button>
+                  ) : null}
+                  {onImageEdit ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 bg-white"
+                      disabled={isImageProcessing}
+                      onClick={() => onImageEdit(selectedItem.id)}
+                    >
+                      <SquarePen className="size-3.5" />
+                      {IMAGE_EDIT_LABEL}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
             {/* タイトル */}
             <div className="space-y-1">
               <Label htmlFor="item-title">運動名</Label>
@@ -310,13 +373,16 @@ export function PropertyPanel({
               </p>
             </div>
 
-            {/* 回数・セット・頻度 */}
+            {/* 回数・セット・頻度（ラベルはデザイン設定の用量ラベルに合わせる） */}
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label>回数・セット・頻度</Label>
+                <Label>
+                  {dosageLabels.reps}・{dosageLabels.sets}・
+                  {dosageLabels.frequency}
+                </Label>
                 {onApplyDosagesToAll ? (
                   <ApplyToAllButton
-                    title={APPLY_DOSAGES_TO_ALL_TOOLTIP}
+                    title={createApplyDosagesToAllTooltip(dosageLabels)}
                     disabled={!hasDosages}
                     onClick={() => {
                       if (selectedItem.dosages) {
@@ -329,7 +395,7 @@ export function PropertyPanel({
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="dosage-reps" className="text-xs">
-                    回数
+                    {dosageLabels.reps}
                   </Label>
                   <Input
                     id="dosage-reps"
@@ -347,7 +413,7 @@ export function PropertyPanel({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="dosage-sets" className="text-xs">
-                    セット
+                    {dosageLabels.sets}
                   </Label>
                   <Input
                     id="dosage-sets"
@@ -365,7 +431,7 @@ export function PropertyPanel({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="dosage-frequency" className="text-xs">
-                    頻度
+                    {dosageLabels.frequency}
                   </Label>
                   <Input
                     id="dosage-frequency"

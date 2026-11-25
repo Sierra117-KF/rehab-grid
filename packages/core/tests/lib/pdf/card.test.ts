@@ -8,6 +8,8 @@ import {
   PDF_SUPPORTED_IMAGE_PREFIXES,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
+import { type ResolvedProjectSettings } from "@rehab-grid/core/types";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -20,6 +22,42 @@ import {
 vi.mock("@react-pdf/renderer", async () => (await import("./pdfTestUtils")).reactPdfMock);
 
 import { createCard } from "@/lib/pdf/card";
+
+/**
+ * テスト用の設定を生成（未指定の項目はデフォルト値）
+ */
+function createSettings(
+  overrides: Partial<ResolvedProjectSettings> = {}
+): ResolvedProjectSettings {
+  return { ...resolveProjectSettings(undefined), ...overrides };
+}
+
+/**
+ * 要素の style を取り出す
+ */
+function getStyle(element: unknown) {
+  const props = (element as { props?: { style?: unknown } } | undefined)?.props;
+  return props?.style as Record<string, unknown> | undefined;
+}
+
+/**
+ * 指定したテキストを子孫に持つ View のうち、最も内側のものを返す
+ *
+ * @remarks
+ * 要素ツリーは外側から順に並ぶため、条件に合う最後の要素が最も内側になる
+ */
+function findInnermostViewWithText(element: unknown, text: string) {
+  return findElementsByType(element, "View")
+    .filter((el) => extractTextContent(el.props?.children).includes(text))
+    .at(-1);
+}
+
+/** 用量・注意点をすべて持つカード */
+const FULL_ITEM = createTestItem({
+  title: "スクワット",
+  dosages: { reps: "10回", sets: "3セット", frequency: "1日2回" },
+  precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+});
 
 describe("createCard", () => {
   describe("タイトル", () => {
@@ -36,9 +74,20 @@ describe("createCard", () => {
     });
 
     it("上限を超えるタイトルは TEXT_LIMITS の文字数でカットされる", () => {
-      const card = createCard(createTestItem({ title: "あ".repeat(100) }), 200);
+      // 20 文字（14pt × 20 = 280pt）が 1 行に入る幅のカード
+      const card = createCard(createTestItem({ title: "あ".repeat(100) }), 400);
 
       expect(extractTextContent(card)).toContain("あ".repeat(TEXT_LIMITS.title));
+    });
+
+    it("日本語のタイトルは全角の幅で 1 行に収まるよう切り詰められる", () => {
+      // コンテンツ幅 184pt ÷ 14pt = 13 文字分。「…」の 1 文字分を空けて 12 文字残る
+      const card = createCard(
+        createTestItem({ title: "あ".repeat(TEXT_LIMITS.title) }),
+        200
+      );
+
+      expect(extractTextContent(card)).toContain(`${"あ".repeat(12)}…`);
     });
 
     it("カード幅の1行に収まらないタイトルは省略記号付きで切り詰められる", () => {
@@ -157,7 +206,7 @@ describe("createCard", () => {
         }),
         150,
         undefined,
-        { layoutType: "grid4", themeColor: DEFAULT_THEME_COLOR }
+        createSettings({ layoutType: "grid4" })
       );
 
       const texts = extractTextContent(card);
@@ -178,7 +227,7 @@ describe("createCard", () => {
           }),
           150,
           undefined,
-          { layoutType: "grid4", themeColor }
+          createSettings({ layoutType: "grid4", themeColor })
         );
 
         // 4列時は頻度を横幅いっぱいの行に分けるため、通常行と全幅行の両方を確認できる
@@ -244,10 +293,12 @@ describe("createCard", () => {
 
   describe("枠線", () => {
     it("テーマカラーで枠線を描く", () => {
-      const card = createCard(createTestItem(), 200, undefined, {
-        layoutType: "grid2",
-        themeColor: "#059669",
-      });
+      const card = createCard(
+        createTestItem(),
+        200,
+        undefined,
+        createSettings({ themeColor: "#059669" })
+      );
 
       expect(card.props).toMatchObject({
         style: { borderColor: "#059669", borderWidth: 1 },
@@ -260,6 +311,184 @@ describe("createCard", () => {
       expect(card.props).toMatchObject({
         style: { borderColor: DEFAULT_THEME_COLOR },
       });
+    });
+  });
+
+  describe("カード番号", () => {
+    it("表示しない設定（既定）ではタイトルの前に番号を描かない", () => {
+      const card = createCard(FULL_ITEM, 200, undefined, createSettings(), 3);
+
+      expect(extractTextContent(card)).not.toContain("3");
+    });
+
+    it("表示する設定では、タイトルの直前にテーマカラーの丸いバッジで番号を描く", () => {
+      const card = createCard(
+        FULL_ITEM,
+        200,
+        undefined,
+        createSettings({ showCardNumbers: true, themeColor: "#059669" }),
+        3
+      );
+
+      const texts = extractTextContent(card);
+      expect(texts.indexOf("3")).toBe(texts.indexOf("スクワット") - 1);
+      const badge = findInnermostViewWithText(card, "3");
+      expect(getStyle(badge)).toMatchObject({ backgroundColor: "#059669" });
+    });
+
+    it("番号を省略した場合は order + 1 を表示する", () => {
+      const card = createCard(
+        createTestItem({ order: 4, title: "運動" }),
+        200,
+        undefined,
+        createSettings({ showCardNumbers: true })
+      );
+
+      expect(extractTextContent(card)).toContain("5");
+    });
+
+    it("バッジの幅を引いて、タイトルを短めに切り詰める", () => {
+      const title = "あ".repeat(TEXT_LIMITS.title);
+      const withoutNumber = createCard(createTestItem({ title }), 150);
+      const withNumber = createCard(
+        createTestItem({ title }),
+        150,
+        undefined,
+        createSettings({ showCardNumbers: true })
+      );
+
+      const findTitle = (card: unknown) =>
+        extractTextContent(card).find((t) => t.includes("あ")) ?? "";
+      expect(findTitle(withNumber).length).toBeLessThan(
+        findTitle(withoutNumber).length
+      );
+      expect(findTitle(withNumber)).toMatch(/^あ+…$/);
+    });
+
+    it("番号付きのタイトルは、バッジを除いた幅を上限にしてカードからはみ出さない", () => {
+      const card = createCard(
+        FULL_ITEM,
+        216,
+        undefined,
+        createSettings({ showCardNumbers: true })
+      );
+
+      const title = findElementsByType(card, "Text").find(
+        (el) => el.props?.children === "スクワット"
+      );
+      // コンテンツ幅 200 - バッジ 14 * 1.4 - 間隔 4 = 176.4
+      expect(getStyle(title)?.maxWidth).toBeCloseTo(176.4, 6);
+    });
+
+    it("非常に狭いカードでも、タイトルは最低 1 文字＋省略記号に切り詰める", () => {
+      const card = createCard(
+        createTestItem({ title: "あ".repeat(TEXT_LIMITS.title) }),
+        40,
+        undefined,
+        createSettings({ showCardNumbers: true, textScale: "large" })
+      );
+
+      expect(extractTextContent(card)).toContain("あ…");
+    });
+  });
+
+  describe("文字サイズ", () => {
+    function getTitleFontSize(settings: ResolvedProjectSettings) {
+      const card = createCard(FULL_ITEM, 200, undefined, settings);
+      const title = findElementsByType(card, "Text").find(
+        (el) => el.props?.children === "スクワット"
+      );
+      return getStyle(title)?.fontSize;
+    }
+
+    it("2〜4列で「大きめ」を選ぶと、タイトルが標準より大きくなる", () => {
+      expect(getTitleFontSize(createSettings({ textScale: "large" }))).toBe(18);
+      expect(getTitleFontSize(createSettings())).toBe(14);
+    });
+
+    it("1列は「大きめ」を選んでも 1 列用の拡大サイズのまま", () => {
+      expect(
+        getTitleFontSize(createSettings({ layoutType: "grid1", textScale: "large" }))
+      ).toBe(24);
+    });
+  });
+
+  describe("用量のラベル", () => {
+    it("設定したラベルを数値の下に表示する", () => {
+      const card = createCard(
+        FULL_ITEM,
+        200,
+        undefined,
+        createSettings({
+          dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+        })
+      );
+
+      const texts = extractTextContent(card);
+      expect(texts).toEqual(expect.arrayContaining(["秒数", "左右", "目安"]));
+      expect(texts).not.toContain(LABELS.reps);
+    });
+
+    it("4列の全幅の頻度行にも設定したラベルを使う", () => {
+      const card = createCard(
+        FULL_ITEM,
+        150,
+        undefined,
+        createSettings({
+          layoutType: "grid4",
+          dosageLabels: { reps: "回数", sets: "セット", frequency: "強度" },
+        })
+      );
+
+      expect(extractTextContent(card)).toContain("強度");
+    });
+  });
+
+  describe("白黒・インク節約", () => {
+    const monochrome = createSettings({
+      printColorMode: "monochrome",
+      showCardNumbers: true,
+      themeColor: "#059669",
+    });
+
+    function getPrecautionBox(card: unknown) {
+      return findInnermostViewWithText(card, LABELS.precautionTitle);
+    }
+
+    it("注意点は塗りつぶさず、白背景に濃い枠線で囲む", () => {
+      const card = createCard(FULL_ITEM, 200, undefined, monochrome);
+
+      expect(getStyle(getPrecautionBox(card))).toMatchObject({
+        backgroundColor: "#ffffff",
+        borderWidth: 1,
+        borderColor: "#334155",
+      });
+    });
+
+    it("カラーでは注意点をアンバーで塗りつぶし、枠線は付けない", () => {
+      const card = createCard(FULL_ITEM, 200, undefined, createSettings());
+
+      const style = getStyle(getPrecautionBox(card));
+      expect(style).toMatchObject({ backgroundColor: "#fef3c7" });
+      expect(style).not.toHaveProperty("borderColor");
+    });
+
+    it("テーマカラー由来の色（枠線・区切り線・番号バッジ）は slate 系に置き換える", () => {
+      const card = createCard(FULL_ITEM, 200, undefined, monochrome, 1);
+
+      expect(getStyle(card)).toMatchObject({ borderColor: "#64748b" });
+      expect(new Set(extractDividerColors(card))).toEqual(new Set(["#cbd5e1"]));
+      const badge = findInnermostViewWithText(card, "1");
+      expect(getStyle(badge)).toMatchObject({ backgroundColor: "#0f172a" });
+    });
+
+    it("用量のラベルはグレースケール印刷でも読める濃さ（slate-600）にする", () => {
+      const card = createCard(FULL_ITEM, 200, undefined, monochrome);
+
+      const label = findElementsByType(card, "Text").find(
+        (el) => el.props?.children === LABELS.reps
+      );
+      expect(getStyle(label)).toMatchObject({ color: "#475569" });
     });
   });
 });

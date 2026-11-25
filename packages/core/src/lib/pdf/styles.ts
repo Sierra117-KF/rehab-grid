@@ -5,6 +5,7 @@
 import { StyleSheet } from "@react-pdf/renderer";
 import {
   PDF_CARD_STYLE,
+  PDF_CHECK_TABLE,
   PDF_COLORS,
   PDF_DOSAGE_COLORS,
   PDF_FONT_FAMILY,
@@ -30,7 +31,9 @@ export const pdfStyles = StyleSheet.create({
     backgroundColor: PDF_COLORS.background,
   },
   header: {
-    height: PDF_HEADER_HEIGHT,
+    // 表示する項目に応じた高さを生成時に上書きする（header.ts）。
+    // 文字が見積もりより多く折り返してもカードに重ならないよう、height ではなく minHeight にしている
+    minHeight: PDF_HEADER_HEIGHT,
     marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: PDF_COLORS.border,
@@ -62,9 +65,94 @@ export const pdfStyles = StyleSheet.create({
     borderRadius: PDF_SPACING.patientNameBoxBorderRadius,
     backgroundColor: PDF_COLORS.cardBackground,
   },
-  gridContainer: {
+  dateBox: {
+    width: PDF_SPACING.dateBoxWidth,
+    height: PDF_SPACING.patientNameBoxHeight,
+    borderWidth: 1,
+    borderColor: PDF_COLORS.patientNameBoxBorder,
+    borderRadius: PDF_SPACING.patientNameBoxBorderRadius,
+    backgroundColor: PDF_COLORS.cardBackground,
+  },
+  dateText: {
+    fontSize: PDF_SPACING.dateFontSize,
+    color: PDF_COLORS.textPrimary,
+  },
+  headerSubText: {
+    marginTop: PDF_SPACING.headerRowGap,
+    fontSize: PDF_SPACING.headerSubTextFontSize,
+    lineHeight: PDF_SPACING.headerSubLineHeight,
+    color: PDF_COLORS.textSecondary,
+  },
+  overallNote: {
+    marginTop: PDF_SPACING.headerRowGap,
+    padding: PDF_SPACING.overallNotePadding,
+    borderWidth: PDF_SPACING.overallNoteBorderWidth,
+    borderColor: PDF_COLORS.border,
+    borderRadius: PDF_SPACING.patientNameBoxBorderRadius,
+    backgroundColor: PDF_COLORS.cardBackground,
+  },
+  overallNoteText: {
+    fontSize: PDF_SPACING.overallNoteFontSize,
+    lineHeight: PDF_SPACING.headerSubLineHeight,
+    color: PDF_COLORS.textPrimary,
+  },
+  footer: {
+    position: "absolute",
+    bottom: PDF_SPACING.footerBottom,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: PDF_TEXT_STYLE.footerSize,
+    color: PDF_COLORS.textSecondary,
+  },
+  checkTableTitleRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "flex-end",
+    marginBottom: PDF_CHECK_TABLE.titleMarginBottom,
+  },
+  checkTableTitle: {
+    fontSize: PDF_CHECK_TABLE.titleFontSize,
+    fontWeight: "bold",
+    color: PDF_COLORS.textPrimary,
+    marginRight: PDF_SPACING.dosageGap,
+  },
+  checkTableHint: {
+    fontSize: PDF_CHECK_TABLE.hintFontSize,
+    color: PDF_COLORS.textSecondary,
+  },
+  checkTable: {
+    // セルは右と下に罫線を引くため、表の外枠は上と左だけ引く
+    borderTopWidth: PDF_CHECK_TABLE.borderWidth,
+    borderLeftWidth: PDF_CHECK_TABLE.borderWidth,
+    borderColor: PDF_COLORS.checkTableBorder,
+    backgroundColor: PDF_COLORS.cardBackground,
+  },
+  checkTableRow: {
+    flexDirection: "row",
+  },
+  checkTableCell: {
+    // 幅と高さは列数・行の種類から決めるため、生成時に指定する（checkTable.ts）
+    justifyContent: "center",
+    borderRightWidth: PDF_CHECK_TABLE.borderWidth,
+    borderBottomWidth: PDF_CHECK_TABLE.borderWidth,
+    borderColor: PDF_COLORS.checkTableBorder,
+    paddingHorizontal: PDF_CHECK_TABLE.cellPaddingHorizontal,
+  },
+  checkTableColumnLabel: {
+    textAlign: "center",
+    color: PDF_COLORS.textPrimary,
+  },
+  checkTableName: {
+    fontSize: PDF_CHECK_TABLE.nameFontSize,
+    color: PDF_COLORS.textPrimary,
+  },
+  gridContainer: {
+    // カードは行ごとの View にまとめて縦に並べる（収まらない行は丸ごと次のページへ送られる）
+    flexDirection: "column",
+    gap: PDF_GRID_GAP,
+  },
+  gridRow: {
+    flexDirection: "row",
     gap: PDF_GRID_GAP,
   },
   card: {
@@ -93,6 +181,24 @@ export const pdfStyles = StyleSheet.create({
     marginTop: PDF_SPACING.cardTitleMarginTop,
     marginBottom: PDF_SPACING.cardTitleMarginBottom,
     textAlign: "center",
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: PDF_SPACING.cardTitleMarginTop,
+  },
+  cardNumberBadge: {
+    // 大きさと背景色はタイトルのフォントサイズと設定から決めるため、生成時に指定する（card.ts）
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: PDF_SPACING.cardNumberGap,
+    flexShrink: 0,
+  },
+  cardNumberText: {
+    fontWeight: "bold",
+    textAlign: "center",
+    color: PDF_COLORS.cardNumberText,
   },
   cardDescription: {
     fontSize: PDF_TEXT_STYLE.descriptionSize,

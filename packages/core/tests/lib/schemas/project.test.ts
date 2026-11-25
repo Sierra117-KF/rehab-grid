@@ -472,6 +472,145 @@ describe("lib/schemas/project", () => {
       expect(result.success).toBeTruthy();
       expect(result.data?.themeColor).toBe(DEFAULT_THEME_COLOR);
     });
+
+    describe("印刷スタイル（2-2）", () => {
+      const printStyle = {
+        printColorMode: "monochrome",
+        textScale: "large",
+        pageOrientation: "landscape",
+        showCardNumbers: true,
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      } as const;
+
+      it("有効な値はそのまま保持される（JSON / ZIP の書き出し → 読み込みで消えない）", () => {
+        const data = { ...createValidProjectSettings(), ...printStyle };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(data);
+      });
+
+      it("項目がない旧形式のデータもパース成功する", () => {
+        const result = projectSettingsSchema.safeParse(createValidProjectSettings());
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.printColorMode).toBeUndefined();
+        expect(result.data?.dosageLabels).toBeUndefined();
+      });
+
+      it("不正値・型違いはインポート全体を失敗させず、未指定として扱う", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          printColorMode: "sepia",
+          textScale: 2,
+          pageOrientation: null,
+          showCardNumbers: "yes",
+          dosageLabels: "秒数",
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(createValidProjectSettings());
+      });
+
+      it("用量ラベルの各キーは不正値だけを未指定にし、他のキーは保つ", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          dosageLabels: { reps: "秒数", sets: 3 },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.dosageLabels).toEqual({ reps: "秒数" });
+      });
+
+      it("用量ラベルはサニタイズし、6 文字を超えた分はカットする", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          dosageLabels: { reps: "<b>秒数</b>", frequency: "とてもながいラベル" },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.data?.dosageLabels?.reps).not.toContain("<");
+        expect(result.data?.dosageLabels?.frequency).toBe("とてもながい");
+      });
+    });
+
+    describe("ヘッダー・実施チェック表（2-3）", () => {
+      const sheetSettings = {
+        header: {
+          showPatientNameBox: false,
+          dateMode: "blank",
+          facilityName: "○○病院 リハビリテーション科",
+          therapistName: "山田",
+          overallNote: "目標：毎日続ける\n次回：12月1日",
+        },
+        checkTable: "weekly",
+      } as const;
+
+      it("有効な値はそのまま保持される（改行も保つ）", () => {
+        const data = { ...createValidProjectSettings(), ...sheetSettings };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(data);
+      });
+
+      it("項目がない旧形式のデータもパース成功する", () => {
+        const result = projectSettingsSchema.safeParse(
+          createValidProjectSettings()
+        );
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.header).toBeUndefined();
+        expect(result.data?.checkTable).toBeUndefined();
+      });
+
+      it("ヘッダー・チェック表の型違いはインポート全体を失敗させず、未指定として扱う", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          header: "○○病院",
+          checkTable: "daily",
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(createValidProjectSettings());
+      });
+
+      it("ヘッダーの各キーは不正値だけを未指定にし、他のキーは保つ", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          header: {
+            showPatientNameBox: "no",
+            dateMode: "today",
+            facilityName: "○○病院",
+            therapistName: 3,
+          },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.header).toEqual({ facilityName: "○○病院" });
+      });
+
+      it("自由入力の項目はサニタイズし、最大文字数を超えた分はカットする", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          header: {
+            facilityName: `<script>alert(1)</script>${"あ".repeat(40)}`,
+            therapistName: "い".repeat(25),
+            overallNote: "う".repeat(160),
+          },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.data?.header?.facilityName).not.toContain("<");
+        expect(result.data?.header?.facilityName).toHaveLength(30);
+        expect(result.data?.header?.therapistName).toHaveLength(20);
+        expect(result.data?.header?.overallNote).toHaveLength(150);
+      });
+    });
   });
 
   describe("projectFileSchema", () => {

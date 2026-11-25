@@ -27,12 +27,22 @@ export const TEXT_LIMITS = {
   sets: 10,
   /** 頻度の最大文字数 */
   frequency: 10,
+  /** 用量ラベル（「回数」などの欄の名前）1 つあたりの最大文字数 */
+  dosageLabel: 6,
+  /** 病院・施設名（PDF ヘッダー）の最大文字数 */
+  facilityName: 30,
+  /** 担当者名（PDF ヘッダー）の最大文字数 */
+  therapistName: 20,
+  /** 全体メモ（PDF ヘッダー）の最大文字数 */
+  overallNote: 150,
 } as const;
 
 /**
  * 共通ラベル
  *
- * Canvas/PDF両方で使用する表示文字列
+ * Canvas/PDF両方で使用する表示文字列。
+ * 用量のラベル（reps / sets / frequency）はデザイン設定で変えられるため、
+ * 描画では解決済みの settings.dosageLabels を使う（ここはデフォルト値）
  */
 export const LABELS = {
   /** 無題の運動 */
@@ -127,10 +137,68 @@ export const FONT_SIZES_SINGLE_COLUMN = {
 } as const;
 
 /**
+ * 「大きめ」の文字サイズ定義（ポイント単位）
+ *
+ * 2〜4列で文字サイズ「大きめ」を選んだときに使う（標準の約1.25倍）。
+ * 1列は FONT_SIZES_SINGLE_COLUMN で拡大済みのため使わない。
+ */
+export const FONT_SIZES_LARGE = {
+  /** タイトルのフォントサイズ（14pt → 18pt） */
+  title: 18,
+  /** 説明文のフォントサイズ（9pt → 11pt） */
+  description: 11,
+  /** 用量数値のフォントサイズ（14pt → 18pt） */
+  dosageValue: 18,
+  /** 用量ラベルのフォントサイズ（7pt → 9pt） */
+  dosageLabel: 9,
+  /** 注意点タイトルのフォントサイズ（8pt → 10pt） */
+  precautionTitle: 10,
+  /** 注意点テキストのフォントサイズ（8pt → 10pt） */
+  precautionText: 10,
+} as const;
+
+/**
+ * カード番号バッジの大きさ（タイトルのフォントサイズに対する比率）
+ *
+ * Canvas（em 指定）と PDF で同じ比率を使う
+ */
+export const CARD_NUMBER_BADGE_RATIO = {
+  /** バッジの直径 */
+  size: 1.4,
+  /** 番号の文字サイズ */
+  fontSize: 0.75,
+} as const;
+
+/**
+ * 白黒・インク節約モードの色設定（HEX値）
+ *
+ * Canvas（CSS変数の上書き）とPDFの両方で使う。
+ * 塗りつぶしをなくして枠線で区切り、グレースケール印刷でも判読できる濃さにする。
+ */
+export const MONOCHROME_COLORS = {
+  /** カードの枠線: slate-500 */
+  cardBorder: "#64748b",
+  /** 用量の区切り線: slate-300 */
+  dosageDivider: "#cbd5e1",
+  /** 用量ラベル: slate-600（slate-400 はグレースケール印刷で薄すぎるため） */
+  dosageLabel: "#475569",
+  /** カード番号バッジの背景: slate-900 */
+  cardNumberBackground: "#0f172a",
+  /** 注意点の背景: 白（塗りつぶさない） */
+  precautionBackground: "#ffffff",
+  /** 注意点の枠線: slate-700 */
+  precautionBorder: "#334155",
+  /** 注意点の見出し: slate-900 */
+  precautionTitle: "#0f172a",
+  /** 注意点の本文: slate-800 */
+  precautionText: "#1e293b",
+} as const;
+
+/**
  * 用量表示の色設定（HEX値）
  *
  * Canvas（CSS変数経由）とPDFの両方で使用する信頼できる単一の情報源
- * 数値強調型デザイン: グレースケール + blue-500アクセント
+ * 区切り線の色はテーマカラーから求める
  *
  * @remarks
  * 色を変更する場合は、このファイルと globals.css の両方を更新すること
@@ -140,6 +208,4 @@ export const DOSAGE_COLORS = {
   value: "#1e293b",
   /** ラベル色: slate-400 */
   label: "#94a3b8",
-  /** アクセント色: blue-500 */
-  accent: "#3b82f6",
 } as const;

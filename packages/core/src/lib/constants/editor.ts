@@ -4,7 +4,16 @@
  * Canvas固有のドラッグ＆ドロップのデータ型識別子やレイアウトオプションを定義
  */
 
-import { type LayoutType } from "@rehab-grid/core/types";
+import {
+  type BadgeType,
+  type CheckTableType,
+  type LayoutType,
+  type PageOrientation,
+  type PrintColorMode,
+  type ResolvedProjectSettings,
+  type SheetDateMode,
+  type TextScale,
+} from "@rehab-grid/core/types";
 import {
   Columns2,
   Columns3,
@@ -95,6 +104,64 @@ export const LAYOUT_OPTIONS: {
 ];
 
 /**
+ * 用紙の向きの選択肢（デザイン設定ダイアログ用）
+ */
+export const PAGE_ORIENTATION_OPTIONS: readonly {
+  value: PageOrientation;
+  label: string;
+}[] = [
+  { value: "auto", label: "自動" },
+  { value: "portrait", label: "縦" },
+  { value: "landscape", label: "横" },
+];
+
+/**
+ * 印刷の色づかいの選択肢（デザイン設定ダイアログ用）
+ */
+export const PRINT_COLOR_MODE_OPTIONS: readonly {
+  value: PrintColorMode;
+  label: string;
+}[] = [
+  { value: "color", label: "カラー" },
+  { value: "monochrome", label: "白黒" },
+];
+
+/**
+ * 文字サイズの選択肢（デザイン設定ダイアログ用）
+ */
+export const TEXT_SCALE_OPTIONS: readonly {
+  value: TextScale;
+  label: string;
+}[] = [
+  { value: "standard", label: "標準" },
+  { value: "large", label: "大きめ" },
+];
+
+/**
+ * PDF ヘッダーの日付欄の選択肢（デザイン設定ダイアログ用）
+ */
+export const SHEET_DATE_MODE_OPTIONS: readonly {
+  value: SheetDateMode;
+  label: string;
+}[] = [
+  { value: "none", label: "なし" },
+  { value: "blank", label: "記入欄" },
+  { value: "printed", label: "出力日を印字" },
+];
+
+/**
+ * 自主トレ実施チェック表の選択肢（デザイン設定ダイアログ用）
+ */
+export const CHECK_TABLE_OPTIONS: readonly {
+  value: CheckTableType;
+  label: string;
+}[] = [
+  { value: "none", label: "なし" },
+  { value: "weekly", label: "1週間" },
+  { value: "monthly", label: "1か月" },
+];
+
+/**
  * エディタ（Canvas）のテキストスタイル設定
  *
  * Tailwind CSSクラス名を定数化。
@@ -114,6 +181,77 @@ export const EDITOR_TEXT_STYLE = {
   /** 注意点テキストのフォントサイズ (PDF: FONT_SIZES.precautionText = 8pt) */
   precautionTextSize: "text-xs",
 } as const;
+
+/**
+ * 文字サイズ「大きめ」用エディタテキストスタイル設定
+ *
+ * 2〜4列（およびモバイル表示）で文字サイズ「大きめ」を選んだときに使う。
+ * PDF対応値は shared.ts の FONT_SIZES_LARGE を参照。
+ */
+export const EDITOR_TEXT_STYLE_LARGE = {
+  /** タイトルのフォントサイズ (PDF: 18pt) */
+  titleSize: "text-2xl",
+  /** 説明文のフォントサイズ (PDF: 11pt) */
+  descriptionSize: "text-sm",
+  /** 用量ラベルのフォントサイズ (PDF: 9pt) */
+  dosageLabelSize: "text-sm",
+  /** 用量数値のフォントサイズ (PDF: 18pt) */
+  dosageValueSize: "text-3xl",
+  /** 注意点タイトルのフォントサイズ (PDF: 10pt) */
+  precautionTitleSize: "text-sm",
+  /** 注意点テキストのフォントサイズ (PDF: 10pt) */
+  precautionTextSize: "text-sm",
+} as const;
+
+/**
+ * 用量ラベルの入力候補
+ *
+ * 先頭はデフォルト値（LABELS と同じ）。デザイン設定で候補から選ぶか自由に入力する
+ */
+export const DOSAGE_LABEL_SUGGESTIONS: Readonly<
+  Record<BadgeType, readonly string[]>
+> = {
+  reps: ["回数", "秒数", "時間", "距離"],
+  sets: ["セット", "左右", "回"],
+  frequency: ["頻度", "目安", "強度"],
+};
+
+/**
+ * 用途別のデザインプリセット
+ *
+ * @remarks
+ * 列数・テーマカラー・用量ラベルには触れない（利用者が個別に決めた値を上書きしない）。
+ * 選ぶと updateSettings で一括適用する（履歴 1 件）。
+ */
+export const DESIGN_PRESETS: readonly {
+  id: string;
+  label: string;
+  description: string;
+  settings: Partial<ResolvedProjectSettings>;
+}[] = [
+  {
+    id: "standard",
+    label: "標準カラー",
+    description: "カラー・標準の文字・番号なし",
+    settings: {
+      printColorMode: "color",
+      textScale: "standard",
+      showCardNumbers: false,
+    },
+  },
+  {
+    id: "monochrome",
+    label: "白黒・インク節約",
+    description: "白黒コピーで配る",
+    settings: { printColorMode: "monochrome" },
+  },
+  {
+    id: "elderly",
+    label: "高齢者向け",
+    description: "大きめの文字・カード番号",
+    settings: { textScale: "large", showCardNumbers: true },
+  },
+];
 
 /**
  * 1列グリッド用エディタテキストスタイル設定

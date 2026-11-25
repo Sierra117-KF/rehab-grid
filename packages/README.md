@@ -138,7 +138,7 @@ import type { EditorItem, ProjectFile } from "@rehab-grid/core/types";
 ```
 core/src/
 ├── index.ts            # バレルエクスポート
-├── hooks/              # カスタムフック（7個）
+├── hooks/              # カスタムフック（8個）
 ├── lib/
 │   ├── db/             # Dexie IndexedDB
 │   ├── store/          # Zustand ストア
@@ -204,10 +204,15 @@ const result = projectFileSchema.safeParse(importedData);
 
 | ファイル | 機能 |
 |---------|------|
+| `color.ts` | HEX 色と白の合成色生成 |
+| `date.ts` | ローカル日付の文字列整形 |
 | `export.ts` | JSON/ZIP エクスポート・インポート |
 | `image.ts` | 画像圧縮・処理（長辺1200px, WebP推奨） |
+| `imageEdit.ts` | 画像編集（左右反転・90°回転・5:3 トリミング・注釈）と編集画像の保存 |
 | `pdf.ts` | PDF生成ヘルパー |
 | `editor.ts` | エディタロジック（並び替え等） |
+| `project.ts` | インポート／テンプレート結果の適用 |
+| `search.ts` | 表記揺れを吸収したキーワード検索 |
 | `template.ts` | テンプレート読み込み |
 | `download.ts` | ファイルダウンロード処理 |
 | `debounce.ts` | debounce関数 |
@@ -304,7 +309,7 @@ ui/src/
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー |
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 |
 | `PropertyPanel` | 選択カードの編集パネル |
-| `DesignSettingsDialog` | デザイン設定（列数 1-4・テーマカラー） |
+| `DesignSettingsDialog` | デザイン設定（列数・テーマカラー・印刷スタイル・PDF のヘッダーと実施チェック表） |
 | `TemplateSelectModal` | テンプレート選択 |
 | `PdfPreviewModal` | PDFプレビュー |
 | `PrecautionSnippetDialog` | 注意点スニペット挿入 |

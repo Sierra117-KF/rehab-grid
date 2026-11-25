@@ -232,19 +232,31 @@ vi.mock("@/utils/download", () => ({
 vi.mock("@/components/editor/DesignSettingsDialog", () => ({
   DesignSettingsDialog: ({
     open,
-    onLayoutChange,
-    onThemeColorChange,
+    onSettingsChange,
   }: {
     open: boolean;
-    onLayoutChange: (layout: LayoutType) => void;
-    onThemeColorChange: (color: string) => void;
+    onSettingsChange: (
+      updates: Partial<{ layoutType: LayoutType; themeColor: string }>,
+      options?: { mergeKey?: string }
+    ) => void;
   }) =>
     open ? (
       <div data-testid="design-settings-dialog">
-        <button type="button" onClick={() => onLayoutChange("grid3")}>
+        <button
+          type="button"
+          onClick={() => onSettingsChange({ layoutType: "grid3" })}
+        >
           grid3を選択
         </button>
-        <button type="button" onClick={() => onThemeColorChange("#059669")}>
+        <button
+          type="button"
+          onClick={() =>
+            onSettingsChange(
+              { themeColor: "#059669" },
+              { mergeKey: "settings:themeColor" }
+            )
+          }
+        >
           エメラルドを選択
         </button>
       </div>

@@ -11,11 +11,13 @@ import { db } from "@rehab-grid/core/lib/db";
 import {
   type EditorItem,
   type LayoutType,
+  type PageOrientation,
   type PdfGenerationData,
   type ProjectMeta,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 
+import { getDateString } from "./date";
 import {
   convertBlobToPdfSupportedDataUrl,
   fetchSampleImageBlobs,
@@ -23,19 +25,22 @@ import {
 } from "./image";
 
 /**
- * レイアウトタイプに応じたPDFカード幅を計算
+ * レイアウトタイプと用紙の向きの設定に応じたPDFカード幅を計算
  *
  * @remarks
- * 3列以上のレイアウトでは横向きページを使用するため、
- * コンテンツ幅が広くなりカード幅も大きくなる
+ * 横向きページではコンテンツ幅が広くなりカード幅も大きくなる
  *
  * @param layoutType - グリッドレイアウトタイプ
+ * @param orientation - 用紙の向きの設定（省略時は "auto"：3列以上なら横向き）
  * @returns カード幅（ポイント単位）
  */
-export function calculatePdfCardWidth(layoutType: LayoutType): number {
+export function calculatePdfCardWidth(
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
+): number {
   const columns = LAYOUT_COLUMNS[layoutType];
   const totalGapWidth = PDF_GRID_GAP * (columns - 1);
-  const contentSize = getPdfContentSize(layoutType);
+  const contentSize = getPdfContentSize(layoutType, orientation);
   return (contentSize.width - totalGapWidth) / columns;
 }
 
@@ -162,10 +167,9 @@ export async function preparePdfGenerationData(
  * PDFファイル名を生成
  *
  * @param title - プロジェクトタイトル
- * @returns "タイトル_YYYY-MM-DD.pdf" 形式のファイル名
+ * @returns "タイトル_YYYY-MM-DD.pdf" 形式のファイル名（日付はローカル時刻）
  */
 export function generatePdfFilename(title: string): string {
   const sanitizedTitle = title.trim() || "training-sheet";
-  const dateStr = new Date().toISOString().slice(0, 10);
-  return `${sanitizedTitle}_${dateStr}.pdf`;
+  return `${sanitizedTitle}_${getDateString()}.pdf`;
 }

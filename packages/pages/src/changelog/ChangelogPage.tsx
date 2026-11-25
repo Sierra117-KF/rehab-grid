@@ -65,14 +65,14 @@ function TimelineEntry({
   return (
     <div className="relative pl-8 pb-12 last:pb-0">
       {/* タイムラインの縦線 */}
-      <div className="absolute left-[7px] top-3 bottom-0 w-px bg-linear-to-b from-primary/50 via-white/10 to-transparent" />
+      <div className="absolute left-[7px] top-3 bottom-0 w-px bg-linear-to-b from-primary/50 via-border to-transparent" />
 
       {/* タイムラインのドット */}
       <div
         className={`absolute left-0 top-1.5 size-4 rounded-full border-2 ${
           isFirst
             ? "bg-primary border-primary shadow-[0_0_12px_rgba(var(--color-primary-rgb),0.5)]"
-            : "bg-background border-white/20"
+            : "bg-background border-border"
         }`}
       />
 
@@ -122,7 +122,7 @@ function TimelineEntry({
 function EmptyState() {
   return (
     <div className="text-center py-16 px-4">
-      <div className="inline-flex items-center justify-center size-16 rounded-full bg-muted/50 border border-white/10 mb-6">
+      <div className="inline-flex items-center justify-center size-16 rounded-full bg-muted/50 border border-border mb-6">
         <Sparkles className="size-8 text-muted-foreground" />
       </div>
       <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -177,7 +177,7 @@ export function ChangelogPage() {
 
       {/* フッター */}
       {entries.length > 0 && (
-        <footer className="mt-16 pt-8 border-t border-white/5">
+        <footer className="mt-16 pt-8 border-t border-border/60">
           <p className="text-sm text-muted-foreground">
             全 {entries.length} 件の更新
           </p>

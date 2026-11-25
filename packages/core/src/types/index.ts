@@ -14,7 +14,7 @@ export type {
   UnifiedImageRecord,
 } from "./editor";
 export type { NavLink } from "./layout";
-export type { ModalState } from "./modal";
+export type { DesignSettingsSection, ModalState } from "./modal";
 export type {
   PdfGenerationData,
   PdfGenerationState,
@@ -22,12 +22,19 @@ export type {
   PdfWorkerResponse,
 } from "./pdf";
 export type {
+  CheckTableType,
+  DosageLabels,
   ImageRecord,
   ImportResult,
+  PageOrientation,
+  PrintColorMode,
   ProjectFile,
   ProjectMeta,
   ProjectRecord,
   ProjectSettings,
   ResolvedProjectSettings,
+  SheetDateMode,
+  SheetHeaderSettings,
+  TextScale,
 } from "./project";
 export type { TemplateMetadata } from "./template";

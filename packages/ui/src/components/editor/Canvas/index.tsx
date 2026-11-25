@@ -20,21 +20,55 @@ import {
 import {
   ANIMATION_STAGGER_DELAY,
   BUTTON_ADD_CARD,
+  createPageBreakLabel,
   DOSAGE_DIVIDER_OPACITY,
   IMAGE_DRAG_TYPE,
   LABELS,
   LAYOUT_COLUMNS,
+  MONOCHROME_COLORS,
 } from "@rehab-grid/core/lib/constants";
+import { type PdfLayoutEstimate } from "@rehab-grid/core/lib/pdf/layout";
 import { cn } from "@rehab-grid/core/lib/utils";
-import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
+import type {
+  CheckTableType,
+  DosageLabels,
+  EditorItem,
+  LayoutType,
+  PrintColorMode,
+  SheetHeaderSettings,
+  TextScale,
+} from "@rehab-grid/core/types";
 import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { reorderEditorItems } from "@rehab-grid/core/utils/editor";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 
 import { EmptyState } from "./EmptyState";
-import { SortableCard } from "./SortableCard";
+import { PageEstimateBadge } from "./PageEstimateBadge";
+import { SheetSummary } from "./SheetSummary";
+import { type InlineEditUpdates, SortableCard } from "./SortableCard";
+
+/**
+ * カードの間に出す改ページの目安（グリッドの行の切れ目に、横幅いっぱいで置く）
+ *
+ * @remarks
+ * 一覧（role="list"）の子は listitem だけにするため、支援技術からは隠す
+ * （ページ数と改ページの位置はキャンバス上部の目安で伝わる）
+ */
+function PageBreakDivider({ page }: { page: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="page-break"
+      className="col-span-full flex items-center gap-2 text-xs font-medium text-amber-700"
+    >
+      <span className="h-px flex-1 bg-amber-400" />
+      {createPageBreakLabel(page)}
+      <span className="h-px flex-1 bg-amber-400" />
+    </div>
+  );
+}
 
 /**
  * CSS 変数（--xxx）を含められる style の型
@@ -42,14 +76,67 @@ import { SortableCard } from "./SortableCard";
 type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
- * 運動カードの枠線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ * カードの色を持つ CSS 変数の名前（既定値は globals.css。SortableCard がユーティリティやインライン style で参照する）
  */
-const CARD_BORDER_CSS_VARIABLE = "--card-border-color";
+const CARD_CSS_VARIABLES = {
+  /** 運動カードの枠線 */
+  cardBorder: "--card-border-color",
+  /** 用量の区切り線 */
+  dosageDivider: "--dosage-accent-light",
+  /** 用量のラベル */
+  dosageLabel: "--dosage-label",
+  /** カード番号バッジの背景 */
+  cardNumberBackground: "--card-number-bg",
+  /** 注意点の背景 */
+  precautionBackground: "--precaution-bg",
+  /** 注意点の枠線 */
+  precautionBorder: "--precaution-border",
+  /** 注意点の見出し */
+  precautionTitle: "--precaution-title",
+  /** 注意点の本文 */
+  precautionText: "--precaution-text",
+} as const;
 
 /**
- * 用量の区切り線の色を持つ CSS 変数（SortableCard がインライン style で参照する）
+ * テーマカラーと印刷の色づかいから、カードの色を持つ CSS 変数を求める
+ *
+ * @remarks
+ * 変数はスクロールコンテナに設定し、子孫のカードに効かせる。
+ * 白黒モードは PDF と同じ MONOCHROME_COLORS を使う。
+ *
+ * @param themeColor - テーマカラー（省略時は globals.css の既定色のまま）
+ * @param printColorMode - 印刷の色づかい
+ * @returns style に渡す CSS 変数（上書きしない場合は undefined）
  */
-const DOSAGE_DIVIDER_CSS_VARIABLE = "--dosage-accent-light";
+function getCardColorVariables(
+  themeColor: string | undefined,
+  printColorMode: PrintColorMode
+): CssVariableStyle | undefined {
+  if (printColorMode === "monochrome") {
+    return {
+      [CARD_CSS_VARIABLES.cardBorder]: MONOCHROME_COLORS.cardBorder,
+      [CARD_CSS_VARIABLES.dosageDivider]: MONOCHROME_COLORS.dosageDivider,
+      [CARD_CSS_VARIABLES.dosageLabel]: MONOCHROME_COLORS.dosageLabel,
+      [CARD_CSS_VARIABLES.cardNumberBackground]:
+        MONOCHROME_COLORS.cardNumberBackground,
+      [CARD_CSS_VARIABLES.precautionBackground]:
+        MONOCHROME_COLORS.precautionBackground,
+      [CARD_CSS_VARIABLES.precautionBorder]: MONOCHROME_COLORS.precautionBorder,
+      [CARD_CSS_VARIABLES.precautionTitle]: MONOCHROME_COLORS.precautionTitle,
+      [CARD_CSS_VARIABLES.precautionText]: MONOCHROME_COLORS.precautionText,
+    };
+  }
+  if (themeColor === undefined) return undefined;
+  return {
+    [CARD_CSS_VARIABLES.cardBorder]: themeColor,
+    // 用量の区切り線は PDF と同じく白地と合成した不透明色
+    [CARD_CSS_VARIABLES.dosageDivider]: mixWithWhite(
+      themeColor,
+      DOSAGE_DIVIDER_OPACITY
+    ),
+    [CARD_CSS_VARIABLES.cardNumberBackground]: themeColor,
+  };
+}
 
 /**
  * Canvas コンポーネントの Props
@@ -61,8 +148,41 @@ export type CanvasProps = {
   onItemsChange: (items: EditorItem[]) => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（#RRGGBB。カードの枠線と用量の区切り線の色に使う。省略時は globals.css の既定色） */
+  /** テーマカラー（#RRGGBB。カードの枠線・用量の区切り線・カード番号の色に使う。省略時は globals.css の既定色） */
   themeColor?: string;
+  /** 印刷の色づかい（白黒ではテーマカラーの代わりに slate 系の色を使い、注意点の塗りつぶしをなくす。省略時はカラー） */
+  printColorMode?: PrintColorMode;
+  /** カード内の文字サイズ（省略時は標準） */
+  textScale?: TextScale;
+  /** カード番号を表示するか（省略時は表示しない） */
+  showCardNumbers?: boolean;
+  /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
+  dosageLabels?: DosageLabels;
+  /** PDF ヘッダーの項目（キャンバス上部の要約表示に使う） */
+  sheetHeader?: SheetHeaderSettings;
+  /** 実施チェック表（キャンバス上部の要約表示に使う） */
+  checkTable?: CheckTableType;
+  /**
+   * キャンバス上部の要約が押されたときのコールバック（ヘッダー・チェック表の設定を開く）
+   *
+   * @remarks
+   * sheetHeader・checkTable と一緒に渡したときだけ、カードがあれば要約を表示する
+   */
+  onSheetSettingsClick?: () => void;
+  /**
+   * PDF のページ収容の見積もり（キャンバス上部の A4 ページ数の目安と、カードの間の改ページの目安に使う）
+   *
+   * @remarks
+   * items と同じ並び順で見積もったもの。省略時は目安を出さない
+   */
+  pageEstimate?: PdfLayoutEstimate;
+  /**
+   * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
+   *
+   * @remarks
+   * 省略時はカード上で編集できない
+   */
+  onItemInlineEdit?: (itemId: string, updates: InlineEditUpdates) => void;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
   /** アイテムが選択されたときのコールバック */
@@ -79,6 +199,10 @@ export type CanvasProps = {
   canAddCard?: boolean;
   /** カードの複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
   onItemDuplicate?: (itemId: string) => void;
+  /** カードの画像の左右反転ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onItemImageFlip?: (itemId: string) => void;
+  /** 画像の処理中かどうか（処理中は左右反転ボタンを押せない） */
+  isImageProcessing?: boolean;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -111,6 +235,15 @@ export function Canvas({
   onItemsChange,
   layoutType,
   themeColor,
+  printColorMode = "color",
+  textScale = "standard",
+  showCardNumbers = false,
+  dosageLabels,
+  sheetHeader,
+  checkTable,
+  onSheetSettingsClick,
+  pageEstimate,
+  onItemInlineEdit,
   selectedItemId,
   onItemSelect,
   onAddCard,
@@ -119,6 +252,8 @@ export function Canvas({
   onAddCardWithImage,
   canAddCard = true,
   onItemDuplicate,
+  onItemImageFlip,
+  isImageProcessing = false,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -202,17 +337,29 @@ export function Canvas({
     [onItemSelect]
   );
 
-  // テーマカラーをカードの枠線と用量の区切り線（PDF と同じく白地と合成した不透明色）に反映する
-  const themeStyle: CssVariableStyle | undefined =
-    themeColor === undefined
-      ? undefined
-      : {
-          [CARD_BORDER_CSS_VARIABLE]: themeColor,
-          [DOSAGE_DIVIDER_CSS_VARIABLE]: mixWithWhite(
-            themeColor,
-            DOSAGE_DIVIDER_OPACITY
-          ),
-        };
+  // テーマカラー・白黒モードをカードの色（CSS 変数）に反映する
+  const themeStyle = getCardColorVariables(themeColor, printColorMode);
+
+  const sheetSummary =
+    sheetHeader !== undefined &&
+    checkTable !== undefined &&
+    onSheetSettingsClick !== undefined ? (
+      <SheetSummary
+        header={sheetHeader}
+        checkTable={checkTable}
+        onClick={onSheetSettingsClick}
+      />
+    ) : null;
+
+  // 改ページの目安（各ページの先頭のカードの位置 → ページ番号）。モバイルは常に 1 列表示で
+  // グリッドの行の切れ目と PDF の改ページが一致しないため、区切り線を出さない
+  const pageStartByIndex = new Map(
+    isMobile || pageEstimate === undefined
+      ? []
+      : pageEstimate.firstCardIndexByPage
+          .map((index, page) => [index, page + 1] as const)
+          .filter(([index]) => index > 0)
+  );
 
   // アクティブなアイテム（ドラッグ中のオーバーレイ用）
   const activeItem =
@@ -316,6 +463,16 @@ export function Canvas({
         )}
         style={themeStyle}
       >
+        {/* ヘッダー・チェック表はキャンバスに描かないため、PDF に出る内容の要約と A4 ページ数の目安を出す */}
+        {items.length > 0 && (sheetSummary !== null || pageEstimate !== undefined) ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {sheetSummary}
+            {pageEstimate !== undefined ? (
+              <PageEstimateBadge estimate={pageEstimate} />
+            ) : null}
+          </div>
+        ) : null}
+
         {items.length === 0 ? (
           <EmptyState onAddCard={handleAddCardClick} canAddCard={canAddCard} />
         ) : (
@@ -338,8 +495,11 @@ export function Canvas({
                 }}
               >
                 {items.map((item, index) => (
+                  <Fragment key={item.id}>
+                    {pageStartByIndex.has(index) ? (
+                      <PageBreakDivider page={pageStartByIndex.get(index) ?? 0} />
+                    ) : null}
                   <div
-                    key={item.id}
                     role="listitem"
                     style={{
                       animationDelay: `${String(index * ANIMATION_STAGGER_DELAY)}s`,
@@ -362,12 +522,27 @@ export function Canvas({
                           ? () => onItemDuplicate(item.id)
                           : undefined
                       }
+                      onFlipImage={
+                        onItemImageFlip
+                          ? () => onItemImageFlip(item.id)
+                          : undefined
+                      }
+                      isImageProcessing={isImageProcessing}
                       onImageAreaClick={onImageAreaClick}
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}
                       layoutType={layoutType}
+                      textScale={textScale}
+                      cardNumber={showCardNumbers ? index + 1 : undefined}
+                      dosageLabels={dosageLabels}
+                      onInlineEdit={
+                        !isMobile && onItemInlineEdit
+                          ? (updates) => onItemInlineEdit(item.id, updates)
+                          : undefined
+                      }
                     />
                   </div>
+                  </Fragment>
                 ))}
               </div>
             </SortableContext>

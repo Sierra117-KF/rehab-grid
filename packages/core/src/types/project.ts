@@ -25,6 +25,62 @@ export type ProjectMeta = {
 };
 
 /**
+ * 印刷の色づかい（color: カラー / monochrome: 白黒・インク節約）
+ */
+export type PrintColorMode = "color" | "monochrome";
+
+/**
+ * カード内の文字サイズ（standard: 標準 / large: 大きめ）
+ */
+export type TextScale = "standard" | "large";
+
+/**
+ * PDF の用紙の向き（auto: 1〜2列は縦・3〜4列は横）
+ */
+export type PageOrientation = "auto" | "portrait" | "landscape";
+
+/**
+ * 用量（回数・セット・頻度）の欄に表示するラベル
+ */
+export type DosageLabels = {
+  /** 回数の欄のラベル（例: 「秒数」「時間」） */
+  reps: string;
+  /** セットの欄のラベル（例: 「左右」） */
+  sets: string;
+  /** 頻度の欄のラベル（例: 「目安」「強度」） */
+  frequency: string;
+};
+
+/**
+ * PDF ヘッダーの日付欄（none: なし / blank: 手書きの記入欄 / printed: 出力日を印字）
+ */
+export type SheetDateMode = "none" | "blank" | "printed";
+
+/**
+ * PDF ヘッダー（1 ページ目の先頭）に出す項目
+ *
+ * @remarks
+ * 患者氏名は入力・印字しない（氏名欄は印刷後に手書きする空枠）
+ */
+export type SheetHeaderSettings = {
+  /** 氏名欄（手書き用の空枠）を出すか */
+  showPatientNameBox: boolean;
+  /** 日付欄 */
+  dateMode: SheetDateMode;
+  /** 病院・施設名 */
+  facilityName: string;
+  /** 担当者名 */
+  therapistName: string;
+  /** 全体メモ（目標・次回来院日など。改行可） */
+  overallNote: string;
+};
+
+/**
+ * 自主トレ実施チェック表（none: なし / weekly: 1週間 / monthly: 1か月）
+ */
+export type CheckTableType = "none" | "weekly" | "monthly";
+
+/**
  * プロジェクトの設定
  *
  * @remarks
@@ -34,8 +90,22 @@ export type ProjectMeta = {
 export type ProjectSettings = {
   /** グリッドレイアウトタイプ */
   layoutType: LayoutType;
-  /** テーマカラー（#RRGGBB。用量の区切り線などの指導箋の見た目に使う） */
+  /** テーマカラー（#RRGGBB。カードの枠線などの指導箋の見た目に使う） */
   themeColor: string;
+  /** 印刷の色づかい（デフォルト: "color"） */
+  printColorMode?: PrintColorMode;
+  /** カード内の文字サイズ（デフォルト: "standard"。1列は常に大きめ） */
+  textScale?: TextScale;
+  /** PDF の用紙の向き（デフォルト: "auto"。1列は常に縦） */
+  pageOrientation?: PageOrientation;
+  /** カード番号を表示するか（デフォルト: false） */
+  showCardNumbers?: boolean;
+  /** 用量のラベル（未指定・空欄のキーは LABELS の reps / sets / frequency） */
+  dosageLabels?: Partial<DosageLabels>;
+  /** PDF ヘッダーの項目（未指定のキーは氏名欄あり・日付なし・空欄） */
+  header?: Partial<SheetHeaderSettings>;
+  /** 自主トレ実施チェック表（デフォルト: "none"） */
+  checkTable?: CheckTableType;
 };
 
 /**
@@ -44,7 +114,14 @@ export type ProjectSettings = {
  * @remarks
  * ストアと PDF 生成はこの型で設定を持つため、各所でフォールバックを書かずに済む
  */
-export type ResolvedProjectSettings = Required<ProjectSettings>;
+export type ResolvedProjectSettings = Required<
+  Omit<ProjectSettings, "dosageLabels" | "header">
+> & {
+  /** 用量のラベル（全キーがそろっている） */
+  dosageLabels: DosageLabels;
+  /** PDF ヘッダーの項目（全キーがそろっている） */
+  header: SheetHeaderSettings;
+};
 
 /**
  * プロジェクトファイル全体の型

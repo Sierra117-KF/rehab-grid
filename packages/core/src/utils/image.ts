@@ -15,8 +15,8 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import imageCompression from "browser-image-compression";
 
-/** 圧縮後の長辺最大サイズ（px） */
-const MAX_WIDTH_OR_HEIGHT = 1200;
+/** 圧縮後の長辺最大サイズ（px）。画像編集の出力サイズにも使う */
+export const MAX_WIDTH_OR_HEIGHT = 1200;
 
 /** 圧縮品質（0-1） */
 const COMPRESSION_QUALITY = 0.8;
@@ -73,9 +73,12 @@ export function validateImageFile(file: File): ValidationResult {
 /**
  * WebP形式がサポートされているかチェック
  *
+ * @remarks
+ * Safari など `canvas.toBlob` / `toDataURL` で WebP を書き出せない環境では false になる
+ *
  * @returns WebPサポート状況
  */
-function supportsWebP(): boolean {
+export function supportsWebP(): boolean {
   // サーバーサイドでは false を返す
   if (typeof document === "undefined") {
     return false;

@@ -99,17 +99,18 @@ packages/core/
 │   │   ├── changelog/      # 更新履歴エントリ
 │   │   ├── constants/      # 定数定義（12モジュール）
 │   │   ├── db/             # IndexedDB（Dexie）
-│   │   ├── pdf/            # PDF ドキュメント要素の組み立て（Worker 専用）
+│   │   ├── pdf/            # PDF ドキュメント要素の組み立て（layout/metrics はメインスレッド共用）
 │   │   ├── schemas/        # Zod スキーマ
 │   │   ├── store/          # Zustand ストア
 │   │   ├── templates/      # テンプレートメタデータ
 │   │   ├── platform.ts     # プラットフォーム検出
+│   │   ├── settings.ts     # プロジェクト設定のデフォルト値補完
 │   │   └── utils.ts        # cn() 関数
 │   ├── types/              # 型定義（8モジュール）
-│   ├── utils/              # ユーティリティ関数（9モジュール）
+│   ├── utils/              # ユーティリティ関数（13モジュール）
 │   └── workers/            # Web Worker
 │       └── pdf.worker.ts
-├── tests/                  # テストファイル（21個）
+├── tests/                  # テストファイル
 ├── package.json
 ├── tsconfig.json
 └── vitest.config.ts
@@ -239,7 +240,8 @@ const {
   closeSecurityDisclaimer,
   checkDisclaimerRequired,
   isDesignSettingsOpen, // デザイン設定ダイアログ（ヘッダー以外からも開けるようストアで持つ）
-  setDesignSettingsOpen,
+  designSettingsSection, // 開いたときに表示するセクション（"sheet" = ヘッダー・チェック表）
+  setDesignSettingsOpen, // (open, section?) — キャンバスの要約からは setDesignSettingsOpen(true, "sheet")
 } = useModalStore();
 ```
 
@@ -331,15 +333,19 @@ type TemplateMetadata = {
 
 | ファイル | 主な関数 | 用途 |
 |---------|---------|------|
+| `color.ts` | `mixWithWhite()` | HEX 色と白の合成色生成 |
+| `date.ts` | `getDateString()`, `formatJapaneseDate()` | ローカル日付の文字列整形 |
 | `debounce.ts` | `debounce()` | 関数呼び出しの遅延実行 |
 | `download.ts` | `downloadBlob()`, `downloadJSON()` | ファイルダウンロード |
-| `editor.ts` | `getDosageBadgeLayout()` | バッジレイアウト計算 |
-| `export.ts` | `exportToJSON()`, `exportToZip()`, `importProject()` | プロジェクトのエクスポート・インポート |
+| `editor.ts` | `reorderEditorItems()`, `getDosageBadgeLayout()` | エディタ並び替え・バッジレイアウト計算 |
+| `export.ts` | `exportToJSON()`, `exportToZIP()`, `importProject()` | プロジェクトのエクスポート・インポート |
 | `externalLink.ts` | `isAllowedExternalUrl()` | 外部リンク検証 |
 | `image.ts` | `processAndSaveImage()`, `isValidImageBlob()`, `partitionImageIds()` | 画像処理・検証 |
-| `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()` | PDF レイアウト計算 |
-| `project.ts` | プロジェクト操作 | プロジェクトデータ操作 |
-| `template.ts` | テンプレート読み込み | テンプレート適用処理 |
+| `imageEdit.ts` | `flipAndSaveImage()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
+| `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()`, `preparePdfGenerationData()` | PDF レイアウト計算・生成データ準備 |
+| `project.ts` | `applyImportResult()` | インポート／テンプレート結果の適用 |
+| `search.ts` | `normalizeSearchText()`, `matchesSearchQuery()` | 表記揺れを吸収したキーワード検索 |
+| `template.ts` | `loadTemplate()` | テンプレート読み込み |
 
 ### 使用例
 
@@ -474,14 +480,17 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 ```
 lib/pdf/
 ├── index.ts      # buildPdfDocument を export
-├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う）
+├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる）
 ├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）
-├── header.ts     # createHeader（タイトル・氏名欄）
-├── metrics.ts    # 画像サイズ・フォントサイズ・1行あたり文字数の計算
+├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ）
+├── footer.ts     # createFooter（2ページ以上のときのページ番号。fixed で全ページに描画）
+├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ、1か月は A4 横の別ページ）
+├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・ヘッダーの高さの計算
+├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード）
 └── styles.ts     # StyleSheet 定義
 ```
 
-`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。
+`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。ただし `layout.ts`（と `metrics.ts`）は依存しないため、エディタのメインスレッドから `@rehab-grid/core/lib/pdf/layout` で直接読み込む。見積もりと実際の PDF の一致は `tests/lib/pdf/layout.render.test.ts`（実際のフォントで react-pdf のレイアウトを計算する）で確かめている。
 
 ```typescript
 // Worker へのメッセージ
@@ -503,7 +512,7 @@ type PdfWorkerResponse =
 const { state, generatePdf, cancel } = usePdfWorker();
 
 // preparePdfGenerationData で画像を data URL に変換してから渡す
-const data = await preparePdfGenerationData(items, meta, layoutType);
+const data = await preparePdfGenerationData(items, meta, settings);
 const blob = data ? await generatePdf(data) : null;
 
 // state: { isGenerating, progress, error }
@@ -538,18 +547,22 @@ const blob = data ? await generatePdf(data) : null;
 tests/
 ├── hooks/
 │   ├── useCanvasImages.test.tsx
+│   ├── useEditorShortcuts.test.ts
 │   ├── useImageUpload.test.tsx
 │   ├── useMediaQuery.test.tsx
 │   ├── useObjectUrls.test.tsx
 │   ├── usePasteImage.test.tsx
-│   └── usePdfWorker.test.tsx
+│   └── usePdfWorker.test.ts
 ├── lib/
 │   ├── db/
 │   │   └── index.test.ts
 │   ├── pdf/
 │   │   ├── card.test.ts
+│   │   ├── checkTable.test.ts
 │   │   ├── document.test.ts
 │   │   ├── header.test.ts
+│   │   ├── layout.render.test.ts
+│   │   ├── layout.test.ts
 │   │   ├── metrics.test.ts
 │   │   └── pdfTestUtils.ts
 │   ├── schemas/
@@ -558,16 +571,22 @@ tests/
 │   ├── store/
 │   │   ├── useEditorStore.test.ts
 │   │   └── useModalStore.test.ts
-│   └── templates/
-│       └── index.test.ts
+│   ├── templates/
+│   │   └── index.test.ts
+│   ├── platform.test.ts
+│   └── settings.test.ts
 ├── utils/
+│   ├── color.test.ts
+│   ├── date.test.ts
 │   ├── debounce.test.ts
 │   ├── download.test.ts
 │   ├── editor.test.ts
 │   ├── export.test.ts
 │   ├── image.test.ts
+│   ├── imageEdit.test.ts
 │   ├── pdf.test.ts
 │   ├── project.test.ts
+│   ├── search.test.ts
 │   └── template.test.ts
 └── workers/
     └── pdf.worker.test.ts

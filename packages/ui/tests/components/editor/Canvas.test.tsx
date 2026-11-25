@@ -3,10 +3,17 @@ import {
   CANVAS_EMPTY_DESCRIPTION,
   CANVAS_EMPTY_TITLE,
   DUPLICATE_TOOLTIP,
+  EDITOR_TEXT_STYLE_LARGE,
+  EDITOR_TEXT_STYLE_SINGLE_COLUMN,
+  IMAGE_FLIP_TOOLTIP,
+  INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LAYOUT_COLUMNS,
   MOBILE_TAP_TO_SELECT_IMAGE,
+  SHEET_SUMMARY_BUTTON_LABEL,
+  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
 import { Canvas, type CanvasProps } from "@rehab-grid/ui/components/editor/Canvas";
 import { render, screen } from "@testing-library/react";
@@ -303,6 +310,67 @@ describe("Canvas", () => {
     });
   });
 
+  describe("左右反転ボタン（ホバーアクション）", () => {
+    const itemWithImage = createTestItem({
+      id: "item-1",
+      imageSource: "img-123",
+    });
+    const imageUrls = new Map([["img-123", "blob:http://example.com/image"]]);
+
+    it("クリックで onItemImageFlip(itemId) が呼ばれ、カードの選択は起きない", async () => {
+      const user = userEvent.setup();
+      const onItemImageFlip = vi.fn();
+      const props = setupCanvas({
+        items: [itemWithImage],
+        imageUrls,
+        onItemImageFlip,
+      });
+
+      await user.click(screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP }));
+
+      expect(onItemImageFlip).toHaveBeenCalledWith("item-1");
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("画像の処理中は押せない", () => {
+      setupCanvas({
+        items: [itemWithImage],
+        imageUrls,
+        onItemImageFlip: vi.fn(),
+        isImageProcessing: true,
+      });
+
+      expect(
+        screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP })
+      ).toBeDisabled();
+    });
+
+    it.each([
+      ["画像がない", createTestItem({ id: "item-1" }), imageUrls],
+      // 参照切れ画像（imageSource はあるが URL がない）は反転できない
+      ["画像の URL がない", itemWithImage, new Map<string, string>()],
+    ])("%s カードには表示しない", (_, item, urls) => {
+      setupCanvas({ items: [item], imageUrls: urls, onItemImageFlip: vi.fn() });
+
+      expect(
+        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
+      ).not.toBeInTheDocument();
+    });
+
+    it("モバイルでは表示しない", () => {
+      setupCanvas({
+        items: [itemWithImage],
+        imageUrls,
+        onItemImageFlip: vi.fn(),
+        isMobile: true,
+      });
+
+      expect(
+        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("レイアウト", () => {
     it.each([
       ["grid1", 1],
@@ -353,6 +421,345 @@ describe("Canvas", () => {
 
       expect(getCanvasVariable("--card-border-color")).toBe("");
       expect(getCanvasVariable("--dosage-accent-light")).toBe("");
+    });
+
+    it("カード番号バッジの背景もテーマカラーで上書きする", () => {
+      setupCanvas({ items: [createTestItem()], themeColor: "#059669" });
+
+      expect(getCanvasVariable("--card-number-bg")).toBe("#059669");
+    });
+
+    it("白黒モードではテーマカラーの代わりに slate 系の色にし、注意点の塗りつぶしを白・枠線を濃い色にする", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        themeColor: "#059669",
+        printColorMode: "monochrome",
+      });
+
+      expect(getCanvasVariable("--card-border-color")).toBe("#64748b");
+      expect(getCanvasVariable("--dosage-accent-light")).toBe("#cbd5e1");
+      expect(getCanvasVariable("--dosage-label")).toBe("#475569");
+      expect(getCanvasVariable("--card-number-bg")).toBe("#0f172a");
+      expect(getCanvasVariable("--precaution-bg")).toBe("#ffffff");
+      expect(getCanvasVariable("--precaution-border")).toBe("#334155");
+    });
+  });
+
+  describe("印刷スタイル", () => {
+    const items = [
+      createTestItem({ id: "a", title: "運動A", order: 0 }),
+      createTestItem({ id: "b", title: "運動B", order: 1 }),
+    ];
+
+    it("カード番号を表示する設定では、運動名の前に並び順の番号を表示する", () => {
+      setupCanvas({ items, showCardNumbers: true });
+
+      expect(
+        screen.getByRole("heading", { level: 3, name: "1運動A" })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { level: 3, name: "2運動B" })
+      ).toBeInTheDocument();
+    });
+
+    it("カード番号は既定では表示しない", () => {
+      setupCanvas({ items });
+
+      expect(
+        screen.getByRole("heading", { level: 3, name: "運動A" })
+      ).toBeInTheDocument();
+    });
+
+    it("用量のラベルを設定値で表示する", () => {
+      setupCanvas({
+        items: [
+          createTestItem({
+            dosages: { reps: "30", sets: "2", frequency: "毎日" },
+          }),
+        ],
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      });
+
+      expect(screen.getByText("秒数")).toBeInTheDocument();
+      expect(screen.getByText("左右")).toBeInTheDocument();
+      expect(screen.getByText("目安")).toBeInTheDocument();
+      expect(screen.queryByText(LABELS.reps)).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ["2列で「大きめ」", "grid2", false, EDITOR_TEXT_STYLE_LARGE.titleSize],
+      ["モバイルの1列表示で「大きめ」", "grid1", true, EDITOR_TEXT_STYLE_LARGE.titleSize],
+      ["デスクトップの1列は「大きめ」でも1列用", "grid1", false, EDITOR_TEXT_STYLE_SINGLE_COLUMN.titleSize],
+    ] as const)("%s の文字サイズで表示する", (_, layoutType, isMobile, titleClass) => {
+      setupCanvas({
+        items: [createTestItem({ title: "運動A" })],
+        layoutType,
+        isMobile,
+        textScale: "large",
+      });
+
+      expect(screen.getByRole("heading", { level: 3 })).toHaveClass(titleClass);
+    });
+  });
+
+  describe("ヘッダー・チェック表の要約", () => {
+    const defaultHeader = resolveProjectSettings(undefined).header;
+
+    /** 要約のボタン（title 属性で特定する） */
+    function getSummaryButton() {
+      return screen.getByTitle(SHEET_SUMMARY_BUTTON_LABEL);
+    }
+
+    it("既定の設定では「氏名欄」と「チェック表：なし」を表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent(
+        "ヘッダー：氏名欄／チェック表：なし"
+      );
+    });
+
+    it("入力した項目と選んだチェック表を並べて表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: {
+          ...defaultHeader,
+          facilityName: "○○病院",
+          dateMode: "blank",
+          overallNote: "次回：12月1日",
+        },
+        checkTable: "weekly",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent(
+        "ヘッダー：病院・施設名・日付欄・氏名欄・メモ／チェック表：1週間"
+      );
+    });
+
+    it("何も出さないときは「タイトルのみ」と表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: { ...defaultHeader, showPatientNameBox: false },
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent("ヘッダー：タイトルのみ");
+    });
+
+    it("押すと設定を開くコールバックを呼び、カードの選択解除は起こさない", async () => {
+      const user = userEvent.setup();
+      const props = setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      await user.click(getSummaryButton());
+
+      expect(props.onSheetSettingsClick).toHaveBeenCalledTimes(1);
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("カードがないときは表示しない", () => {
+      setupCanvas({
+        items: [],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(
+        screen.queryByTitle(SHEET_SUMMARY_BUTTON_LABEL)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("A4 ページ数の目安", () => {
+    /** 3 枚のカード */
+    const threeItems = [1, 2, 3].map((n) =>
+      createTestItem({ id: `item-${String(n)}`, order: n - 1, title: `運動${String(n)}` })
+    );
+
+    it("1 ページに収まるときは「目安: A4 1ページ」だけを表示し、区切り線は出さない", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 1,
+          firstCardIndexByPage: [0],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 1ページ"
+      );
+      expect(screen.queryByTestId("page-break")).not.toBeInTheDocument();
+    });
+
+    it("2 ページ以上になるときは次のページの先頭のカードを案内し、その手前に区切り線を出す", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 2],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 2ページ（3枚目から2ページ目）"
+      );
+      const divider = screen.getByTestId("page-break");
+      expect(divider).toHaveTextContent("ここから2ページ目（目安）");
+      // 区切り線は 2 枚目と 3 枚目のカードの間（一覧の項目としては数えない）
+      expect(screen.getByTestId("canvas-grid")).toHaveTextContent(
+        /運動2.*ここから2ページ目（目安）.*運動3/
+      );
+      expect(divider).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("カードは 1 ページに収まり、チェック表だけ次のページになるときはそれを案内する", () => {
+      setupCanvas({
+        items: threeItems,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0],
+          checkTablePage: 2,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toHaveTextContent(
+        "目安: A4 2ページ（チェック表は2ページ目）"
+      );
+    });
+
+    it("モバイルでは目安だけを表示し、区切り線は出さない", () => {
+      setupCanvas({
+        items: threeItems,
+        isMobile: true,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 2],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-estimate")).toBeInTheDocument();
+      expect(screen.queryByTestId("page-break")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("カード上のインライン編集", () => {
+    const item = createTestItem({
+      title: "スクワット",
+      dosages: { reps: "10回", sets: "3セット", frequency: "" },
+    });
+
+    function setupSelected(overrides: Partial<CanvasProps> = {}) {
+      return setupCanvas({
+        items: [item],
+        selectedItemId: item.id,
+        onItemInlineEdit: vi.fn(),
+        ...overrides,
+      });
+    }
+
+    it("選択中のカードのタイトルをダブルクリックすると入力欄になり、Enter で 1 回だけ確定する", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      const input = screen.getByLabelText(INLINE_EDIT_TITLE_LABEL);
+      expect(input).toHaveValue("スクワット");
+      expect(input).toHaveAttribute("maxLength", String(TEXT_LIMITS.title));
+
+      await user.clear(input);
+      await user.type(input, "ランジ{Enter}");
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledTimes(1);
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        title: "ランジ",
+      });
+      expect(
+        screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
+      ).not.toBeInTheDocument();
+    });
+
+    it("Esc で取り消すと確定しない", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      await user.type(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL), "改{Escape}");
+
+      expect(props.onItemInlineEdit).not.toHaveBeenCalled();
+      expect(screen.getByText("スクワット")).toBeInTheDocument();
+    });
+
+    it("フォーカスが外れると確定する", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      await user.type(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL), "改");
+      await user.tab();
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        title: "スクワット改",
+      });
+    });
+
+    it("用量の数値も編集でき、ほかの用量はそのまま渡す", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("10回"));
+      const input = screen.getByLabelText(`${LABELS.reps}（カード上で編集）`);
+      expect(input).toHaveAttribute("maxLength", String(TEXT_LIMITS.reps));
+      await user.clear(input);
+      await user.type(input, "15回{Enter}");
+
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(item.id, {
+        dosages: { reps: "15回", sets: "3セット", frequency: "" },
+      });
+    });
+
+    it("入力中のクリックはカードの選択に伝えない", async () => {
+      const user = userEvent.setup();
+      const props = setupSelected();
+
+      await user.dblClick(screen.getByText("スクワット"));
+      vi.mocked(props.onItemSelect!).mockClear();
+      await user.click(screen.getByLabelText(INLINE_EDIT_TITLE_LABEL));
+
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("選択していないカードやコールバックがないときは編集に入らない", async () => {
+      const user = userEvent.setup();
+      setupCanvas({ items: [item], selectedItemId: null, onItemInlineEdit: vi.fn() });
+
+      await user.dblClick(screen.getByText("10回"));
+      expect(
+        screen.queryByLabelText(`${LABELS.reps}（カード上で編集）`)
+      ).not.toBeInTheDocument();
+    });
+
+    it("モバイルでは編集に入らない", async () => {
+      const user = userEvent.setup();
+      setupSelected({ isMobile: true });
+
+      await user.dblClick(screen.getByText("スクワット"));
+      expect(
+        screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
+      ).not.toBeInTheDocument();
     });
   });
 

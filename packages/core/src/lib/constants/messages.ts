@@ -82,9 +82,24 @@ export const DUPLICATE_TOOLTIP = "カードを複製";
 /** 全カードに反映ボタンのラベル */
 export const APPLY_TO_ALL_LABEL = "全カードに反映";
 
-/** 用量の全カード反映ボタンのツールチップ */
-export const APPLY_DOSAGES_TO_ALL_TOOLTIP =
-  "このカードの回数・セット・頻度を全カードに反映";
+/**
+ * 用量の全カード反映ボタンのツールチップ（兼 aria-label）を生成
+ *
+ * @param labels - 現在の用量ラベル（省略時はデフォルトの回数・セット・頻度）
+ * @returns 表示用文言
+ */
+export function createApplyDosagesToAllTooltip(
+  labels: { reps: string; sets: string; frequency: string } = {
+    reps: "回数",
+    sets: "セット",
+    frequency: "頻度",
+  }
+): string {
+  return `このカードの${labels.reps}・${labels.sets}・${labels.frequency}を全カードに反映`;
+}
+
+/** 用量の全カード反映ボタンのデフォルトツールチップ */
+export const APPLY_DOSAGES_TO_ALL_TOOLTIP = createApplyDosagesToAllTooltip();
 
 /** 注意点の全カード反映ボタンのツールチップ */
 export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
@@ -92,6 +107,10 @@ export const APPLY_PRECAUTIONS_TO_ALL_TOOLTIP =
 
 /** 一括適用で値が変わるカードがなかった場合のメッセージ */
 export const APPLY_TO_ALL_NO_TARGET_MESSAGE = "反映するカードがありません";
+
+/** 注意点の一括適用で、他の全カードが上限に達しているため追加できなかった場合のメッセージ */
+export const APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE =
+  "他のカードは注意点が上限に達しているため追加できませんでした";
 
 /**
  * 一括適用が完了したときのメッセージを生成
@@ -109,6 +128,93 @@ export function createApplyToAllSuccessMessage(
     ? `${base}（上限を超える${String(skippedCount)}件は追加していません）`
     : base;
 }
+
+// 画像編集関連メッセージ
+/** 左右反転ボタンのラベル（プロパティパネル） */
+export const IMAGE_FLIP_BUTTON_LABEL = "左右反転";
+
+/** カード上の左右反転ボタンのツールチップ */
+export const IMAGE_FLIP_TOOLTIP = "画像を左右反転";
+
+/** 画像編集ボタンのラベル（モーダルのタイトルも兼ねる） */
+export const IMAGE_EDIT_LABEL = "画像を編集";
+
+/** 画像編集モーダルの説明 */
+export const IMAGE_EDIT_DESCRIPTION =
+  "編集した画像は新しい画像として保存されます。元の画像はライブラリに残ります";
+
+/** 画像編集モーダルの「向き」セクションの見出し */
+export const IMAGE_EDIT_ORIENTATION_HEADING = "向き";
+
+/** 全体を左右反転するボタンのラベル */
+export const IMAGE_EDIT_FLIP_WHOLE_LABEL = "全体を左右反転";
+
+/** 左半分と右半分をそれぞれ左右反転するボタンのラベル */
+export const IMAGE_EDIT_FLIP_PANELS_LABEL = "2コマずつ左右反転";
+
+/** 2コマずつ左右反転の説明 */
+export const IMAGE_EDIT_FLIP_PANELS_HINT =
+  "左右2コマの画像は、コマの順番を変えずに向きだけ反転します";
+
+/** 90°回転ボタンのラベル */
+export const IMAGE_EDIT_ROTATE_LABEL = "右に90°回転";
+
+/** 画像編集モーダルの「トリミング」セクションの見出し */
+export const IMAGE_EDIT_CROP_HEADING = "トリミング（横5:縦3）";
+
+/** トリミングの有無を切り替えるチェックボックスのラベル */
+export const IMAGE_EDIT_CROP_TOGGLE_LABEL = "トリミングする";
+
+/** トリミングの拡大率スライダーのラベル */
+export const IMAGE_EDIT_ZOOM_LABEL = "拡大";
+
+/** トリミング位置の調整方法の案内 */
+export const IMAGE_EDIT_CROP_HINT =
+  "注釈ツールを選んでいないときは、画像をドラッグして位置を調整できます";
+
+/** 画像編集モーダルの「注釈」セクションの見出し */
+export const IMAGE_EDIT_ANNOTATION_HEADING = "注釈";
+
+/** 注釈の描き方の案内 */
+export const IMAGE_EDIT_ANNOTATION_HINT =
+  "ツールを選んで画像上をドラッグすると描けます";
+
+/** 注釈ツール（矢印）のラベル */
+export const ANNOTATION_TOOL_ARROW_LABEL = "矢印";
+
+/** 注釈ツール（丸）のラベル */
+export const ANNOTATION_TOOL_CIRCLE_LABEL = "丸";
+
+/** 注釈ツール（四角）のラベル */
+export const ANNOTATION_TOOL_RECT_LABEL = "四角";
+
+/** 注釈の色の選択欄のラベル */
+export const ANNOTATION_COLOR_LABEL = "色";
+
+/** 注釈の線の太さの選択欄のラベル */
+export const ANNOTATION_STROKE_LABEL = "太さ";
+
+/** 注釈を 1 つ取り消すボタンのラベル */
+export const ANNOTATION_UNDO_LABEL = "1つ戻す";
+
+/** 注釈をすべて消すボタンのラベル */
+export const ANNOTATION_CLEAR_LABEL = "全消去";
+
+/** 画像編集の保存ボタンのラベル */
+export const IMAGE_EDIT_SAVE_LABEL = "保存してカードに反映";
+
+/** 画像編集の保存中ラベル */
+export const IMAGE_EDIT_SAVING_LABEL = "保存中...";
+
+/** 画像の読み込みに失敗したときのメッセージ */
+export const IMAGE_EDIT_LOAD_FAILED_MESSAGE = "画像を読み込めませんでした";
+
+/** 画像の編集・保存に失敗したときのメッセージ */
+export const IMAGE_EDIT_FAILED_MESSAGE = "画像の編集に失敗しました";
+
+/** 処理中にカードの画像が差し替えられたため、編集結果を反映しなかったときのメッセージ */
+export const IMAGE_EDIT_STALE_MESSAGE =
+  "処理中にカードの画像が変更されたため、編集結果は反映していません（編集した画像はライブラリに保存されています）";
 
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */
@@ -460,16 +566,203 @@ export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 
 /** デザイン設定ダイアログの説明 */
 export const DESIGN_SETTINGS_DESCRIPTION =
-  "指導箋の列数と色を変更できます。変更はすぐに反映されます";
+  "指導箋の見た目と印刷の設定を変更できます。変更はすぐに反映されます";
 
 /** デザイン設定ダイアログの列数セクションの見出し */
 export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+
+/** デザイン設定ダイアログの用紙の向きセクションの見出し */
+export const DESIGN_SETTINGS_ORIENTATION_HEADING = "用紙の向き（PDF）";
+
+/** 用紙の向き「自動」の説明 */
+export const PAGE_ORIENTATION_AUTO_HINT = "自動：1〜2列は縦、3〜4列は横";
+
+/** 1列のときに横向きを選べない理由 */
+export const PAGE_ORIENTATION_SINGLE_COLUMN_NOTE =
+  "1列は縦向き固定です（横向きでは1枚のカードがページに収まりません）";
+
+/** 4列を縦向きにしたときの注意 */
+export const PAGE_ORIENTATION_NARROW_NOTE =
+  "4列を縦向きにするとカードが細くなり、回数などの数値が窮屈になります";
+
+/** デザイン設定ダイアログの用途別プリセットセクションの見出し */
+export const DESIGN_SETTINGS_PRESET_HEADING = "用途別プリセット";
+
+/** 用途別プリセットの説明（どの設定が変わるか） */
+export const DESIGN_SETTINGS_PRESET_DESCRIPTION =
+  "よく使う組み合わせをまとめて設定します（列数・色・用量のラベルは変わりません）";
+
+/** デザイン設定ダイアログの印刷の色セクションの見出し */
+export const DESIGN_SETTINGS_PRINT_COLOR_HEADING = "印刷の色";
+
+/** 白黒・インク節約モードの説明 */
+export const PRINT_COLOR_MONOCHROME_HINT =
+  "白黒：注意点の塗りつぶしをなくし、白黒コピーでも読みやすくします（画像はカラーのまま）";
+
+/** デザイン設定ダイアログの文字サイズセクションの見出し */
+export const DESIGN_SETTINGS_TEXT_SCALE_HEADING = "文字サイズ";
+
+/** 1列のときに文字サイズが変わらない理由 */
+export const TEXT_SCALE_SINGLE_COLUMN_NOTE =
+  "1列は常に大きめの文字で表示されます";
+
+/** デザイン設定ダイアログのカード番号セクションの見出し */
+export const DESIGN_SETTINGS_CARD_NUMBER_HEADING = "カード番号";
+
+/** カード番号の表示切り替えのラベル */
+export const CARD_NUMBER_TOGGLE_LABEL = "運動名の左に番号（①②…）を表示する";
+
+/** デザイン設定ダイアログの用量ラベルセクションの見出し */
+export const DESIGN_SETTINGS_DOSAGE_LABEL_HEADING = "用量のラベル";
+
+/** 用量ラベルの説明 */
+export const DOSAGE_LABEL_DESCRIPTION =
+  "「回数」「セット」「頻度」の欄の名前を変えられます（6文字まで。空欄にすると元に戻ります）";
+
+/**
+ * 用量ラベルの入力欄のラベルを作る
+ *
+ * @param defaultLabel - その欄のデフォルトのラベル（例: 「回数」）
+ * @returns 入力欄のラベル（例: 「回数」の欄）
+ */
+export const createDosageLabelInputLabel = (defaultLabel: string): string =>
+  `「${defaultLabel}」の欄`;
+
+/** デザイン設定ダイアログのヘッダー・チェック表セクションの見出し */
+export const DESIGN_SETTINGS_SHEET_HEADING = "ヘッダー・チェック表（PDF）";
+
+/** ヘッダー・チェック表セクションの説明 */
+export const DESIGN_SETTINGS_SHEET_DESCRIPTION =
+  "PDF の1ページ目の先頭に出す項目と、自主トレ実施チェック表を設定します（キャンバスには表示されません）";
+
+/** 氏名欄の表示切り替えのラベル */
+export const PATIENT_NAME_BOX_TOGGLE_LABEL =
+  "氏名欄（印刷後に手書きする空欄）を表示する";
+
+/** ヘッダーの日付欄の見出し */
+export const SHEET_DATE_MODE_LABEL = "日付";
+
+/** 病院・施設名の入力欄のラベル */
+export const SHEET_FACILITY_NAME_LABEL = "病院・施設名";
+
+/** 担当者名の入力欄のラベル */
+export const SHEET_THERAPIST_NAME_LABEL = "担当者名";
+
+/** 全体メモの入力欄のラベル */
+export const SHEET_OVERALL_NOTE_LABEL = "全体メモ";
+
+/** 全体メモのプレースホルダー（病名などを書きたくなりやすいため、書かない内容も示す） */
+export const SHEET_OVERALL_NOTE_PLACEHOLDER =
+  "目標・次回来院日など（病名・個人情報は書かない）";
+
+/** 実施チェック表の見出し */
+export const CHECK_TABLE_LABEL = "自主トレ実施チェック表";
+
+/** 実施チェック表の出力先の説明 */
+export const CHECK_TABLE_DESCRIPTION =
+  "1週間：カードの後ろに追加／1か月：A4横の別ページに追加（月と日付は手書き）";
+
+/** キャンバス上部のヘッダー・チェック表の要約の見出し */
+export const SHEET_SUMMARY_LABEL = "PDFのみ";
+
+/** 要約：ヘッダー */
+export const SHEET_SUMMARY_HEADER_LABEL = "ヘッダー";
+
+/** 要約：チェック表 */
+export const SHEET_SUMMARY_CHECK_TABLE_LABEL = "チェック表";
+
+/** 要約：ヘッダーにタイトルしか出さないとき */
+export const SHEET_SUMMARY_TITLE_ONLY = "タイトルのみ";
+
+/** 要約：氏名欄 */
+export const SHEET_SUMMARY_PATIENT_NAME_BOX = "氏名欄";
+
+/** 要約：日付の記入欄 */
+export const SHEET_SUMMARY_DATE_BLANK = "日付欄";
+
+/** 要約：出力日の印字 */
+export const SHEET_SUMMARY_DATE_PRINTED = "出力日";
+
+/** 要約：全体メモ */
+export const SHEET_SUMMARY_OVERALL_NOTE = "メモ";
+
+/** 要約ボタンの説明（クリックで設定を開く） */
+export const SHEET_SUMMARY_BUTTON_LABEL =
+  "PDFのヘッダー・チェック表の設定を開く";
+
+/**
+ * キャンバス上部の A4 ページ数の目安
+ *
+ * @param pageCount - 見積もったページ数
+ * @returns 「目安: A4 2ページ」形式の文言
+ */
+export function createPageEstimateLabel(pageCount: number): string {
+  return `目安: A4 ${String(pageCount)}ページ`;
+}
+
+/**
+ * 2 ページ目に送られるカードの案内
+ *
+ * @param cardNumber - 2 ページ目の先頭になるカードの番号（1 始まり）
+ * @returns 「7枚目から2ページ目」形式の文言
+ */
+export function createPageEstimateCardDetail(cardNumber: number): string {
+  return `${String(cardNumber)}枚目から2ページ目`;
+}
+
+/**
+ * カードは 1 ページに収まり、実施チェック表だけが次のページになるときの案内
+ *
+ * @param page - チェック表のページ（1 始まり）
+ * @returns 「チェック表は2ページ目」形式の文言
+ */
+export function createPageEstimateCheckTableDetail(page: number): string {
+  return `チェック表は${String(page)}ページ目`;
+}
+
+/** ページ数の目安の説明（見積もりであること） */
+export const PAGE_ESTIMATE_DESCRIPTION =
+  "文字数と設定から見積もった目安です。仕上がりはPDFプレビューで確認してください";
+
+/**
+ * キャンバスのカードの間に出す改ページの目安の文言
+ *
+ * @param page - ここから始まるページ（1 始まり）
+ * @returns 「ここから2ページ目（目安）」形式の文言
+ */
+export function createPageBreakLabel(page: number): string {
+  return `ここから${String(page)}ページ目（目安）`;
+}
+
+/** 選択中のカードのタイトル・用量に出すインライン編集の案内 */
+export const INLINE_EDIT_HINT = "ダブルクリックで編集";
+
+/** インライン編集の入力欄の説明（Enter で確定、Esc で取り消し） */
+export const INLINE_EDIT_INPUT_HINT = "Enterで確定、Escで取り消し";
+
+/** カード上で運動名を編集する入力欄のラベル（プロパティパネルの「運動名」と区別する） */
+export const INLINE_EDIT_TITLE_LABEL = "運動名（カード上で編集）";
+
+/**
+ * カード上で用量を編集する入力欄のラベル
+ *
+ * @param dosageLabel - 用量のラベル（「回数」など）
+ * @returns 「回数（カード上で編集）」形式の文言
+ */
+export function createInlineDosageInputLabel(dosageLabel: string): string {
+  return `${dosageLabel}（カード上で編集）`;
+}
 
 /** デザイン設定ダイアログのテーマカラーセクションの見出し */
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
 
 /** テーマカラーの説明（どこに反映されるか） */
-export const THEME_COLOR_DESCRIPTION = "運動カードの枠線の色に使われます";
+export const THEME_COLOR_DESCRIPTION =
+  "運動カードの枠線・用量の区切り線・カード番号の色に使われます";
+
+/** 白黒モード選択中にテーマカラーが反映されないことの案内 */
+export const THEME_COLOR_MONOCHROME_NOTE =
+  "印刷の色が「白黒」のときは反映されません";
 
 /** テーマカラーのカラーピッカーのラベル */
 export const THEME_COLOR_PICKER_LABEL = "色を選ぶ";

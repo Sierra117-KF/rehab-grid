@@ -1,7 +1,7 @@
 /**
  * @rehab-grid/ui パッケージのバレルエクスポート
  *
- * 共通UIコンポーネント（shadcn/ui、ラッパー、エディタ、レイアウト、PDF）を
+ * 共通UIコンポーネント（shadcn/ui、ラッパー、エディタ、レイアウト）を
  * 一括でエクスポートします。
  *
  * 注意: ui/ と wrapped/ で同名のコンポーネントがある場合、
@@ -14,6 +14,8 @@
 export { Canvas } from "./components/editor/Canvas";
 export { DesignSettingsDialog } from "./components/editor/DesignSettingsDialog";
 export { EditorHeader } from "./components/editor/EditorHeader";
+export type { ImageEditResult } from "./components/editor/ImageEditModal";
+export { ImageEditModal } from "./components/editor/ImageEditModal";
 export { ImageLibraryPanel } from "./components/editor/ImageLibraryPanel";
 export { PdfPreviewModal } from "./components/editor/PdfPreviewModal";
 export { PrecautionSnippetDialog } from "./components/editor/PrecautionSnippetDialog";

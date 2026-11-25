@@ -1,9 +1,12 @@
 import {
   APPLY_DOSAGES_TO_ALL_TOOLTIP,
   APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
+  createApplyDosagesToAllTooltip,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
+  IMAGE_EDIT_LABEL,
+  IMAGE_FLIP_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
@@ -95,6 +98,19 @@ describe("PropertyPanel", () => {
       expect(screen.getByText("セット")).toBeInTheDocument();
       expect(screen.getByText("頻度")).toBeInTheDocument();
       expect(screen.getByText("注意点")).toBeInTheDocument();
+    });
+
+    it("用量の入力欄と見出しは、デザイン設定の用量ラベルで表示される", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem(),
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      });
+
+      expect(screen.getByLabelText("秒数")).toBeInTheDocument();
+      expect(screen.getByLabelText("左右")).toBeInTheDocument();
+      expect(screen.getByLabelText("目安")).toBeInTheDocument();
+      expect(screen.getByText("秒数・左右・目安")).toBeInTheDocument();
+      expect(screen.queryByText("回数")).not.toBeInTheDocument();
     });
 
     it("タイトルが入力フィールドに表示される", () => {
@@ -552,6 +568,26 @@ describe("PropertyPanel", () => {
       });
     });
 
+    it("デザイン設定の用量ラベルに合わせて、用量の反映ボタンの名前も変わる", () => {
+      const dosageLabels = { reps: "秒数", sets: "左右", frequency: "目安" };
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "30秒", sets: "", frequency: "" },
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+        dosageLabels,
+      });
+
+      const button = screen.getByRole("button", {
+        name: createApplyDosagesToAllTooltip(dosageLabels),
+      });
+      expect(button).toHaveAttribute(
+        "title",
+        createApplyDosagesToAllTooltip(dosageLabels)
+      );
+    });
+
     it("空でない注意点がないときは注意点の反映ボタンが無効になる", () => {
       setupPropertyPanel({
         selectedItem: createTestItem({
@@ -585,6 +621,70 @@ describe("PropertyPanel", () => {
         "痛みが出たら中止",
         "呼吸を止めない",
       ]);
+    });
+  });
+
+  describe("画像の編集", () => {
+    const getFlipButton = () =>
+      screen.getByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL });
+    const getEditButton = () =>
+      screen.getByRole("button", { name: IMAGE_EDIT_LABEL });
+
+    it("左右反転・画像を編集ボタンでカードIDが渡される", async () => {
+      const user = userEvent.setup();
+      const onImageFlip = vi.fn();
+      const onImageEdit = vi.fn();
+      setupPropertyPanel({
+        selectedItem: createTestItem({ id: "item-1", imageSource: "img-1" }),
+        onImageFlip,
+        onImageEdit,
+      });
+
+      await user.click(getFlipButton());
+      await user.click(getEditButton());
+
+      expect(onImageFlip).toHaveBeenCalledWith("item-1");
+      expect(onImageEdit).toHaveBeenCalledWith("item-1");
+    });
+
+    it("画像の処理中は押せない", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({ imageSource: "img-1" }),
+        onImageFlip: vi.fn(),
+        onImageEdit: vi.fn(),
+        isImageProcessing: true,
+      });
+
+      expect(getFlipButton()).toBeDisabled();
+      expect(getEditButton()).toBeDisabled();
+    });
+
+    it("画像がないカードではボタンを表示しない", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({ imageSource: "" }),
+        onImageFlip: vi.fn(),
+        onImageEdit: vi.fn(),
+      });
+
+      expect(
+        screen.queryByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: IMAGE_EDIT_LABEL })
+      ).not.toBeInTheDocument();
+    });
+
+    it("コールバックが渡されない場合はボタンを表示しない", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem({ imageSource: "img-1" }),
+      });
+
+      expect(
+        screen.queryByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: IMAGE_EDIT_LABEL })
+      ).not.toBeInTheDocument();
     });
   });
 });

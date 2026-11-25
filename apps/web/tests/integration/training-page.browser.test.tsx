@@ -6,6 +6,7 @@
  */
 import {
   APPLY_DOSAGES_TO_ALL_TOOLTIP,
+  APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE,
   APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   BUTTON_ADD_CARD,
   CANVAS_EMPTY_DESCRIPTION,
@@ -96,6 +97,7 @@ vi.mock("@/lib/db", () => ({
   saveImage: vi.fn().mockResolvedValue(undefined),
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
+  getImageRecord: vi.fn().mockResolvedValue(undefined),
 }));
 
 // next/image のモック（ブラウザモード用）
@@ -508,14 +510,20 @@ describe("TrainingEditorPage", () => {
         items: [createTestItem({ id: "item-1", title: "スクワット" })],
         selectedItemId: "item-1",
       });
+      // 入力前の別操作を履歴に積んでおき、入力欄内の Ctrl+Z で取り消されないことを確認する
+      useEditorStore.getState().updateSettings({ layoutType: "grid3" });
       await renderPage();
 
       const titleInput = page.getByLabelText("運動名");
       await userEvent.fill(titleInput, "腕立て伏せ");
       await userEvent.keyboard("{Control>}z{/Control}");
+      await userEvent.keyboard("{Control>}z{/Control}");
 
-      // エディタの履歴は消費されない（ブラウザ標準の取り消しに任せる）
-      expect(useEditorStore.getState().past).toHaveLength(1);
+      // ブラウザ標準の取り消しに任せ、エディタの undo は発火しない
+      const { settings, past, future } = useEditorStore.getState();
+      expect(settings.layoutType).toBe("grid3");
+      expect(past).toHaveLength(1);
+      expect(future).toHaveLength(0);
     });
 
     it("用量の「全カードに反映」はトーストの「元に戻す」で全カードが元に戻る", async () => {
@@ -577,6 +585,40 @@ describe("TrainingEditorPage", () => {
       expect(items[1]?.precautions?.map((p) => p.value)).toEqual([
         "痛みが出たら中止",
       ]);
+    });
+
+    it("他の全カードが注意点の上限に達して追加できなかったときは上限の案内を出す", async () => {
+      const fullPrecautions = ["A", "B", "C", "D", "E"].map((value, index) => ({
+        id: `full-${String(index)}`,
+        value,
+      }));
+      useEditorStore.setState({
+        ...getInitialEditorState(),
+        items: [
+          createTestItem({
+            id: "item-1",
+            title: "スクワット",
+            precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+          }),
+          createTestItem({
+            id: "item-2",
+            order: 1,
+            title: "腕立て伏せ",
+            precautions: fullPrecautions,
+          }),
+        ],
+        selectedItemId: "item-1",
+      });
+      await renderPageWithToaster();
+
+      await userEvent.click(
+        page.getByRole("button", { name: APPLY_PRECAUTIONS_TO_ALL_TOOLTIP })
+      );
+
+      await expect
+        .element(page.getByText(APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE))
+        .toBeInTheDocument();
+      expect(useEditorStore.getState().past).toHaveLength(0);
     });
 
     it("「このカードを複製」で直後に同じ内容のカードが入り、Ctrl+Z で消える", async () => {

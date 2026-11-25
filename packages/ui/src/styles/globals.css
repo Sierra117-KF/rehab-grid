@@ -60,17 +60,20 @@
   /* 用量表示色（数値強調型デザイン） - shared.ts の DOSAGE_COLORS と同期 */
   --dosage-value: #1e293b; /* slate-800: 数値 */
   --dosage-label: #94a3b8; /* slate-400: ラベル */
-  --dosage-accent: #3b82f6; /* blue-500: アクセント */
   /* 下線（既定のテーマカラー blue-500 を白地に 30% 重ねた色）。Canvas がテーマカラーから上書きする */
   --dosage-accent-light: #c4dafc;
 
   /* 運動カードの枠線（既定のテーマカラー blue-500）。Canvas がテーマカラーで上書きする */
   --card-border-color: #3b82f6;
 
-  /* 注意事項（アンバー系: 穏やかな警告色） */
+  /* カード番号バッジの背景（既定のテーマカラー blue-500）。Canvas がテーマカラーで上書きする */
+  --card-number-bg: #3b82f6;
+
+  /* 注意事項（アンバー系: 穏やかな警告色）。白黒モードでは Canvas が shared.ts の MONOCHROME_COLORS で上書きする */
   --precaution-bg: #fef3c7; /* amber-100 */
   --precaution-title: #78350f; /* amber-900: 印刷時の視認性向上 */
   --precaution-text: #451a03; /* amber-950相当: 黒に近い濃い茶色 */
+  --precaution-border: transparent; /* 白黒モードでのみ枠線を表示する */
 
   /* ボーダー・入力・リング */
   --border: #a1a1aa; /* zinc-400: さらに濃いグレーで視認性向上 */
@@ -113,7 +116,6 @@
   --color-destructive: var(--destructive);
   --color-dosage-value: var(--dosage-value);
   --color-dosage-label: var(--dosage-label);
-  --color-dosage-accent: var(--dosage-accent);
   --color-dosage-accent-light: var(--dosage-accent-light);
   --color-precaution-bg: var(--precaution-bg);
   --color-precaution-title: var(--precaution-title);
@@ -147,8 +149,10 @@
  * ベーススタイル
  * ======================================== */
 
-* {
-  border-color: var(--border);
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 body {

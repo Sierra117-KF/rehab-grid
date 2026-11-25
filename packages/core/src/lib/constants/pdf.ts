@@ -6,6 +6,7 @@
  */
 
 import { type LayoutType } from "@rehab-grid/core/types/editor";
+import { type PageOrientation } from "@rehab-grid/core/types/project";
 
 import { DOSAGE_COLORS, FONT_SIZES, LAYOUT_COLUMNS } from "./shared";
 
@@ -58,40 +59,53 @@ export const PDF_CONTENT_SIZE_LANDSCAPE = {
 } as const;
 
 /**
- * レイアウトタイプが横向き（landscape）かどうかを判定
+ * レイアウトタイプと用紙の向きの設定から、PDFを横向き（landscape）にするかを判定
+ *
+ * @remarks
+ * 1列は横向きにすると 1 枚のカードがページに収まらないため、指定に関わらず縦向きにする
  *
  * @param layoutType - グリッドレイアウトタイプ
- * @returns 3列以上の場合true（横向き）
+ * @param orientation - 用紙の向きの設定（省略時は "auto"：3列以上なら横向き）
+ * @returns 横向きの場合true
  */
-export function isLandscapeLayout(layoutType: LayoutType): boolean {
+export function isLandscapeLayout(
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
+): boolean {
   const columns = LAYOUT_COLUMNS[layoutType];
-  return columns >= 3;
+  if (columns === 1) return false;
+  if (orientation === "auto") return columns >= 3;
+  return orientation === "landscape";
 }
 
 /**
- * レイアウトタイプに応じたPDFページサイズを取得
+ * レイアウトタイプと用紙の向きの設定に応じたPDFページサイズを取得
  *
  * @param layoutType - グリッドレイアウトタイプ
+ * @param orientation - 用紙の向きの設定（省略時は "auto"）
  * @returns ページサイズ（縦型 or 横型）
  */
 export function getPdfPageSize(
-  layoutType: LayoutType
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
 ): typeof PDF_PAGE_SIZE | typeof PDF_PAGE_SIZE_LANDSCAPE {
-  return isLandscapeLayout(layoutType)
+  return isLandscapeLayout(layoutType, orientation)
     ? PDF_PAGE_SIZE_LANDSCAPE
     : PDF_PAGE_SIZE;
 }
 
 /**
- * レイアウトタイプに応じたPDFコンテンツ領域サイズを取得
+ * レイアウトタイプと用紙の向きの設定に応じたPDFコンテンツ領域サイズを取得
  *
  * @param layoutType - グリッドレイアウトタイプ
+ * @param orientation - 用紙の向きの設定（省略時は "auto"）
  * @returns コンテンツ領域サイズ（縦型 or 横型）
  */
 export function getPdfContentSize(
-  layoutType: LayoutType
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
 ): typeof PDF_CONTENT_SIZE | typeof PDF_CONTENT_SIZE_LANDSCAPE {
-  return isLandscapeLayout(layoutType)
+  return isLandscapeLayout(layoutType, orientation)
     ? PDF_CONTENT_SIZE_LANDSCAPE
     : PDF_CONTENT_SIZE;
 }
@@ -101,8 +115,60 @@ export function getPdfContentSize(
  */
 export const PDF_GRID_GAP = 12;
 
-/** ヘッダーの高さ（ポイント単位） */
+/**
+ * ヘッダーの基本の高さ（ポイント単位）
+ *
+ * タイトル・日付欄・氏名欄の 1 行だけのときの高さ。施設名・担当者名や全体メモを出すと
+ * その分だけ高くなる（calculatePdfHeaderHeight）
+ */
 export const PDF_HEADER_HEIGHT = 35;
+
+/** 全体メモ（PDF ヘッダー）の最大行数。超えた分は「…」で切り詰める */
+export const PDF_OVERALL_NOTE_MAX_LINES = 5;
+
+/**
+ * 自主トレ実施チェック表のレイアウト（ポイント単位）
+ */
+export const PDF_CHECK_TABLE = {
+  /** 見出しのフォントサイズ */
+  titleFontSize: 11,
+  /** 見出し横の案内のフォントサイズ */
+  hintFontSize: 8,
+  /** 見出しと表の間隔 */
+  titleMarginBottom: 4,
+  /** 表の見出し行（曜日・日付）の高さ */
+  headerRowHeight: 18,
+  /** 運動 1 件分の行の高さ（○を書き込める大きさ） */
+  rowHeight: 24,
+  /** 運動名のフォントサイズ */
+  nameFontSize: 9,
+  /** 見出し行（曜日・日付）のフォントサイズ */
+  columnLabelFontSize: 8,
+  /** 1か月の表の日付のフォントサイズ（31 列並べるため小さめ） */
+  monthlyColumnLabelFontSize: 7,
+  /** セル内の左右の余白 */
+  cellPaddingHorizontal: 4,
+  /** 罫線の太さ */
+  borderWidth: 1,
+  /** 1週間の表の運動名の列の幅（コンテンツ幅に対する比率） */
+  weeklyNameColumnRatio: 0.4,
+  /** 1か月の表の運動名の列の幅 */
+  monthlyNameColumnWidth: 140,
+} as const;
+
+/** 1週間の実施チェック表の列（曜日） */
+export const CHECK_TABLE_WEEKDAYS = [
+  "月",
+  "火",
+  "水",
+  "木",
+  "金",
+  "土",
+  "日",
+] as const;
+
+/** 1か月の実施チェック表の日数（月の名前と日付は手書きしてもらうため、常に 31 列） */
+export const CHECK_TABLE_MONTH_DAYS = 31;
 
 /**
  * フォントファイルのパス
@@ -168,7 +234,6 @@ export const PDF_TEXT_STYLE = {
  * 用量表示の色設定
  *
  * shared.ts の DOSAGE_COLORS を参照（信頼できる単一の情報源）
- * 数値強調型デザイン: グレースケール + blue-500アクセント
  * 区切り線の色はテーマカラーから求める（lib/pdf/card.ts）
  */
 export const PDF_DOSAGE_COLORS = {
@@ -176,8 +241,6 @@ export const PDF_DOSAGE_COLORS = {
   value: DOSAGE_COLORS.value,
   /** ラベル色: slate-400 */
   label: DOSAGE_COLORS.label,
-  /** アクセント色: blue-500 */
-  accent: DOSAGE_COLORS.accent,
 } as const;
 
 /**
@@ -206,6 +269,14 @@ export const PDF_COLORS = {
   precautionText: "#451a03", // amber-950相当
   /** 患者名ボックスのボーダー色 */
   patientNameBoxBorder: "#cbd5e1",
+  /** 白黒・インク節約モードのページ背景色 */
+  monochromeBackground: "#ffffff",
+  /** カード番号の文字色 */
+  cardNumberText: "#ffffff",
+  /** 実施チェック表の罫線（白黒コピーでも見える濃さ: slate-400） */
+  checkTableBorder: "#94a3b8",
+  /** 実施チェック表の見出し行の背景（白黒モードでは塗りつぶさない） */
+  checkTableHeaderBackground: "#f1f5f9",
 } as const;
 
 /**
@@ -217,6 +288,18 @@ export const PDF_COLORS = {
 export const PDF_LABELS = {
   /** 患者ラベル */
   patientLabel: "氏名:",
+  /** 日付欄のラベル */
+  dateLabel: "日付:",
+  /** 担当者名の前に付けるラベル */
+  therapistLabel: "担当:",
+  /** 1週間の実施チェック表の見出し */
+  weeklyCheckTableTitle: "自主トレ実施チェック表（1週間）",
+  /** 1か月の実施チェック表の見出し（月は手書きしてもらう） */
+  monthlyCheckTableTitle: "自主トレ実施チェック表（　　月）",
+  /** 実施チェック表の書き方の案内 */
+  checkTableHint: "実施した日に○をつけましょう",
+  /** 実施チェック表の運動名の列の見出し */
+  checkTableExerciseHeader: "運動",
 } as const;
 
 /**
@@ -265,6 +348,28 @@ export const PDF_SPACING = {
   patientNameBoxBorderRadius: 4,
   /** 患者ラベルフォントサイズ */
   patientLabelFontSize: 10,
+  /** 白黒モードの注意点の枠線の太さ */
+  precautionBorderWidth: 1,
+  /** カード番号バッジとタイトルの間隔 */
+  cardNumberGap: 4,
+  /** 日付の記入欄の幅 */
+  dateBoxWidth: 90,
+  /** 印字した日付のフォントサイズ */
+  dateFontSize: 10,
+  /** ヘッダー内の行と行の間隔 */
+  headerRowGap: 4,
+  /** 施設名・担当者名のフォントサイズ */
+  headerSubTextFontSize: 9,
+  /** 全体メモのフォントサイズ */
+  overallNoteFontSize: 9,
+  /** 施設名・担当者名と全体メモの行高 */
+  headerSubLineHeight: 1.4,
+  /** 全体メモの枠の内側の余白 */
+  overallNotePadding: 4,
+  /** 全体メモの枠線の太さ */
+  overallNoteBorderWidth: 1,
+  /** ページ番号のページ下端からの距離（下マージンの中に置く） */
+  footerBottom: 20,
 } as const;
 
 /**
@@ -273,11 +378,38 @@ export const PDF_SPACING = {
  * 日本語の全角文字幅を経験的に近似した値
  */
 export const PDF_CHAR_WIDTH_RATIO = {
-  /** タイトル（太字） */
-  title: 0.6,
   /** 説明文・注意点 */
   body: 0.55,
+  /** 全角 1 文字分（行数を多めに見積もって、高さ不足やはみ出しを防ぐ箇所で使う） */
+  fullWidth: 1,
 } as const;
+
+/**
+ * 文字幅から折り返しを見積もるときの、半角文字（ASCII）1 文字の幅（フォントサイズに対する比率）
+ *
+ * 全角文字（日本語・全角記号・「•」「…」など）は NotoSansJP では 1em 幅のため 1 として扱う。
+ * 半角は指導箋に多い数字の実測（Regular 0.555、Bold 0.59）に合わせている。
+ */
+export const PDF_HALF_WIDTH_CHAR_RATIO = {
+  /** 通常の太さ */
+  regular: 0.56,
+  /** 太字 */
+  bold: 0.6,
+} as const;
+
+/**
+ * lineHeight を指定していない Text の 1 行の高さ（フォントサイズに対する比率）
+ *
+ * NotoSansJP の ascent（1.16）と descent（0.288）の和。react-pdf はこの値で行の高さを決める
+ */
+export const PDF_DEFAULT_LINE_HEIGHT = 1.448;
+
+/**
+ * A4 収容見積もりで、ページ下端に近い行を次のページ扱いにする余裕（ポイント単位）
+ *
+ * 文字の折り返しは概算のため、「収まる」と言って溢れるより「溢れる」と言って収まる側に倒す
+ */
+export const PDF_PAGE_ESTIMATE_MARGIN = 8;
 
 /**
  * PDFでサポートする画像形式のプレフィックス

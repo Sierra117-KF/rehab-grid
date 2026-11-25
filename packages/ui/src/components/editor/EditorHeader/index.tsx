@@ -33,7 +33,6 @@ import {
   useEditorStore,
 } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
-import { type LayoutType } from "@rehab-grid/core/types";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
@@ -82,13 +81,6 @@ import { ImportConfirmDialog } from "./ImportConfirmDialog";
 import { MobileEditorMenu } from "./MobileEditorMenu";
 import { PdfMenu } from "./PdfMenu";
 import { ProjectInfo } from "./ProjectInfo";
-
-/**
- * テーマカラー変更の履歴をまとめるキー
- *
- * カラーピッカーのドラッグ中は値が連続して変わるため、1 件の履歴にまとめる
- */
-const THEME_COLOR_MERGE_KEY = "settings:themeColor";
 
 /**
  * EditorHeaderコンポーネントのプロパティ
@@ -151,6 +143,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   );
   const setDesignSettingsOpen = useModalStore(
     (state) => state.setDesignSettingsOpen
+  );
+  const designSettingsSection = useModalStore(
+    (state) => state.designSettingsSection
   );
 
   // モバイルメニュー関連の状態
@@ -413,26 +408,6 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, [setDesignSettingsOpen]);
 
   /**
-   * レイアウト（列数）の変更
-   */
-  const handleLayoutChange = useCallback(
-    (layoutType: LayoutType) => {
-      updateSettings({ layoutType });
-    },
-    [updateSettings]
-  );
-
-  /**
-   * テーマカラーの変更
-   */
-  const handleThemeColorChange = useCallback(
-    (themeColor: string) => {
-      updateSettings({ themeColor }, { mergeKey: THEME_COLOR_MERGE_KEY });
-    },
-    [updateSettings]
-  );
-
-  /**
    * モバイルメニューを開く
    */
   const handleOpenMobileMenu = useCallback(() => {
@@ -682,8 +657,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         open={isDesignSettingsOpen}
         onOpenChange={setDesignSettingsOpen}
         settings={settings}
-        onLayoutChange={handleLayoutChange}
-        onThemeColorChange={handleThemeColorChange}
+        onSettingsChange={updateSettings}
+        initialSection={designSettingsSection}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

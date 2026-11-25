@@ -58,5 +58,7 @@ export const useModalStore = create<ModalState>((set, get) => ({
   },
 
   isDesignSettingsOpen: false,
-  setDesignSettingsOpen: (open) => set({ isDesignSettingsOpen: open }),
+  designSettingsSection: null,
+  setDesignSettingsOpen: (open, section) =>
+    set({ isDesignSettingsOpen: open, designSettingsSection: section ?? null }),
 }));

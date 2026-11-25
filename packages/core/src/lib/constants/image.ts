@@ -102,3 +102,44 @@ export const IMAGE_DISPLAY_NAME_PREFIXES = [
  * "01_スクワット".replace(IMAGE_DISPLAY_NAME_NUMBER_PATTERN, "") // "スクワット"
  */
 export const IMAGE_DISPLAY_NAME_NUMBER_PATTERN = /^\d+_/;
+
+// ============================================================================
+// 画像編集
+// ============================================================================
+
+/** 編集した画像の表示名に付ける接尾辞（ライブラリで元画像と区別する） */
+export const EDITED_IMAGE_NAME_SUFFIX = "_編集";
+
+/** 元画像のファイル名が空のときに使う表示名 */
+export const EDITED_IMAGE_FALLBACK_NAME = "画像";
+
+/** 画像編集のトリミングで拡大できる最大倍率 */
+export const IMAGE_EDIT_MAX_ZOOM = 4;
+
+/** 画像編集のプレビューを描画するときの長辺の最大サイズ（px） */
+export const IMAGE_EDIT_PREVIEW_MAX_SIZE = 800;
+
+/**
+ * 注釈の色の選択肢
+ *
+ * @remarks
+ * 白黒印刷でも見分けやすいよう、明度の異なる色を選んでいる
+ */
+export const ANNOTATION_COLORS = [
+  { value: "#dc2626", label: "赤" },
+  { value: "#2563eb", label: "青" },
+  { value: "#16a34a", label: "緑" },
+  { value: "#111827", label: "黒" },
+] as const;
+
+/**
+ * 注釈の線の太さの選択肢
+ *
+ * @remarks
+ * `ratio` は出力画像の長辺に対する比率。解像度が違っても見た目の太さが変わらない
+ */
+export const ANNOTATION_STROKE_WIDTHS = [
+  { ratio: 0.008, label: "細" },
+  { ratio: 0.014, label: "中" },
+  { ratio: 0.022, label: "太" },
+] as const;
