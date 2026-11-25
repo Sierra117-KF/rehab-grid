@@ -75,7 +75,7 @@ export function SheetSummary({ header, checkTable, onClick }: SheetSummaryProps)
         onClick();
       }}
       title={SHEET_SUMMARY_BUTTON_LABEL}
-      className="mb-4 flex w-full items-center gap-2 rounded-lg border border-dashed bg-card/60 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+      className="flex min-w-0 flex-1 basis-64 items-center gap-2 rounded-lg border border-dashed bg-card/60 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
     >
       <FileText className="size-4 shrink-0" aria-hidden="true" />
       <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">

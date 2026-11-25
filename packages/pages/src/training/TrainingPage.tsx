@@ -21,6 +21,7 @@ import {
   IMAGE_EDIT_LOAD_FAILED_MESSAGE,
   IMAGE_EDIT_STALE_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
+import { estimatePdfLayout } from "@rehab-grid/core/lib/pdf/layout";
 import {
   createEditedImageBlob,
   flipAndSaveImage,
@@ -36,7 +37,7 @@ import {
   MobileSidebar,
   PropertyPanel,
 } from "@rehab-grid/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 /**
@@ -233,6 +234,14 @@ export function TrainingPage() {
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
   const handleItemChange = updateItem;
+  // カード上のインライン編集は確定時に 1 回だけ呼ばれるため、そのまま 1 件の履歴になる
+  const handleItemInlineEdit = updateItem;
+
+  // A4 ページ収容の見積もり（カードと設定から同期的に求まるため、描画のたびに使い回す）
+  const pageEstimate = useMemo(
+    () => estimatePdfLayout(items, settings),
+    [items, settings]
+  );
 
   /**
    * カードを削除し、「元に戻す」付きのトーストを表示
@@ -457,6 +466,8 @@ export function TrainingPage() {
           sheetHeader={settings.header}
           checkTable={settings.checkTable}
           onSheetSettingsClick={handleSheetSettingsClick}
+          pageEstimate={pageEstimate}
+          onItemInlineEdit={handleItemInlineEdit}
           selectedItemId={selectedItemId}
           onItemSelect={handleItemSelect}
           onAddCard={handleAddCard}

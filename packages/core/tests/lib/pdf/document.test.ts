@@ -100,6 +100,40 @@ describe("buildPdfDocument", () => {
     expect(titles).toEqual(["運動A", "運動B", "運動C"]);
   });
 
+  it.each([
+    ["grid2", 5, [2, 2, 1]],
+    ["grid3", 5, [3, 2]],
+    ["grid1", 2, [1, 1]],
+  ] as const)(
+    "%s ではカード %i 枚を列数ごとの行（wrap={false}）にまとめる",
+    (layoutType, count, cardsPerRow) => {
+      const doc = buildPdfDocument(
+        createTestData({
+          settings: createSettings(layoutType),
+          items: Array.from({ length: count }, (_, i) =>
+            createTestItem({ id: `item-${String(i)}`, order: i })
+          ),
+        })
+      );
+
+      const grid = findElementsByType(doc, "View").find(
+        (el) => (el as { key?: string }).key === "grid"
+      );
+      const rows = grid?.props?.children as {
+        props: { wrap?: boolean; children: unknown };
+      }[];
+      expect(rows.map((row) => row.props.wrap)).toEqual(
+        cardsPerRow.map(() => false)
+      );
+      // 子が 1 つの要素は children が配列にならない
+      expect(
+        rows.map((row) =>
+          Array.isArray(row.props.children) ? row.props.children.length : 1
+        )
+      ).toEqual(cardsPerRow);
+    }
+  );
+
   it("各カードに imageSource に対応する画像が渡される", () => {
     const doc = buildPdfDocument(
       createTestData({
@@ -228,9 +262,11 @@ describe("buildPdfDocument", () => {
       );
 
       // (761.89 - 12) / 2 = 374.945（縦向きなら 251.64）
-      // カードはページをまたいで分割しないよう wrap={false} を持つ
+      // カード（幅を持つ View）はページをまたいで分割しないよう wrap={false} を持つ
       const card = findElementsByType(doc, "View").find(
-        (el) => el.props?.wrap === false
+        (el) =>
+          el.props?.wrap === false &&
+          (el.props.style as { width?: number }).width !== undefined
       );
       expect((card?.props?.style as { width: number }).width).toBeCloseTo(374.945, 6);
     });

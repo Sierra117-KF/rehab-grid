@@ -7,9 +7,7 @@ import {
   CARD_NUMBER_BADGE_RATIO,
   DOSAGE_DIVIDER_OPACITY,
   LABELS,
-  LINE_CLAMP,
   MONOCHROME_COLORS,
-  PDF_CHAR_WIDTH_RATIO,
   PDF_COLORS,
   PDF_DOSAGE_COLORS,
   PDF_SPACING,
@@ -27,14 +25,15 @@ import {
 } from "@rehab-grid/core/types";
 import { mixWithWhite } from "@rehab-grid/core/utils/color";
 import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
-import { truncateToLines } from "@rehab-grid/core/utils/pdf";
 import { createElement, type ReactElement } from "react";
 
 import {
-  estimateCharsPerLine,
+  getPdfCardDescriptionText,
   getPdfCardFontSizes,
   getPdfCardImageSize,
   getPdfCardNumberBadgeSize,
+  getPdfCardPrecautionText,
+  getPdfCardTitleText,
   getPdfTitleWidth,
   type PdfCardFontSizes,
 } from "./metrics";
@@ -300,22 +299,11 @@ export function createCard(
   }
 
   // タイトル（1行制限 + 中央寄せ。カード番号バッジがあればその幅を引いて切り詰める）
-  const titleWidth = getPdfTitleWidth(
-    imageWidth,
-    fontSizes.title,
-    showCardNumbers
+  const displayTitle = getPdfCardTitleText(
+    item.title,
+    getPdfTitleWidth(imageWidth, fontSizes.title, showCardNumbers),
+    fontSizes.title
   );
-  const displayTitle = item.title
-    ? truncateToLines(
-        item.title.slice(0, TEXT_LIMITS.title),
-        LINE_CLAMP.title,
-        estimateCharsPerLine(
-          titleWidth,
-          fontSizes.title,
-          PDF_CHAR_WIDTH_RATIO.title
-        )
-      )
-    : LABELS.untitledExercise;
   if (showCardNumbers) {
     children.push(
       createTitleWithNumber(
@@ -347,14 +335,10 @@ export function createCard(
 
   // 説明（行数制限 + 幅制限で折り返し）
   if (item.description) {
-    const displayDescription = truncateToLines(
-      item.description.slice(0, TEXT_LIMITS.description),
-      LINE_CLAMP.description,
-      estimateCharsPerLine(
-        imageWidth,
-        fontSizes.description,
-        PDF_CHAR_WIDTH_RATIO.body
-      )
+    const displayDescription = getPdfCardDescriptionText(
+      item.description,
+      imageWidth,
+      fontSizes.description
     );
     children.push(
       createElement(
@@ -384,18 +368,8 @@ export function createCard(
 
   // 注意点（行数制限 + 幅制限で折り返し）
   if (item.precautions && item.precautions.length > 0) {
-    const precautionCharsPerLine = estimateCharsPerLine(
-      imageWidth,
-      fontSizes.precautionText,
-      PDF_CHAR_WIDTH_RATIO.body
-    );
-    const precautionItems = item.precautions.map((p) => {
-      const displayValue = truncateToLines(
-        p.value.slice(0, TEXT_LIMITS.precaution),
-        LINE_CLAMP.precaution,
-        precautionCharsPerLine
-      );
-      return createElement(
+    const precautionItems = item.precautions.map((p) =>
+      createElement(
         Text,
         {
           key: p.id,
@@ -405,9 +379,9 @@ export function createCard(
             color: colors.precautionText,
           },
         },
-        `• ${displayValue}`
-      );
-    });
+        getPdfCardPrecautionText(p.value, imageWidth, fontSizes.precautionText)
+      )
+    );
     // 白黒モードは塗りつぶしの代わりに濃い枠線で囲む
     const precautionBorderStyle =
       colors.precautionBorder === undefined

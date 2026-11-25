@@ -147,8 +147,12 @@ export const pdfStyles = StyleSheet.create({
     color: PDF_COLORS.textPrimary,
   },
   gridContainer: {
+    // カードは行ごとの View にまとめて縦に並べる（収まらない行は丸ごと次のページへ送られる）
+    flexDirection: "column",
+    gap: PDF_GRID_GAP,
+  },
+  gridRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: PDF_GRID_GAP,
   },
   card: {
