@@ -2,9 +2,6 @@ import type { ChangelogEntry } from "@rehab-grid/core/types";
 
 /**
  * v1.2.0 画像編集とデザインのカスタマイズ
- *
- * @remarks
- * Phase 2 のリリースに向けて項目を追記していく。日付はリリース時に実際の公開日へ更新する
  */
 export const entryV120: ChangelogEntry = {
   version: "v1.2.0",
