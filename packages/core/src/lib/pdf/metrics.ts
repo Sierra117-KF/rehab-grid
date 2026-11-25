@@ -9,12 +9,23 @@ import {
   CARD_NUMBER_BADGE_RATIO,
   FONT_SIZES_LARGE,
   FONT_SIZES_SINGLE_COLUMN,
+  getPdfContentSize,
   PDF_CARD_STYLE,
+  PDF_CHAR_WIDTH_RATIO,
+  PDF_HEADER_HEIGHT,
   PDF_IMAGE_ASPECT_RATIO,
+  PDF_LABELS,
+  PDF_OVERALL_NOTE_MAX_LINES,
   PDF_SPACING,
   PDF_TEXT_STYLE,
 } from "@rehab-grid/core/lib/constants";
-import { type LayoutType, type TextScale } from "@rehab-grid/core/types";
+import {
+  type LayoutType,
+  type ResolvedProjectSettings,
+  type SheetHeaderSettings,
+  type TextScale,
+} from "@rehab-grid/core/types";
+import { truncateToLines } from "@rehab-grid/core/utils/pdf";
 
 /**
  * PDFカード内の各テキストのフォントサイズ（ポイント単位）
@@ -133,4 +144,110 @@ export function estimateCharsPerLine(
 ): number {
   // 0 以下だと truncateToLines が切り詰めをスキップしてしまうため、下限を 1 にする
   return Math.max(1, Math.floor(width / (fontSize * charWidthRatio)));
+}
+
+/**
+ * 施設名・担当者名の行に出す文字列を作る
+ *
+ * @param header - ヘッダーの項目
+ * @returns 「施設名（全角空白）担当: 担当者名」形式の文字列（どちらも空欄なら空文字）
+ */
+export function getPdfHeaderSubText(
+  header: Pick<SheetHeaderSettings, "facilityName" | "therapistName">
+): string {
+  const facilityName = header.facilityName.trim();
+  const therapistName = header.therapistName.trim();
+  return [
+    facilityName,
+    therapistName !== "" ? `${PDF_LABELS.therapistLabel} ${therapistName}` : "",
+  ]
+    .filter((text) => text !== "")
+    .join("　");
+}
+
+/**
+ * 全体メモの表示用の文字列と行数を求める
+ *
+ * @remarks
+ * 1 文字を全角幅とみなして行数を多めに見積もる（ヘッダーの高さが足りなくなるのを防ぐ）。
+ * 最大行数（PDF_OVERALL_NOTE_MAX_LINES）を超えた分は「…」で切り詰める。
+ *
+ * @param note - 全体メモ（前後の空白は除く）
+ * @param contentWidth - ページのコンテンツ幅（ポイント単位）
+ * @returns 表示用の文字列と行数（メモが空欄なら行数 0）
+ */
+export function getPdfOverallNoteLayout(
+  note: string,
+  contentWidth: number
+): { text: string; lineCount: number } {
+  const trimmed = note.trim();
+  if (trimmed === "") return { text: "", lineCount: 0 };
+
+  const textWidth =
+    contentWidth -
+    (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) * 2;
+  const charsPerLine = estimateCharsPerLine(
+    textWidth,
+    PDF_SPACING.overallNoteFontSize,
+    PDF_CHAR_WIDTH_RATIO.fullWidth
+  );
+  const text = truncateToLines(
+    trimmed,
+    PDF_OVERALL_NOTE_MAX_LINES,
+    charsPerLine
+  );
+  const lineCount = text
+    .split("\n")
+    .reduce(
+      (sum, line) => sum + (Math.ceil(line.length / charsPerLine) || 1),
+      0
+    );
+  // 切り詰めたときに付く「…」の分で 1 行増えたように数えないよう、最大行数で抑える
+  return {
+    text,
+    lineCount: Math.min(lineCount, PDF_OVERALL_NOTE_MAX_LINES),
+  };
+}
+
+/**
+ * 設定に応じた PDF ヘッダーの高さを求める
+ *
+ * @remarks
+ * タイトル・日付欄・氏名欄の 1 行だけなら PDF_HEADER_HEIGHT（既定の設定では従来と同じ高さ）。
+ * 施設名・担当者名の行と全体メモの枠を出すと、その分だけ高くなる。
+ * A4 収容見積もりでも同じ計算を使う。
+ *
+ * @param settings - プロジェクト設定（ヘッダーの項目とページのコンテンツ幅に使う列数・用紙の向き）
+ * @returns ヘッダーの高さ（ポイント単位）
+ */
+export function calculatePdfHeaderHeight(
+  settings: Pick<
+    ResolvedProjectSettings,
+    "header" | "layoutType" | "pageOrientation"
+  >
+): number {
+  const { header, layoutType, pageOrientation } = settings;
+  const lineHeight =
+    PDF_SPACING.headerSubTextFontSize * PDF_SPACING.headerSubLineHeight;
+  let height = PDF_HEADER_HEIGHT;
+
+  if (getPdfHeaderSubText(header) !== "") {
+    height += PDF_SPACING.headerRowGap + lineHeight;
+  }
+
+  const { lineCount } = getPdfOverallNoteLayout(
+    header.overallNote,
+    getPdfContentSize(layoutType, pageOrientation).width
+  );
+  if (lineCount > 0) {
+    height +=
+      PDF_SPACING.headerRowGap +
+      (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) *
+        2 +
+      lineCount *
+        PDF_SPACING.overallNoteFontSize *
+        PDF_SPACING.headerSubLineHeight;
+  }
+
+  return height;
 }

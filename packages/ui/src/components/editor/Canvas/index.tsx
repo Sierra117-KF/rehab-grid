@@ -28,10 +28,12 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
+  CheckTableType,
   DosageLabels,
   EditorItem,
   LayoutType,
   PrintColorMode,
+  SheetHeaderSettings,
   TextScale,
 } from "@rehab-grid/core/types";
 import { mixWithWhite } from "@rehab-grid/core/utils/color";
@@ -41,6 +43,7 @@ import { ImagePlus } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { EmptyState } from "./EmptyState";
+import { SheetSummary } from "./SheetSummary";
 import { SortableCard } from "./SortableCard";
 
 /**
@@ -131,6 +134,17 @@ export type CanvasProps = {
   showCardNumbers?: boolean;
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
   dosageLabels?: DosageLabels;
+  /** PDF ヘッダーの項目（キャンバス上部の要約表示に使う） */
+  sheetHeader?: SheetHeaderSettings;
+  /** 実施チェック表（キャンバス上部の要約表示に使う） */
+  checkTable?: CheckTableType;
+  /**
+   * キャンバス上部の要約が押されたときのコールバック（ヘッダー・チェック表の設定を開く）
+   *
+   * @remarks
+   * sheetHeader・checkTable と一緒に渡したときだけ、カードがあれば要約を表示する
+   */
+  onSheetSettingsClick?: () => void;
   /** 選択中のアイテムID */
   selectedItemId?: string | null;
   /** アイテムが選択されたときのコールバック */
@@ -187,6 +201,9 @@ export function Canvas({
   textScale = "standard",
   showCardNumbers = false,
   dosageLabels,
+  sheetHeader,
+  checkTable,
+  onSheetSettingsClick,
   selectedItemId,
   onItemSelect,
   onAddCard,
@@ -385,6 +402,18 @@ export function Canvas({
         )}
         style={themeStyle}
       >
+        {/* ヘッダー・チェック表はキャンバスに描かないため、PDF に出る内容の要約を出す */}
+        {items.length > 0 &&
+        sheetHeader !== undefined &&
+        checkTable !== undefined &&
+        onSheetSettingsClick !== undefined ? (
+          <SheetSummary
+            header={sheetHeader}
+            checkTable={checkTable}
+            onClick={onSheetSettingsClick}
+          />
+        ) : null}
+
         {items.length === 0 ? (
           <EmptyState onAddCard={handleAddCardClick} canAddCard={canAddCard} />
         ) : (

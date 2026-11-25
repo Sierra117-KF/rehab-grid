@@ -9,7 +9,9 @@ import {
   LABELS,
   LAYOUT_COLUMNS,
   MOBILE_TAP_TO_SELECT_IMAGE,
+  SHEET_SUMMARY_BUTTON_LABEL,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
 import { Canvas, type CanvasProps } from "@rehab-grid/ui/components/editor/Canvas";
 import { render, screen } from "@testing-library/react";
@@ -495,6 +497,85 @@ describe("Canvas", () => {
       });
 
       expect(screen.getByRole("heading", { level: 3 })).toHaveClass(titleClass);
+    });
+  });
+
+  describe("ヘッダー・チェック表の要約", () => {
+    const defaultHeader = resolveProjectSettings(undefined).header;
+
+    /** 要約のボタン（title 属性で特定する） */
+    function getSummaryButton() {
+      return screen.getByTitle(SHEET_SUMMARY_BUTTON_LABEL);
+    }
+
+    it("既定の設定では「氏名欄」と「チェック表：なし」を表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent(
+        "ヘッダー：氏名欄／チェック表：なし"
+      );
+    });
+
+    it("入力した項目と選んだチェック表を並べて表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: {
+          ...defaultHeader,
+          facilityName: "○○病院",
+          dateMode: "blank",
+          overallNote: "次回：12月1日",
+        },
+        checkTable: "weekly",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent(
+        "ヘッダー：病院・施設名・日付欄・氏名欄・メモ／チェック表：1週間"
+      );
+    });
+
+    it("何も出さないときは「タイトルのみ」と表示する", () => {
+      setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: { ...defaultHeader, showPatientNameBox: false },
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(getSummaryButton()).toHaveTextContent("ヘッダー：タイトルのみ");
+    });
+
+    it("押すと設定を開くコールバックを呼び、カードの選択解除は起こさない", async () => {
+      const user = userEvent.setup();
+      const props = setupCanvas({
+        items: [createTestItem()],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      await user.click(getSummaryButton());
+
+      expect(props.onSheetSettingsClick).toHaveBeenCalledTimes(1);
+      expect(props.onItemSelect).not.toHaveBeenCalled();
+    });
+
+    it("カードがないときは表示しない", () => {
+      setupCanvas({
+        items: [],
+        sheetHeader: defaultHeader,
+        checkTable: "none",
+        onSheetSettingsClick: vi.fn(),
+      });
+
+      expect(
+        screen.queryByTitle(SHEET_SUMMARY_BUTTON_LABEL)
+      ).not.toBeInTheDocument();
     });
   });
 

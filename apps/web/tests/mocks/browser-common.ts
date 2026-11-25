@@ -184,6 +184,14 @@ const DEFAULT_TEST_SETTINGS: ResolvedProjectSettings = {
   pageOrientation: "auto",
   showCardNumbers: false,
   dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+  header: {
+    showPatientNameBox: true,
+    dateMode: "none",
+    facilityName: "",
+    therapistName: "",
+    overallNote: "",
+  },
+  checkTable: "none",
 };
 
 /**

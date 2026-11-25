@@ -281,3 +281,145 @@ describe("buildPdfDocument", () => {
     expect(texts.indexOf("2")).toBe(texts.indexOf("運動B") - 1);
   });
 });
+
+describe("buildPdfDocument のヘッダー・フッター・実施チェック表（2-3）", () => {
+  /** 10 枚のカード（MAX_ITEM_COUNT） */
+  const tenItems = Array.from({ length: 10 }, (_, i) =>
+    createTestItem({
+      id: `item-${String(i)}`,
+      order: i,
+      title: `運動${String(i + 1)}`,
+    })
+  );
+
+  /**
+   * 指定した Page の直下の子要素を取り出す
+   */
+  function getPageChildren(
+    doc: unknown,
+    pageIndex: number
+  ): { key?: string | null; props?: { wrap?: boolean } }[] {
+    const children = findElementsByType(doc, "Page")[pageIndex]?.props?.children;
+    return (Array.isArray(children) ? children : [children]) as {
+      key?: string | null;
+      props?: { wrap?: boolean };
+    }[];
+  }
+
+  /**
+   * fixed 指定のフッター（ページ番号）を取り出す
+   */
+  function findFooters(doc: unknown) {
+    return findElementsByType(doc, "Text").filter(
+      (el) => el.props?.fixed === true
+    );
+  }
+
+  it("ページ番号のフッターを置く（1 ページだけなら空文字、2 ページ以上で「n / N」）", () => {
+    const doc = buildPdfDocument(createTestData({ items: tenItems }));
+
+    const footers = findFooters(doc);
+    expect(footers).toHaveLength(1);
+    const render = footers[0]?.props?.render as (props: {
+      pageNumber: number;
+      totalPages: number;
+    }) => string;
+    expect(render({ pageNumber: 1, totalPages: 1 })).toBe("");
+    expect(render({ pageNumber: 2, totalPages: 3 })).toBe("2 / 3");
+  });
+
+  it("既定の設定ではチェック表を出さない", () => {
+    const doc = buildPdfDocument(createTestData({ items: tenItems }));
+
+    expect(extractTextContent(doc)).not.toContain(
+      PDF_LABELS.weeklyCheckTableTitle
+    );
+    expect(findElementsByType(doc, "Page")).toHaveLength(1);
+  });
+
+  it("1週間のチェック表はカードの後ろに、運動 10 件 × 7 曜日の表で置く", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+          checkTable: "weekly",
+        }),
+        items: tenItems,
+      })
+    );
+
+    expect(findElementsByType(doc, "Page")).toHaveLength(1);
+    const children = getPageChildren(doc, 0);
+    // ヘッダー → カードのグリッド → チェック表 → フッター
+    expect(children.map((child) => child.key)).toEqual([
+      null,
+      "grid",
+      "checkTable",
+      "footer",
+    ]);
+    // 収まらなければ表ごと次のページへ送る
+    expect(children[2]?.props?.wrap).toBeFalsy();
+
+    const texts = extractTextContent(doc);
+    expect(texts).toContain(PDF_LABELS.weeklyCheckTableTitle);
+    expect(texts.filter((text) => text === "日")).toHaveLength(1);
+    // カードと表の両方に運動名が出る
+    expect(texts.filter((text) => text === "運動10")).toHaveLength(2);
+  });
+
+  it("1か月のチェック表は A4 横の別ページに置き、そのページにもフッターを置く", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+          checkTable: "monthly",
+        }),
+        items: tenItems,
+      })
+    );
+
+    const pages = findElementsByType(doc, "Page");
+    expect(pages).toHaveLength(2);
+    // カードのページは 2 列なので縦向きのまま
+    expect(pages[0]?.props?.size).toEqual([
+      PDF_PAGE_SIZE.width,
+      PDF_PAGE_SIZE.height,
+    ]);
+    expect(pages[1]?.props?.size).toEqual([
+      PDF_PAGE_SIZE_LANDSCAPE.width,
+      PDF_PAGE_SIZE_LANDSCAPE.height,
+    ]);
+    expect(findFooters(pages[1])).toHaveLength(1);
+
+    const monthlyTexts = extractTextContent(pages[1]);
+    expect(monthlyTexts).toContain(PDF_LABELS.monthlyCheckTableTitle);
+    expect(monthlyTexts).toContain("1");
+    expect(monthlyTexts).toContain("31");
+    expect(monthlyTexts).not.toContain("32");
+    expect(monthlyTexts).toContain("運動10");
+  });
+
+  it("ヘッダーに施設名・担当者名・日付・全体メモを出す", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+          header: {
+            showPatientNameBox: true,
+            dateMode: "printed",
+            facilityName: "○○病院",
+            therapistName: "山田",
+            overallNote: "次回：12月1日",
+          },
+        }),
+        items: tenItems,
+      }),
+      new Date(2026, 10, 24, 9, 0)
+    );
+
+    const texts = extractTextContent(doc);
+    expect(texts).toContain("2026年11月24日");
+    // 施設名と担当者名の間は全角空白
+    expect(texts).toContain(
+      `○○病院　${PDF_LABELS.therapistLabel} 山田`
+    );
+    expect(texts).toContain("次回：12月1日");
+  });
+});

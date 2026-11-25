@@ -609,6 +609,68 @@ export const DOSAGE_LABEL_DESCRIPTION =
 export const createDosageLabelInputLabel = (defaultLabel: string): string =>
   `「${defaultLabel}」の欄`;
 
+/** デザイン設定ダイアログのヘッダー・チェック表セクションの見出し */
+export const DESIGN_SETTINGS_SHEET_HEADING = "ヘッダー・チェック表（PDF）";
+
+/** ヘッダー・チェック表セクションの説明 */
+export const DESIGN_SETTINGS_SHEET_DESCRIPTION =
+  "PDF の1ページ目の先頭に出す項目と、自主トレ実施チェック表を設定します（キャンバスには表示されません）";
+
+/** 氏名欄の表示切り替えのラベル */
+export const PATIENT_NAME_BOX_TOGGLE_LABEL =
+  "氏名欄（印刷後に手書きする空欄）を表示する";
+
+/** ヘッダーの日付欄の見出し */
+export const SHEET_DATE_MODE_LABEL = "日付";
+
+/** 病院・施設名の入力欄のラベル */
+export const SHEET_FACILITY_NAME_LABEL = "病院・施設名";
+
+/** 担当者名の入力欄のラベル */
+export const SHEET_THERAPIST_NAME_LABEL = "担当者名";
+
+/** 全体メモの入力欄のラベル */
+export const SHEET_OVERALL_NOTE_LABEL = "全体メモ";
+
+/** 全体メモのプレースホルダー（病名などを書きたくなりやすいため、書かない内容も示す） */
+export const SHEET_OVERALL_NOTE_PLACEHOLDER =
+  "目標・次回来院日など（病名・個人情報は書かない）";
+
+/** 実施チェック表の見出し */
+export const CHECK_TABLE_LABEL = "自主トレ実施チェック表";
+
+/** 実施チェック表の出力先の説明 */
+export const CHECK_TABLE_DESCRIPTION =
+  "1週間：カードの後ろに追加／1か月：A4横の別ページに追加（月と日付は手書き）";
+
+/** キャンバス上部のヘッダー・チェック表の要約の見出し */
+export const SHEET_SUMMARY_LABEL = "PDFのみ";
+
+/** 要約：ヘッダー */
+export const SHEET_SUMMARY_HEADER_LABEL = "ヘッダー";
+
+/** 要約：チェック表 */
+export const SHEET_SUMMARY_CHECK_TABLE_LABEL = "チェック表";
+
+/** 要約：ヘッダーにタイトルしか出さないとき */
+export const SHEET_SUMMARY_TITLE_ONLY = "タイトルのみ";
+
+/** 要約：氏名欄 */
+export const SHEET_SUMMARY_PATIENT_NAME_BOX = "氏名欄";
+
+/** 要約：日付の記入欄 */
+export const SHEET_SUMMARY_DATE_BLANK = "日付欄";
+
+/** 要約：出力日の印字 */
+export const SHEET_SUMMARY_DATE_PRINTED = "出力日";
+
+/** 要約：全体メモ */
+export const SHEET_SUMMARY_OVERALL_NOTE = "メモ";
+
+/** 要約ボタンの説明（クリックで設定を開く） */
+export const SHEET_SUMMARY_BUTTON_LABEL =
+  "PDFのヘッダー・チェック表の設定を開く";
+
 /** デザイン設定ダイアログのテーマカラーセクションの見出し */
 export const DESIGN_SETTINGS_THEME_COLOR_HEADING = "テーマカラー";
 

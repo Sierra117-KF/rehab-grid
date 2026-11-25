@@ -52,6 +52,35 @@ export type DosageLabels = {
 };
 
 /**
+ * PDF ヘッダーの日付欄（none: なし / blank: 手書きの記入欄 / printed: 出力日を印字）
+ */
+export type SheetDateMode = "none" | "blank" | "printed";
+
+/**
+ * PDF ヘッダー（1 ページ目の先頭）に出す項目
+ *
+ * @remarks
+ * 患者氏名は入力・印字しない（氏名欄は印刷後に手書きする空枠）
+ */
+export type SheetHeaderSettings = {
+  /** 氏名欄（手書き用の空枠）を出すか */
+  showPatientNameBox: boolean;
+  /** 日付欄 */
+  dateMode: SheetDateMode;
+  /** 病院・施設名 */
+  facilityName: string;
+  /** 担当者名 */
+  therapistName: string;
+  /** 全体メモ（目標・次回来院日など。改行可） */
+  overallNote: string;
+};
+
+/**
+ * 自主トレ実施チェック表（none: なし / weekly: 1週間 / monthly: 1か月）
+ */
+export type CheckTableType = "none" | "weekly" | "monthly";
+
+/**
  * プロジェクトの設定
  *
  * @remarks
@@ -73,6 +102,10 @@ export type ProjectSettings = {
   showCardNumbers?: boolean;
   /** 用量のラベル（未指定・空欄のキーは LABELS の reps / sets / frequency） */
   dosageLabels?: Partial<DosageLabels>;
+  /** PDF ヘッダーの項目（未指定のキーは氏名欄あり・日付なし・空欄） */
+  header?: Partial<SheetHeaderSettings>;
+  /** 自主トレ実施チェック表（デフォルト: "none"） */
+  checkTable?: CheckTableType;
 };
 
 /**
@@ -82,10 +115,12 @@ export type ProjectSettings = {
  * ストアと PDF 生成はこの型で設定を持つため、各所でフォールバックを書かずに済む
  */
 export type ResolvedProjectSettings = Required<
-  Omit<ProjectSettings, "dosageLabels">
+  Omit<ProjectSettings, "dosageLabels" | "header">
 > & {
   /** 用量のラベル（全キーがそろっている） */
   dosageLabels: DosageLabels;
+  /** PDF ヘッダーの項目（全キーがそろっている） */
+  header: SheetHeaderSettings;
 };
 
 /**

@@ -12,13 +12,21 @@ import {
 } from "@rehab-grid/core/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-/** 印刷スタイル（2-2）のデフォルト値。ストアに入る設定は resolveProjectSettings で補われる */
+/** 印刷スタイル（2-2）・ヘッダーとチェック表（2-3）のデフォルト値。ストアに入る設定は resolveProjectSettings で補われる */
 const DEFAULT_PRINT_STYLE = {
   printColorMode: "color",
   textScale: "standard",
   pageOrientation: "auto",
   showCardNumbers: false,
   dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+  header: {
+    showPatientNameBox: true,
+    dateMode: "none",
+    facilityName: "",
+    therapistName: "",
+    overallNote: "",
+  },
+  checkTable: "none",
 } satisfies Partial<ResolvedProjectSettings>;
 
 /**
@@ -837,6 +845,44 @@ describe("useEditorStore", () => {
       const state = useEditorStore.getState();
       expect(state.settings.dosageLabels.frequency).toBe("強度");
       expect(state.past).toHaveLength(2);
+    });
+
+    it("ヘッダーの項目は中身が同じなら、新しいオブジェクトでも履歴を積まない", () => {
+      const header = {
+        ...DEFAULT_PRINT_STYLE.header,
+        facilityName: "○○病院",
+      };
+      useEditorStore.getState().updateSettings({ header });
+      useEditorStore.getState().updateSettings({ header: { ...header } });
+
+      const state = useEditorStore.getState();
+      expect(state.settings.header.facilityName).toBe("○○病院");
+      expect(state.past).toHaveLength(1);
+    });
+
+    it("ヘッダーの同じ項目への連続入力は mergeKey で 1 件の履歴にまとまる", () => {
+      const { updateSettings } = useEditorStore.getState();
+      const mergeKey = "settings:header:facilityName";
+      updateSettings(
+        { header: { ...DEFAULT_PRINT_STYLE.header, facilityName: "○" } },
+        { mergeKey }
+      );
+      updateSettings(
+        { header: { ...DEFAULT_PRINT_STYLE.header, facilityName: "○○" } },
+        { mergeKey }
+      );
+
+      const state = useEditorStore.getState();
+      expect(state.settings.header.facilityName).toBe("○○");
+      expect(state.past).toHaveLength(1);
+    });
+
+    it("実施チェック表を変更して元に戻せる", () => {
+      useEditorStore.getState().updateSettings({ checkTable: "weekly" });
+      expect(useEditorStore.getState().settings.checkTable).toBe("weekly");
+
+      useEditorStore.getState().undo();
+      expect(useEditorStore.getState().settings.checkTable).toBe("none");
     });
   });
 

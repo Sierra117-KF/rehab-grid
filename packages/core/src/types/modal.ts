@@ -50,11 +50,26 @@ export type ModalState = {
   tryNavigateToEditor: (router: RouterLike) => void;
   /** デザイン設定ダイアログの開閉状態 */
   isDesignSettingsOpen: boolean;
+  /** デザイン設定ダイアログを開いたときに表示するセクション（null は先頭） */
+  designSettingsSection: DesignSettingsSection | null;
   /**
    * デザイン設定ダイアログの開閉を設定
    *
    * @remarks
    * ヘッダー以外（Canvas 等）からも開けるよう、ローカル state ではなくストアで持つ
+   *
+   * @param open - 開くなら true
+   * @param section - 開いたときに表示するセクション（省略時は先頭）
    */
-  setDesignSettingsOpen: (open: boolean) => void;
+  setDesignSettingsOpen: (
+    open: boolean,
+    section?: DesignSettingsSection
+  ) => void;
 };
+
+/**
+ * デザイン設定ダイアログのセクション（開いたときにそこまでスクロールする）
+ *
+ * - sheet: ヘッダー・チェック表（PDF）
+ */
+export type DesignSettingsSection = "sheet";

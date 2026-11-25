@@ -1,10 +1,18 @@
 import {
   BUTTON_CLOSE,
   CARD_NUMBER_TOGGLE_LABEL,
+  CHECK_TABLE_LABEL,
   DESIGN_SETTINGS_DESCRIPTION,
   DESIGN_SETTINGS_LABEL,
+  DESIGN_SETTINGS_SHEET_HEADING,
   PAGE_ORIENTATION_NARROW_NOTE,
   PAGE_ORIENTATION_SINGLE_COLUMN_NOTE,
+  PATIENT_NAME_BOX_TOGGLE_LABEL,
+  PROPERTY_PANEL_WARNING,
+  SHEET_DATE_MODE_LABEL,
+  SHEET_FACILITY_NAME_LABEL,
+  SHEET_OVERALL_NOTE_LABEL,
+  SHEET_OVERALL_NOTE_PLACEHOLDER,
   TEXT_SCALE_SINGLE_COLUMN_NOTE,
   THEME_COLOR_HEX_INVALID_MESSAGE,
   THEME_COLOR_HEX_LABEL,
@@ -358,6 +366,107 @@ describe("DesignSettingsDialog", () => {
       });
 
       expect(getLabelInput("セット")).toHaveValue("左右");
+    });
+  });
+
+  describe("ヘッダー・チェック表（PDF）", () => {
+    const defaultHeader = resolveProjectSettings(undefined).header;
+
+    it("個人情報の入力禁止の注意書きを表示する", () => {
+      setupDialog();
+
+      expect(
+        within(
+          screen.getByRole("region", { name: DESIGN_SETTINGS_SHEET_HEADING })
+        ).getByText(PROPERTY_PANEL_WARNING)
+      ).toBeInTheDocument();
+    });
+
+    it("氏名欄のチェックを外すと showPatientNameBox: false のヘッダーが渡される", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog();
+
+      await user.click(
+        screen.getByRole("checkbox", { name: PATIENT_NAME_BOX_TOGGLE_LABEL })
+      );
+
+      expect(props.onSettingsChange).toHaveBeenCalledWith(
+        { header: { ...defaultHeader, showPatientNameBox: false } },
+        undefined
+      );
+    });
+
+    it("日付欄「記入欄」を選ぶと dateMode が渡される", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog();
+
+      await user.click(
+        within(
+          screen.getByRole("group", { name: SHEET_DATE_MODE_LABEL })
+        ).getByRole("button", { name: "記入欄" })
+      );
+
+      expect(props.onSettingsChange).toHaveBeenCalledWith(
+        { header: { ...defaultHeader, dateMode: "blank" } },
+        undefined
+      );
+    });
+
+    it("施設名は入力のたびに、項目ごとの mergeKey 付きで反映する", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog();
+
+      await user.type(
+        screen.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
+        "A"
+      );
+
+      expect(props.onSettingsChange).toHaveBeenLastCalledWith(
+        { header: { ...defaultHeader, facilityName: "A" } },
+        { mergeKey: "settings:header:facilityName" }
+      );
+    });
+
+    it("全体メモのプレースホルダーで、病名・個人情報を書かないよう案内する", () => {
+      setupDialog();
+
+      expect(
+        screen.getByRole("textbox", { name: SHEET_OVERALL_NOTE_LABEL })
+      ).toHaveAttribute("placeholder", SHEET_OVERALL_NOTE_PLACEHOLDER);
+    });
+
+    it("実施チェック表「1か月」を選ぶと checkTable が渡される", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog();
+
+      await user.click(
+        within(screen.getByRole("group", { name: CHECK_TABLE_LABEL })).getByRole(
+          "button",
+          { name: "1か月" }
+        )
+      );
+
+      expect(props.onSettingsChange).toHaveBeenCalledWith({
+        checkTable: "monthly",
+      });
+    });
+
+    it("セクション指定で開くと、氏名欄のチェックボックスにフォーカスする", () => {
+      render(
+        <DesignSettingsDialog
+          open
+          onOpenChange={vi.fn()}
+          settings={resolveProjectSettings(undefined)}
+          onLayoutChange={vi.fn()}
+          onThemeColorChange={vi.fn()}
+          onSettingsChange={vi.fn()}
+          initialSection="sheet"
+        />
+      );
+
+      expect(
+        screen.getByRole("checkbox", { name: PATIENT_NAME_BOX_TOGGLE_LABEL })
+      ).toHaveFocus();
     });
   });
 

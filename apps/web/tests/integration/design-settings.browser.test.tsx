@@ -12,9 +12,13 @@
 
 import {
   BUTTON_CLOSE,
+  CHECK_TABLE_LABEL,
   DESIGN_SETTINGS_DESCRIPTION,
   DESIGN_SETTINGS_LABEL,
   LABELS,
+  PATIENT_NAME_BOX_TOGGLE_LABEL,
+  SHEET_FACILITY_NAME_LABEL,
+  SHEET_SUMMARY_BUTTON_LABEL,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
@@ -371,5 +375,41 @@ describe("デザイン設定（browser）", () => {
       showCardNumbers: true,
       dosageLabels: { reps: "秒数", sets: "セット", frequency: "頻度" },
     });
+  });
+
+  it("キャンバス上部の要約からヘッダー・チェック表の設定を開き、変更が要約に反映される", async () => {
+    await renderEditor();
+
+    const summary = page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL);
+    await expect.element(summary).toHaveTextContent("チェック表：なし");
+
+    await userEvent.click(summary);
+
+    // セクション指定で開くと、そのセクションの最初の入力（氏名欄）にフォーカスする
+    const patientNameToggle = page.getByRole("checkbox", {
+      name: PATIENT_NAME_BOX_TOGGLE_LABEL,
+    });
+    await expect.element(patientNameToggle).toHaveFocus();
+
+    await userEvent.fill(
+      page.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
+      "○○病院"
+    );
+    await userEvent.click(
+      page.getByRole("group", { name: CHECK_TABLE_LABEL }).getByRole("button", {
+        name: "1週間",
+      })
+    );
+
+    expect(useEditorStore.getState().settings).toMatchObject({
+      header: { facilityName: "○○病院" },
+      checkTable: "weekly",
+    });
+
+    // モーダル表示中は背後の Canvas が aria-hidden になるため、閉じてから確認する
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await expect
+      .element(page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL))
+      .toHaveTextContent("ヘッダー：病院・施設名・氏名欄／チェック表：1週間");
   });
 });
