@@ -83,6 +83,14 @@ const TEST_SETTINGS: ResolvedProjectSettings = {
   pageOrientation: "auto",
   showCardNumbers: false,
   dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+  header: {
+    showPatientNameBox: true,
+    dateMode: "none",
+    facilityName: "",
+    therapistName: "",
+    overallNote: "",
+  },
+  checkTable: "none",
 };
 
 // ============================================================================
@@ -270,7 +278,8 @@ describe("pdf.ts", () => {
   describe("generatePdfFilename", () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      vi.setSystemTime(new Date("2025-12-28T10:30:00.000Z"));
+      // ローカル時刻の早朝（日本時間では UTC の前日にあたる時間帯）
+      vi.setSystemTime(new Date(2025, 11, 28, 1, 30));
     });
 
     afterEach(() => {

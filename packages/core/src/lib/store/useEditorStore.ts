@@ -156,7 +156,7 @@ type EditorActions = {
    * プロジェクト設定を部分的に更新（レイアウトタイプ・テーマカラー・印刷スタイル等）
    *
    * @remarks
-   * 用量ラベル（dosageLabels）は 3 キーそろった値で渡す
+   * 用量ラベル（dosageLabels）・ヘッダーの項目（header）は全キーそろった値で渡す
    */
   updateSettings: (
     updates: Partial<ResolvedProjectSettings>,
@@ -492,11 +492,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         const { settings } = get();
         const hasChanges = (
           Object.keys(updates) as (keyof ResolvedProjectSettings)[]
-        ).some((key) =>
-          // 用量ラベルは毎回新しいオブジェクトで渡されるため、中身で比べる
-          key === "dosageLabels"
-            ? !shallow(settings.dosageLabels, updates.dosageLabels)
-            : !Object.is(settings[key], updates[key])
+        ).some(
+          // 用量ラベル・ヘッダーの項目は毎回新しいオブジェクトで渡されるため、中身で比べる
+          // （shallow はプリミティブ値なら Object.is と同じ結果になる）
+          (key) => !shallow(settings[key], updates[key])
         );
         if (!hasChanges) return;
 

@@ -24,6 +24,7 @@ import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
 import type { JSZipObject, JSZipStreamHelper } from "jszip";
 import { nanoid } from "nanoid";
 
+import { getDateString } from "./date";
 import {
   fetchSampleImageBlobs,
   isValidImageBlob,
@@ -113,19 +114,6 @@ export function downloadJSON(filename: string, content: string): void {
   link.click();
 
   URL.revokeObjectURL(url);
-}
-
-/**
- * 現在の日付を YYYY-MM-DD 形式で取得
- *
- * @returns YYYY-MM-DD 形式の日付文字列
- */
-export function getDateString(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 /**

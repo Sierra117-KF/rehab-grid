@@ -17,6 +17,7 @@ import {
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 
+import { getDateString } from "./date";
 import {
   convertBlobToPdfSupportedDataUrl,
   fetchSampleImageBlobs,
@@ -166,10 +167,9 @@ export async function preparePdfGenerationData(
  * PDFファイル名を生成
  *
  * @param title - プロジェクトタイトル
- * @returns "タイトル_YYYY-MM-DD.pdf" 形式のファイル名
+ * @returns "タイトル_YYYY-MM-DD.pdf" 形式のファイル名（日付はローカル時刻）
  */
 export function generatePdfFilename(title: string): string {
   const sanitizedTitle = title.trim() || "training-sheet";
-  const dateStr = new Date().toISOString().slice(0, 10);
-  return `${sanitizedTitle}_${dateStr}.pdf`;
+  return `${sanitizedTitle}_${getDateString()}.pdf`;
 }

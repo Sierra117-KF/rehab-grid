@@ -29,6 +29,12 @@ export const TEXT_LIMITS = {
   frequency: 10,
   /** 用量ラベル（「回数」などの欄の名前）1 つあたりの最大文字数 */
   dosageLabel: 6,
+  /** 病院・施設名（PDF ヘッダー）の最大文字数 */
+  facilityName: 30,
+  /** 担当者名（PDF ヘッダー）の最大文字数 */
+  therapistName: 20,
+  /** 全体メモ（PDF ヘッダー）の最大文字数 */
+  overallNote: 150,
 } as const;
 
 /**

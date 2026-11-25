@@ -69,7 +69,6 @@ import {
   downloadProjectAsZIP,
   exportToJSON,
   exportToZIP,
-  getDateString,
   importProject,
 } from "@rehab-grid/core/utils/export";
 
@@ -310,25 +309,6 @@ describe("export.ts", () => {
 
       expect(mockCreateObjectURL).toHaveBeenCalledTimes(1);
       expect(mockRevokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
-    });
-  });
-
-  // --------------------------------------------------------------------------
-  // getDateString
-  // --------------------------------------------------------------------------
-  describe("getDateString", () => {
-    it("YYYY-MM-DD形式で日付を返す", () => {
-      const result = getDateString();
-
-      expect(result).toBe("2024-06-15");
-    });
-
-    it("月・日が1桁の場合はゼロ埋めされる", () => {
-      vi.setSystemTime(new Date("2024-01-05T00:00:00Z"));
-
-      const result = getDateString();
-
-      expect(result).toBe("2024-01-05");
     });
   });
 

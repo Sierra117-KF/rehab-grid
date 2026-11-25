@@ -10,6 +10,7 @@ import {
   UNDO_LABEL,
   UNDO_STALE_MESSAGE,
   useEditorStore,
+  useModalStore,
 } from "@rehab-grid/core";
 import { useCanvasImages } from "@rehab-grid/core/hooks/useCanvasImages";
 import { useEditorShortcuts } from "@rehab-grid/core/hooks/useEditorShortcuts";
@@ -130,6 +131,9 @@ export function TrainingPage() {
   );
   const reorderItems = useEditorStore((state) => state.reorderItems);
   const setSelectedItemId = useEditorStore((state) => state.setSelectedItemId);
+  const setDesignSettingsOpen = useModalStore(
+    (state) => state.setDesignSettingsOpen
+  );
 
   // モバイルUI用ステート
   const mobileImageLibraryOpen = useEditorStore(
@@ -218,6 +222,13 @@ export function TrainingPage() {
     },
     [tryAddCard]
   );
+
+  /**
+   * キャンバス上部の要約から、デザイン設定ダイアログをヘッダー・チェック表のセクションで開く
+   */
+  const handleSheetSettingsClick = useCallback(() => {
+    setDesignSettingsOpen(true, "sheet");
+  }, [setDesignSettingsOpen]);
 
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
@@ -443,6 +454,9 @@ export function TrainingPage() {
           textScale={settings.textScale}
           showCardNumbers={settings.showCardNumbers}
           dosageLabels={settings.dosageLabels}
+          sheetHeader={settings.header}
+          checkTable={settings.checkTable}
+          onSheetSettingsClick={handleSheetSettingsClick}
           selectedItemId={selectedItemId}
           onItemSelect={handleItemSelect}
           onAddCard={handleAddCard}

@@ -152,6 +152,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const setDesignSettingsOpen = useModalStore(
     (state) => state.setDesignSettingsOpen
   );
+  const designSettingsSection = useModalStore(
+    (state) => state.designSettingsSection
+  );
 
   // モバイルメニュー関連の状態
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -685,6 +688,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         onLayoutChange={handleLayoutChange}
         onThemeColorChange={handleThemeColorChange}
         onSettingsChange={updateSettings}
+        initialSection={designSettingsSection}
       />
 
       {/* プロジェクト削除確認ダイアログ */}

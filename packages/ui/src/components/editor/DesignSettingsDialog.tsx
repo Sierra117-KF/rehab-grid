@@ -4,7 +4,7 @@
  * デザイン設定ダイアログコンポーネント
  *
  * 指導箋の見た目と印刷に関する設定（列数・用紙の向き・用途別プリセット・テーマカラー・
- * 印刷の色・文字サイズ・カード番号・用量のラベル）をまとめて変更するダイアログ。
+ * 印刷の色・文字サイズ・カード番号・用量のラベル・PDF のヘッダーと実施チェック表）をまとめて変更するダイアログ。
  * 設定は選んだ時点で反映し、ダイアログは「閉じる」で閉じる。
  */
 
@@ -21,6 +21,8 @@ import {
   DESIGN_SETTINGS_PRESET_DESCRIPTION,
   DESIGN_SETTINGS_PRESET_HEADING,
   DESIGN_SETTINGS_PRINT_COLOR_HEADING,
+  DESIGN_SETTINGS_SHEET_DESCRIPTION,
+  DESIGN_SETTINGS_SHEET_HEADING,
   DESIGN_SETTINGS_TEXT_SCALE_HEADING,
   DESIGN_SETTINGS_THEME_COLOR_HEADING,
   DOSAGE_LABEL_DESCRIPTION,
@@ -36,6 +38,7 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import {
+  type DesignSettingsSection,
   type LayoutType,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
@@ -51,11 +54,12 @@ import {
   DialogTitle,
 } from "@rehab-grid/ui/components/wrapped/Dialog";
 import { Label } from "@rehab-grid/ui/components/wrapped/Label";
-import { useId } from "react";
+import { useId, useRef } from "react";
 
 import { DosageLabelSettings } from "./DosageLabelSettings";
 import { GridLayoutSelector } from "./GridLayoutSelector";
 import { OptionButtonGroup } from "./OptionButtonGroup";
+import { SheetSettings } from "./SheetSettings";
 import { ThemeColorSelector } from "./ThemeColorSelector";
 
 /**
@@ -80,11 +84,13 @@ type DesignSettingsDialogProps = {
   onLayoutChange: (layout: LayoutType) => void;
   /** テーマカラー変更ハンドラ */
   onThemeColorChange: (color: string) => void;
-  /** そのほかの設定（印刷スタイル・プリセット・用量ラベル）の変更ハンドラ */
+  /** そのほかの設定（印刷スタイル・プリセット・用量ラベル・ヘッダー・チェック表）の変更ハンドラ */
   onSettingsChange: (
     updates: Partial<ResolvedProjectSettings>,
     options?: SettingsChangeOptions
   ) => void;
+  /** 開いたときに表示するセクション（省略時・null は先頭） */
+  initialSection?: DesignSettingsSection | null;
 };
 
 /**
@@ -149,7 +155,9 @@ export function DesignSettingsDialog({
   onLayoutChange,
   onThemeColorChange,
   onSettingsChange,
+  initialSection = null,
 }: DesignSettingsDialogProps) {
+  const sheetFirstControlRef = useRef<HTMLButtonElement>(null);
   const layoutHeadingId = useId();
   const orientationHeadingId = useId();
   const presetHeadingId = useId();
@@ -159,6 +167,20 @@ export function DesignSettingsDialog({
   const cardNumberHeadingId = useId();
   const cardNumberToggleId = useId();
   const dosageLabelHeadingId = useId();
+  const sheetHeadingId = useId();
+
+  /**
+   * ダイアログを開いたときのフォーカス先
+   *
+   * @remarks
+   * セクション指定で開いたときは、そのセクションの最初の入力にフォーカスする
+   * （フォーカスに合わせてブラウザがスクロールするため、セクションが見える位置まで移動する）
+   */
+  const handleOpenAutoFocus = (event: Event) => {
+    if (initialSection !== "sheet") return;
+    event.preventDefault();
+    sheetFirstControlRef.current?.focus();
+  };
 
   const isSingleColumn = settings.layoutType === "grid1";
   // 1列は横向きにするとカードが 1 ページに収まらないため、横向きを選べなくする
@@ -169,14 +191,20 @@ export function DesignSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* 項目が多いため、本文だけを縦スクロールにする（見出しと「閉じる」は常に見える） */}
-      <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-lg">
+      {/*
+        項目が多いため、本文だけを縦スクロールにする（見出しと「閉じる」は常に見える）。
+        grid だと max-height だけでは 1fr の行が縮まないため、flex の縦並びにする
+      */}
+      <DialogContent
+        className="flex max-h-[90dvh] flex-col sm:max-w-lg"
+        onOpenAutoFocus={handleOpenAutoFocus}
+      >
         <DialogHeader>
           <DialogTitle>{DESIGN_SETTINGS_LABEL}</DialogTitle>
           <DialogDescription>{DESIGN_SETTINGS_DESCRIPTION}</DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-6 flex flex-col gap-5 overflow-y-auto px-6 pb-1">
+        <div className="-mx-6 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 pb-1">
           {/* 列数 */}
           <SettingsSection
             headingId={layoutHeadingId}
@@ -332,6 +360,25 @@ export function DesignSettingsDialog({
               onChange={(dosageLabels, options) =>
                 onSettingsChange({ dosageLabels }, options)
               }
+            />
+          </SettingsSection>
+
+          {/* ヘッダー・チェック表（PDF） */}
+          <SettingsSection
+            headingId={sheetHeadingId}
+            heading={DESIGN_SETTINGS_SHEET_HEADING}
+            description={DESIGN_SETTINGS_SHEET_DESCRIPTION}
+          >
+            <SheetSettings
+              header={settings.header}
+              checkTable={settings.checkTable}
+              onHeaderChange={(header, options) =>
+                onSettingsChange({ header }, options)
+              }
+              onCheckTableChange={(checkTable) =>
+                onSettingsChange({ checkTable })
+              }
+              firstControlRef={sheetFirstControlRef}
             />
           </SettingsSection>
         </div>

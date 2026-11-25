@@ -115,8 +115,60 @@ export function getPdfContentSize(
  */
 export const PDF_GRID_GAP = 12;
 
-/** ヘッダーの高さ（ポイント単位） */
+/**
+ * ヘッダーの基本の高さ（ポイント単位）
+ *
+ * タイトル・日付欄・氏名欄の 1 行だけのときの高さ。施設名・担当者名や全体メモを出すと
+ * その分だけ高くなる（calculatePdfHeaderHeight）
+ */
 export const PDF_HEADER_HEIGHT = 35;
+
+/** 全体メモ（PDF ヘッダー）の最大行数。超えた分は「…」で切り詰める */
+export const PDF_OVERALL_NOTE_MAX_LINES = 5;
+
+/**
+ * 自主トレ実施チェック表のレイアウト（ポイント単位）
+ */
+export const PDF_CHECK_TABLE = {
+  /** 見出しのフォントサイズ */
+  titleFontSize: 11,
+  /** 見出し横の案内のフォントサイズ */
+  hintFontSize: 8,
+  /** 見出しと表の間隔 */
+  titleMarginBottom: 4,
+  /** 表の見出し行（曜日・日付）の高さ */
+  headerRowHeight: 18,
+  /** 運動 1 件分の行の高さ（○を書き込める大きさ） */
+  rowHeight: 24,
+  /** 運動名のフォントサイズ */
+  nameFontSize: 9,
+  /** 見出し行（曜日・日付）のフォントサイズ */
+  columnLabelFontSize: 8,
+  /** 1か月の表の日付のフォントサイズ（31 列並べるため小さめ） */
+  monthlyColumnLabelFontSize: 7,
+  /** セル内の左右の余白 */
+  cellPaddingHorizontal: 4,
+  /** 罫線の太さ */
+  borderWidth: 1,
+  /** 1週間の表の運動名の列の幅（コンテンツ幅に対する比率） */
+  weeklyNameColumnRatio: 0.4,
+  /** 1か月の表の運動名の列の幅 */
+  monthlyNameColumnWidth: 140,
+} as const;
+
+/** 1週間の実施チェック表の列（曜日） */
+export const CHECK_TABLE_WEEKDAYS = [
+  "月",
+  "火",
+  "水",
+  "木",
+  "金",
+  "土",
+  "日",
+] as const;
+
+/** 1か月の実施チェック表の日数（月の名前と日付は手書きしてもらうため、常に 31 列） */
+export const CHECK_TABLE_MONTH_DAYS = 31;
 
 /**
  * フォントファイルのパス
@@ -224,6 +276,10 @@ export const PDF_COLORS = {
   monochromeBackground: "#ffffff",
   /** カード番号の文字色 */
   cardNumberText: "#ffffff",
+  /** 実施チェック表の罫線（白黒コピーでも見える濃さ: slate-400） */
+  checkTableBorder: "#94a3b8",
+  /** 実施チェック表の見出し行の背景（白黒モードでは塗りつぶさない） */
+  checkTableHeaderBackground: "#f1f5f9",
 } as const;
 
 /**
@@ -235,6 +291,18 @@ export const PDF_COLORS = {
 export const PDF_LABELS = {
   /** 患者ラベル */
   patientLabel: "氏名:",
+  /** 日付欄のラベル */
+  dateLabel: "日付:",
+  /** 担当者名の前に付けるラベル */
+  therapistLabel: "担当:",
+  /** 1週間の実施チェック表の見出し */
+  weeklyCheckTableTitle: "自主トレ実施チェック表（1週間）",
+  /** 1か月の実施チェック表の見出し（月は手書きしてもらう） */
+  monthlyCheckTableTitle: "自主トレ実施チェック表（　　月）",
+  /** 実施チェック表の書き方の案内 */
+  checkTableHint: "実施した日に○をつけましょう",
+  /** 実施チェック表の運動名の列の見出し */
+  checkTableExerciseHeader: "運動",
 } as const;
 
 /**
@@ -287,6 +355,24 @@ export const PDF_SPACING = {
   precautionBorderWidth: 1,
   /** カード番号バッジとタイトルの間隔 */
   cardNumberGap: 4,
+  /** 日付の記入欄の幅 */
+  dateBoxWidth: 90,
+  /** 印字した日付のフォントサイズ */
+  dateFontSize: 10,
+  /** ヘッダー内の行と行の間隔 */
+  headerRowGap: 4,
+  /** 施設名・担当者名のフォントサイズ */
+  headerSubTextFontSize: 9,
+  /** 全体メモのフォントサイズ */
+  overallNoteFontSize: 9,
+  /** 施設名・担当者名と全体メモの行高 */
+  headerSubLineHeight: 1.4,
+  /** 全体メモの枠の内側の余白 */
+  overallNotePadding: 4,
+  /** 全体メモの枠線の太さ */
+  overallNoteBorderWidth: 1,
+  /** ページ番号のページ下端からの距離（下マージンの中に置く） */
+  footerBottom: 20,
 } as const;
 
 /**
@@ -299,6 +385,8 @@ export const PDF_CHAR_WIDTH_RATIO = {
   title: 0.6,
   /** 説明文・注意点 */
   body: 0.55,
+  /** 全角 1 文字分（行数を多めに見積もって、高さ不足やはみ出しを防ぐ箇所で使う） */
+  fullWidth: 1,
 } as const;
 
 /**

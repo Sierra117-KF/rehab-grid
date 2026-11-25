@@ -6,10 +6,12 @@
 
 import {
   type BadgeType,
+  type CheckTableType,
   type LayoutType,
   type PageOrientation,
   type PrintColorMode,
   type ResolvedProjectSettings,
+  type SheetDateMode,
   type TextScale,
 } from "@rehab-grid/core/types";
 import {
@@ -133,6 +135,30 @@ export const TEXT_SCALE_OPTIONS: readonly {
 }[] = [
   { value: "standard", label: "標準" },
   { value: "large", label: "大きめ" },
+];
+
+/**
+ * PDF ヘッダーの日付欄の選択肢（デザイン設定ダイアログ用）
+ */
+export const SHEET_DATE_MODE_OPTIONS: readonly {
+  value: SheetDateMode;
+  label: string;
+}[] = [
+  { value: "none", label: "なし" },
+  { value: "blank", label: "記入欄" },
+  { value: "printed", label: "出力日を印字" },
+];
+
+/**
+ * 自主トレ実施チェック表の選択肢（デザイン設定ダイアログ用）
+ */
+export const CHECK_TABLE_OPTIONS: readonly {
+  value: CheckTableType;
+  label: string;
+}[] = [
+  { value: "none", label: "なし" },
+  { value: "weekly", label: "1週間" },
+  { value: "monthly", label: "1か月" },
 ];
 
 /**

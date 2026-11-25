@@ -374,16 +374,32 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
         pageOrientation: "auto",
         showCardNumbers: false,
         dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+        header: {
+          showPatientNameBox: true,
+          dateMode: "none",
+          facilityName: "",
+          therapistName: "",
+          overallNote: "",
+        },
+        checkTable: "none",
       });
     });
 
-    it("ZIPインポートで印刷スタイル（白黒・文字サイズ・向き・番号・用量ラベル）が保たれる", async () => {
+    it("ZIPインポートで印刷スタイル（白黒・文字サイズ・向き・番号・用量ラベル・ヘッダー・チェック表）が保たれる", async () => {
       const printStyle = {
         printColorMode: "monochrome",
         textScale: "large",
         pageOrientation: "landscape",
         showCardNumbers: true,
         dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+        header: {
+          showPatientNameBox: false,
+          dateMode: "printed",
+          facilityName: "○○病院",
+          therapistName: "山田",
+          overallNote: "目標：毎日続ける\n次回：12月1日",
+        },
+        checkTable: "monthly",
       } as const;
       const file = await createValidZIPFile({
         project: {

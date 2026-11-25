@@ -239,7 +239,8 @@ const {
   closeSecurityDisclaimer,
   checkDisclaimerRequired,
   isDesignSettingsOpen, // デザイン設定ダイアログ（ヘッダー以外からも開けるようストアで持つ）
-  setDesignSettingsOpen,
+  designSettingsSection, // 開いたときに表示するセクション（"sheet" = ヘッダー・チェック表）
+  setDesignSettingsOpen, // (open, section?) — キャンバスの要約からは setDesignSettingsOpen(true, "sheet")
 } = useModalStore();
 ```
 
@@ -477,8 +478,10 @@ lib/pdf/
 ├── index.ts      # buildPdfDocument を export
 ├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う）
 ├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）
-├── header.ts     # createHeader（タイトル・氏名欄）
-├── metrics.ts    # 画像サイズ・フォントサイズ・1行あたり文字数の計算
+├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ）
+├── footer.ts     # createFooter（2ページ以上のときのページ番号。fixed で全ページに描画）
+├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ、1か月は A4 横の別ページ）
+├── metrics.ts    # 画像サイズ・フォントサイズ・1行あたり文字数・ヘッダーの高さの計算
 └── styles.ts     # StyleSheet 定義
 ```
 
