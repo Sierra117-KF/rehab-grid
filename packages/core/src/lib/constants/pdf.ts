@@ -6,6 +6,7 @@
  */
 
 import { type LayoutType } from "@rehab-grid/core/types/editor";
+import { type PageOrientation } from "@rehab-grid/core/types/project";
 
 import { DOSAGE_COLORS, FONT_SIZES, LAYOUT_COLUMNS } from "./shared";
 
@@ -58,40 +59,53 @@ export const PDF_CONTENT_SIZE_LANDSCAPE = {
 } as const;
 
 /**
- * レイアウトタイプが横向き（landscape）かどうかを判定
+ * レイアウトタイプと用紙の向きの設定から、PDFを横向き（landscape）にするかを判定
+ *
+ * @remarks
+ * 1列は横向きにすると 1 枚のカードがページに収まらないため、指定に関わらず縦向きにする
  *
  * @param layoutType - グリッドレイアウトタイプ
- * @returns 3列以上の場合true（横向き）
+ * @param orientation - 用紙の向きの設定（省略時は "auto"：3列以上なら横向き）
+ * @returns 横向きの場合true
  */
-export function isLandscapeLayout(layoutType: LayoutType): boolean {
+export function isLandscapeLayout(
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
+): boolean {
   const columns = LAYOUT_COLUMNS[layoutType];
-  return columns >= 3;
+  if (columns === 1) return false;
+  if (orientation === "auto") return columns >= 3;
+  return orientation === "landscape";
 }
 
 /**
- * レイアウトタイプに応じたPDFページサイズを取得
+ * レイアウトタイプと用紙の向きの設定に応じたPDFページサイズを取得
  *
  * @param layoutType - グリッドレイアウトタイプ
+ * @param orientation - 用紙の向きの設定（省略時は "auto"）
  * @returns ページサイズ（縦型 or 横型）
  */
 export function getPdfPageSize(
-  layoutType: LayoutType
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
 ): typeof PDF_PAGE_SIZE | typeof PDF_PAGE_SIZE_LANDSCAPE {
-  return isLandscapeLayout(layoutType)
+  return isLandscapeLayout(layoutType, orientation)
     ? PDF_PAGE_SIZE_LANDSCAPE
     : PDF_PAGE_SIZE;
 }
 
 /**
- * レイアウトタイプに応じたPDFコンテンツ領域サイズを取得
+ * レイアウトタイプと用紙の向きの設定に応じたPDFコンテンツ領域サイズを取得
  *
  * @param layoutType - グリッドレイアウトタイプ
+ * @param orientation - 用紙の向きの設定（省略時は "auto"）
  * @returns コンテンツ領域サイズ（縦型 or 横型）
  */
 export function getPdfContentSize(
-  layoutType: LayoutType
+  layoutType: LayoutType,
+  orientation: PageOrientation = "auto"
 ): typeof PDF_CONTENT_SIZE | typeof PDF_CONTENT_SIZE_LANDSCAPE {
-  return isLandscapeLayout(layoutType)
+  return isLandscapeLayout(layoutType, orientation)
     ? PDF_CONTENT_SIZE_LANDSCAPE
     : PDF_CONTENT_SIZE;
 }
@@ -206,6 +220,10 @@ export const PDF_COLORS = {
   precautionText: "#451a03", // amber-950相当
   /** 患者名ボックスのボーダー色 */
   patientNameBoxBorder: "#cbd5e1",
+  /** 白黒・インク節約モードのページ背景色 */
+  monochromeBackground: "#ffffff",
+  /** カード番号の文字色 */
+  cardNumberText: "#ffffff",
 } as const;
 
 /**
@@ -265,6 +283,10 @@ export const PDF_SPACING = {
   patientNameBoxBorderRadius: 4,
   /** 患者ラベルフォントサイズ */
   patientLabelFontSize: 10,
+  /** 白黒モードの注意点の枠線の太さ */
+  precautionBorderWidth: 1,
+  /** カード番号バッジとタイトルの間隔 */
+  cardNumberGap: 4,
 } as const;
 
 /**

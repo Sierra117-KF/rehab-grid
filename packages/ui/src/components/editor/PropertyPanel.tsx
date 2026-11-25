@@ -10,12 +10,14 @@ import {
   IMAGE_EDIT_LABEL,
   IMAGE_FLIP_BUTTON_LABEL,
   IMAGE_FLIP_TOOLTIP,
+  LABELS,
   MAX_PRECAUTIONS_COUNT,
   PROPERTY_PANEL_WARNING,
   SNIPPET_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
+  type DosageLabels,
   type Dosages,
   type EditorItem,
   type Precaution,
@@ -130,6 +132,8 @@ export type PropertyPanelProps = {
   onImageEdit?: (id: string) => void;
   /** 画像の処理中かどうか（処理中は画像の操作ボタンを押せない） */
   isImageProcessing?: boolean;
+  /** 用量の入力欄のラベル（デザイン設定の用量ラベル。省略時は LABELS の回数・セット・頻度） */
+  dosageLabels?: DosageLabels;
 };
 
 /**
@@ -150,6 +154,7 @@ export function PropertyPanel({
   onImageFlip,
   onImageEdit,
   isImageProcessing = false,
+  dosageLabels = LABELS,
 }: PropertyPanelProps) {
   // 削除確認ダイアログの状態
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -368,10 +373,13 @@ export function PropertyPanel({
               </p>
             </div>
 
-            {/* 回数・セット・頻度 */}
+            {/* 回数・セット・頻度（ラベルはデザイン設定の用量ラベルに合わせる） */}
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <Label>回数・セット・頻度</Label>
+                <Label>
+                  {dosageLabels.reps}・{dosageLabels.sets}・
+                  {dosageLabels.frequency}
+                </Label>
                 {onApplyDosagesToAll ? (
                   <ApplyToAllButton
                     title={APPLY_DOSAGES_TO_ALL_TOOLTIP}
@@ -387,7 +395,7 @@ export function PropertyPanel({
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="dosage-reps" className="text-xs">
-                    回数
+                    {dosageLabels.reps}
                   </Label>
                   <Input
                     id="dosage-reps"
@@ -405,7 +413,7 @@ export function PropertyPanel({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="dosage-sets" className="text-xs">
-                    セット
+                    {dosageLabels.sets}
                   </Label>
                   <Input
                     id="dosage-sets"
@@ -423,7 +431,7 @@ export function PropertyPanel({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="dosage-frequency" className="text-xs">
-                    頻度
+                    {dosageLabels.frequency}
                   </Label>
                   <Input
                     id="dosage-frequency"

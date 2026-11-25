@@ -4,8 +4,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   CANVAS_DROP_HERE,
+  CARD_NUMBER_BADGE_RATIO,
   DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE,
+  EDITOR_TEXT_STYLE_LARGE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_DRAG_TYPE,
   IMAGE_FLIP_TOOLTIP,
@@ -15,7 +17,12 @@ import {
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
-import type { EditorItem, LayoutType } from "@rehab-grid/core/types";
+import type {
+  DosageLabels,
+  EditorItem,
+  LayoutType,
+  TextScale,
+} from "@rehab-grid/core/types";
 import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import {
   Copy,
@@ -33,6 +40,49 @@ import { useCallback, useRef, useState } from "react";
 const DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
   borderTopColor: "var(--dosage-accent-light)",
 };
+
+/**
+ * 注意点ボックスの枠線の色（白黒モードのみ Canvas が濃い色に上書きする。既定は透明）
+ */
+const PRECAUTION_BORDER_STYLE: React.CSSProperties = {
+  borderColor: "var(--precaution-border)",
+};
+
+/**
+ * カード番号バッジの見た目（大きさはタイトルの文字サイズに対する比率。PDF と同じ比率）
+ */
+const CARD_NUMBER_BADGE_STYLE: React.CSSProperties = {
+  width: `${String(CARD_NUMBER_BADGE_RATIO.size)}em`,
+  height: `${String(CARD_NUMBER_BADGE_RATIO.size)}em`,
+  fontSize: `${String(CARD_NUMBER_BADGE_RATIO.fontSize)}em`,
+  backgroundColor: "var(--card-number-bg)",
+};
+
+/**
+ * カード内の文字サイズを選ぶ
+ *
+ * @remarks
+ * デスクトップの 1 列は常に拡大スタイル（文字サイズの設定に関わらず）。
+ * モバイルは 1 列表示でも拡大スタイルを使わないため、「大きめ」なら 2〜4 列向けの大きめスタイルにする。
+ *
+ * @param layoutType - レイアウトタイプ
+ * @param textScale - 文字サイズの設定
+ * @param isMobile - モバイル表示かどうか
+ * @returns Tailwind のクラス名の組
+ */
+function getCardTextStyle(
+  layoutType: LayoutType | undefined,
+  textScale: TextScale,
+  isMobile: boolean
+):
+  | typeof EDITOR_TEXT_STYLE
+  | typeof EDITOR_TEXT_STYLE_LARGE
+  | typeof EDITOR_TEXT_STYLE_SINGLE_COLUMN {
+  if (layoutType === "grid1" && !isMobile) {
+    return EDITOR_TEXT_STYLE_SINGLE_COLUMN;
+  }
+  return textScale === "large" ? EDITOR_TEXT_STYLE_LARGE : EDITOR_TEXT_STYLE;
+}
 
 /**
  * カード右上のホバーアクションボタン（デスクトップ用）
@@ -110,6 +160,12 @@ export type SortableCardProps = {
   // レイアウト設定
   /** レイアウトタイプ（4列時のバッジレイアウト変更用） */
   layoutType?: LayoutType;
+  /** 文字サイズの設定（省略時は標準） */
+  textScale?: TextScale;
+  /** タイトルの左に表示するカード番号（省略時はバッジを表示しない） */
+  cardNumber?: number;
+  /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
+  dosageLabels?: DosageLabels;
 };
 
 /**
@@ -132,8 +188,12 @@ export function SortableCard({
   onSettingsClick,
   isMobile = false,
   layoutType,
+  textScale = "standard",
+  cardNumber,
+  dosageLabels = LABELS,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
+  const textStyle = getCardTextStyle(layoutType, textScale, isMobile);
 
   // ロングプレス用タイマーRef
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -406,25 +466,36 @@ export function SortableCard({
         >
           <h3
             className={cn(
-              "font-semibold text-center line-clamp-1",
-              layoutType === "grid1" && !isMobile
-                ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.titleSize
-                : EDITOR_TEXT_STYLE.titleSize,
-              !item.title && "text-muted-foreground/50 italic"
+              "flex items-center justify-center gap-[0.3em] font-semibold",
+              textStyle.titleSize
             )}
           >
-            {item.title
-              ? item.title.slice(0, TEXT_LIMITS.title)
-              : LABELS.untitledExercise}
+            {/* カード番号バッジ（丸数字。サイズはタイトルの文字サイズに追従する） */}
+            {cardNumber !== undefined ? (
+              <span
+                className="flex shrink-0 items-center justify-center rounded-full font-bold not-italic leading-none text-white"
+                style={CARD_NUMBER_BADGE_STYLE}
+              >
+                {cardNumber}
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                "min-w-0 truncate",
+                !item.title && "text-muted-foreground/50 italic"
+              )}
+            >
+              {item.title
+                ? item.title.slice(0, TEXT_LIMITS.title)
+                : LABELS.untitledExercise}
+            </span>
           </h3>
 
           {/* 説明（あれば） */}
           {item.description ? (
             <p
               className={cn(
-                layoutType === "grid1" && !isMobile
-                  ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.descriptionSize
-                  : EDITOR_TEXT_STYLE.descriptionSize,
+                textStyle.descriptionSize,
                 "text-muted-foreground line-clamp-4 whitespace-pre-line"
               )}
             >
@@ -473,9 +544,7 @@ export function SortableCard({
                         {/* 数値（大きく強調） */}
                         <span
                           className={cn(
-                            layoutType === "grid1" && !isMobile
-                              ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.dosageValueSize
-                              : EDITOR_TEXT_STYLE.dosageValueSize,
+                            textStyle.dosageValueSize,
                             "font-bold text-dosage-value"
                           )}
                         >
@@ -488,14 +557,12 @@ export function SortableCard({
                             `* { border-color }` は Tailwind のユーティリティより強いため、インライン style で指定する */}
                         <span
                           className={cn(
-                            layoutType === "grid1" && !isMobile
-                              ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.dosageLabelSize
-                              : EDITOR_TEXT_STYLE.dosageLabelSize,
+                            textStyle.dosageLabelSize,
                             "text-dosage-label border-t pt-1 mt-1"
                           )}
                           style={DOSAGE_DIVIDER_STYLE}
                         >
-                          {LABELS[badge.type]}
+                          {dosageLabels[badge.type]}
                         </span>
                       </div>
                     ))}
@@ -506,10 +573,11 @@ export function SortableCard({
           );
         })()}
 
-        {/* 注意点（あれば） */}
+        {/* 注意点（あれば）。枠線は白黒モードでだけ見える（線の色は区切り線と同じ理由でインライン style） */}
         {item.precautions && item.precautions.length > 0 ? (
           <div
-            className="rounded-lg bg-precaution-bg p-2.5 space-y-1"
+            className="rounded-lg border bg-precaution-bg p-2.5 space-y-1"
+            style={PRECAUTION_BORDER_STYLE}
             onTouchStart={handleContentTouchStart}
             onTouchEnd={handleContentTouchEnd}
             onTouchMove={handleContentTouchEnd}
@@ -517,9 +585,7 @@ export function SortableCard({
           >
             <span
               className={cn(
-                layoutType === "grid1" && !isMobile
-                  ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.precautionTitleSize
-                  : "text-xs",
+                textStyle.precautionTitleSize,
                 "font-semibold text-precaution-title"
               )}
             >
@@ -529,9 +595,7 @@ export function SortableCard({
               <p
                 key={precaution.id}
                 className={cn(
-                  layoutType === "grid1" && !isMobile
-                    ? EDITOR_TEXT_STYLE_SINGLE_COLUMN.precautionTextSize
-                    : "text-xs",
+                  textStyle.precautionTextSize,
                   "text-precaution-text whitespace-pre-line wrap-break-words"
                 )}
               >

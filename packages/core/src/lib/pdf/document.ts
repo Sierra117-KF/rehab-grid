@@ -3,7 +3,7 @@
  */
 
 import { Document, type DocumentProps, Page, View } from "@react-pdf/renderer";
-import { getPdfPageSize } from "@rehab-grid/core/lib/constants";
+import { getPdfPageSize, PDF_COLORS } from "@rehab-grid/core/lib/constants";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type PdfGenerationData } from "@rehab-grid/core/types";
 import { calculatePdfCardWidth } from "@rehab-grid/core/utils/pdf";
@@ -27,16 +27,24 @@ export function buildPdfDocument(
   data: PdfGenerationData
 ): ReactElement<DocumentProps> {
   const settings = resolveProjectSettings(data.settings);
-  const cardWidth = calculatePdfCardWidth(settings.layoutType);
+  const { layoutType, pageOrientation, printColorMode } = settings;
+  const cardWidth = calculatePdfCardWidth(layoutType, pageOrientation);
   const sortedItems = [...data.items].sort((a, b) => a.order - b.order);
-  const pageSize = getPdfPageSize(settings.layoutType);
+  const pageSize = getPdfPageSize(layoutType, pageOrientation);
+  // 白黒モードはトナーを節約するため、ページ背景の薄いグレーもなくす
+  const pageStyle =
+    printColorMode === "monochrome"
+      ? { ...styles.page, backgroundColor: PDF_COLORS.monochromeBackground }
+      : styles.page;
 
-  const cards = sortedItems.map((item) =>
+  // カード番号は並び順の連番にする（インポートしたデータの order が飛んでいても 1 から振る）
+  const cards = sortedItems.map((item, index) =>
     createCard(
       item,
       cardWidth,
       item.imageSource ? data.images[item.imageSource] : undefined,
-      settings
+      settings,
+      index + 1
     )
   );
 
@@ -50,7 +58,7 @@ export function buildPdfDocument(
     null,
     createElement(
       Page,
-      { size: [pageSize.width, pageSize.height], style: styles.page },
+      { size: [pageSize.width, pageSize.height], style: pageStyle },
       ...pageContent
     )
   ) as ReactElement<DocumentProps>;

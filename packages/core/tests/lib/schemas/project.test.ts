@@ -472,6 +472,69 @@ describe("lib/schemas/project", () => {
       expect(result.success).toBeTruthy();
       expect(result.data?.themeColor).toBe(DEFAULT_THEME_COLOR);
     });
+
+    describe("印刷スタイル（2-2）", () => {
+      const printStyle = {
+        printColorMode: "monochrome",
+        textScale: "large",
+        pageOrientation: "landscape",
+        showCardNumbers: true,
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      } as const;
+
+      it("有効な値はそのまま保持される（JSON / ZIP の書き出し → 読み込みで消えない）", () => {
+        const data = { ...createValidProjectSettings(), ...printStyle };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(data);
+      });
+
+      it("項目がない旧形式のデータもパース成功する", () => {
+        const result = projectSettingsSchema.safeParse(createValidProjectSettings());
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.printColorMode).toBeUndefined();
+        expect(result.data?.dosageLabels).toBeUndefined();
+      });
+
+      it("不正値・型違いはインポート全体を失敗させず、未指定として扱う", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          printColorMode: "sepia",
+          textScale: 2,
+          pageOrientation: null,
+          showCardNumbers: "yes",
+          dosageLabels: "秒数",
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data).toEqual(createValidProjectSettings());
+      });
+
+      it("用量ラベルの各キーは不正値だけを未指定にし、他のキーは保つ", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          dosageLabels: { reps: "秒数", sets: 3 },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.dosageLabels).toEqual({ reps: "秒数" });
+      });
+
+      it("用量ラベルはサニタイズし、6 文字を超えた分はカットする", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          dosageLabels: { reps: "<b>秒数</b>", frequency: "とてもながいラベル" },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.data?.dosageLabels?.reps).not.toContain("<");
+        expect(result.data?.dosageLabels?.frequency).toBe("とてもながい");
+      });
+    });
   });
 
   describe("projectFileSchema", () => {

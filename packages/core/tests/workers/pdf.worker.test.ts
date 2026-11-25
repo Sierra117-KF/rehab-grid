@@ -72,7 +72,15 @@ const TEST_DATA: PdfGenerationData = {
     title: "テスト",
     projectType: "training",
   },
-  settings: { layoutType: "grid2", themeColor: "#3b82f6" },
+  settings: {
+    layoutType: "grid2",
+    themeColor: "#3b82f6",
+    printColorMode: "color",
+    textScale: "standard",
+    pageOrientation: "auto",
+    showCardNumbers: false,
+    dosageLabels: { reps: "回数", sets: "セット", frequency: "頻度" },
+  },
   items: [],
   images: {},
 };

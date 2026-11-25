@@ -99,6 +99,19 @@ describe("PropertyPanel", () => {
       expect(screen.getByText("注意点")).toBeInTheDocument();
     });
 
+    it("用量の入力欄と見出しは、デザイン設定の用量ラベルで表示される", () => {
+      setupPropertyPanel({
+        selectedItem: createTestItem(),
+        dosageLabels: { reps: "秒数", sets: "左右", frequency: "目安" },
+      });
+
+      expect(screen.getByLabelText("秒数")).toBeInTheDocument();
+      expect(screen.getByLabelText("左右")).toBeInTheDocument();
+      expect(screen.getByLabelText("目安")).toBeInTheDocument();
+      expect(screen.getByText("秒数・左右・目安")).toBeInTheDocument();
+      expect(screen.queryByText("回数")).not.toBeInTheDocument();
+    });
+
     it("タイトルが入力フィールドに表示される", () => {
       setupPropertyPanel({
         selectedItem: createTestItem({ title: "スクワット" }),

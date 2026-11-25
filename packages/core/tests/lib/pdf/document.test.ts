@@ -9,9 +9,11 @@ import {
   PDF_PAGE_SIZE,
   PDF_PAGE_SIZE_LANDSCAPE,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import {
   type LayoutType,
   type PdfGenerationData,
+  type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,20 +29,27 @@ vi.mock("@react-pdf/renderer", async () => (await import("./pdfTestUtils")).reac
 
 import { buildPdfDocument } from "@/lib/pdf/document";
 
+/**
+ * テスト用の設定を生成（指定した値は検証せずにそのまま使う。Worker に不正値が届く場合を再現できる）
+ */
+function createSettings(
+  layoutType: LayoutType,
+  themeColor = DEFAULT_THEME_COLOR,
+  extra: Partial<ResolvedProjectSettings> = {}
+): ResolvedProjectSettings {
+  return { ...resolveProjectSettings(undefined), layoutType, themeColor, ...extra };
+}
+
 function createTestData(
   overrides: Partial<PdfGenerationData> = {}
 ): PdfGenerationData {
   return {
     meta: createTestMeta(),
-    settings: { layoutType: "grid2", themeColor: DEFAULT_THEME_COLOR },
+    settings: createSettings("grid2"),
     items: [],
     images: {},
     ...overrides,
   };
-}
-
-function createSettings(layoutType: LayoutType, themeColor = DEFAULT_THEME_COLOR) {
-  return { layoutType, themeColor };
 }
 
 function getPageSize(doc: unknown): unknown {
@@ -172,5 +181,103 @@ describe("buildPdfDocument", () => {
     );
 
     expect(extractDividerColors(doc)).toEqual(["#c4dafc"]);
+  });
+
+  describe("用紙の向き", () => {
+    it.each([
+      ["grid2", "landscape", "横", PDF_PAGE_SIZE_LANDSCAPE],
+      ["grid3", "portrait", "縦", PDF_PAGE_SIZE],
+      ["grid4", "portrait", "縦", PDF_PAGE_SIZE],
+      ["grid3", "auto", "横", PDF_PAGE_SIZE_LANDSCAPE],
+      ["grid2", "auto", "縦", PDF_PAGE_SIZE],
+    ] as const)(
+      "%s で向き %s を指定すると A4%s の用紙になる",
+      (layoutType, pageOrientation, _, size) => {
+        const doc = buildPdfDocument(
+          createTestData({
+            settings: createSettings(layoutType, DEFAULT_THEME_COLOR, {
+              pageOrientation,
+            }),
+          })
+        );
+
+        expect(getPageSize(doc)).toEqual([size.width, size.height]);
+      }
+    );
+
+    it("1列は横向きを指定しても A4縦になる（カードが 1 ページに収まらないため）", () => {
+      const doc = buildPdfDocument(
+        createTestData({
+          settings: createSettings("grid1", DEFAULT_THEME_COLOR, {
+            pageOrientation: "landscape",
+          }),
+        })
+      );
+
+      expect(getPageSize(doc)).toEqual([PDF_PAGE_SIZE.width, PDF_PAGE_SIZE.height]);
+    });
+
+    it("2列を横向きにすると、カード幅も横向きのコンテンツ幅から求める", () => {
+      const doc = buildPdfDocument(
+        createTestData({
+          settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+            pageOrientation: "landscape",
+          }),
+          items: [createTestItem()],
+        })
+      );
+
+      // (761.89 - 12) / 2 = 374.945（縦向きなら 251.64）
+      // カードはページをまたいで分割しないよう wrap={false} を持つ
+      const card = findElementsByType(doc, "View").find(
+        (el) => el.props?.wrap === false
+      );
+      expect((card?.props?.style as { width: number }).width).toBeCloseTo(374.945, 6);
+    });
+  });
+
+  describe("印刷の色", () => {
+    function getPageBackground(doc: unknown): unknown {
+      const style = findElementsByType(doc, "Page")[0]?.props?.style as
+        | { backgroundColor?: string }
+        | undefined;
+      return style?.backgroundColor;
+    }
+
+    it("カラーではページ背景が薄いグレーのまま", () => {
+      const doc = buildPdfDocument(createTestData());
+
+      expect(getPageBackground(doc)).toBe("#f8fafc");
+    });
+
+    it("白黒ではページ背景を白にする", () => {
+      const doc = buildPdfDocument(
+        createTestData({
+          settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+            printColorMode: "monochrome",
+          }),
+        })
+      );
+
+      expect(getPageBackground(doc)).toBe("#ffffff");
+    });
+  });
+
+  it("カード番号は order の値ではなく並び順の連番になる", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
+          showCardNumbers: true,
+        }),
+        items: [
+          createTestItem({ id: "b", order: 5, title: "運動B" }),
+          createTestItem({ id: "a", order: 2, title: "運動A" }),
+        ],
+      })
+    );
+
+    const texts = extractTextContent(doc);
+    expect(texts.indexOf("1")).toBe(texts.indexOf("運動A") - 1);
+    expect(texts.indexOf("2")).toBe(texts.indexOf("運動B") - 1);
   });
 });

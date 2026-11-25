@@ -94,6 +94,24 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: PDF_SPACING.cardTitleMarginBottom,
     textAlign: "center",
   },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: PDF_SPACING.cardTitleMarginTop,
+  },
+  cardNumberBadge: {
+    // 大きさと背景色はタイトルのフォントサイズと設定から決めるため、生成時に指定する（card.ts）
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: PDF_SPACING.cardNumberGap,
+    flexShrink: 0,
+  },
+  cardNumberText: {
+    fontWeight: "bold",
+    textAlign: "center",
+    color: PDF_COLORS.cardNumberText,
+  },
   cardDescription: {
     fontSize: PDF_TEXT_STYLE.descriptionSize,
     color: PDF_COLORS.textTertiary,

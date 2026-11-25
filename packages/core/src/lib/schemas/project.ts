@@ -113,7 +113,21 @@ export const projectMetaSchema = z.object({
 });
 
 /**
+ * 用量ラベル 1 つ分のスキーマ
+ *
+ * サニタイズ後に最大文字数を超えた分はカットする。文字列以外は未指定として扱う（デフォルト値は resolveProjectSettings で補う）
+ */
+const dosageLabelSchema = z
+  .string()
+  .transform((v) => sanitizeText(v).slice(0, TEXT_LIMITS.dosageLabel))
+  .optional()
+  .catch(undefined);
+
+/**
  * プロジェクト設定スキーマ
+ *
+ * @remarks
+ * 2-2 以降の項目はオプショナルで、不正な値や型違いは未指定として扱い、インポート全体を失敗させない
  */
 export const projectSettingsSchema = z.object({
   /** グリッドレイアウトタイプ */
@@ -122,6 +136,29 @@ export const projectSettingsSchema = z.object({
   themeColor: z
     .string()
     .transform((v) => (THEME_COLOR_PATTERN.test(v) ? v : DEFAULT_THEME_COLOR)),
+  /** 印刷の色づかい */
+  printColorMode: z
+    .enum(["color", "monochrome"])
+    .optional()
+    .catch(undefined),
+  /** カード内の文字サイズ */
+  textScale: z.enum(["standard", "large"]).optional().catch(undefined),
+  /** PDF の用紙の向き */
+  pageOrientation: z
+    .enum(["auto", "portrait", "landscape"])
+    .optional()
+    .catch(undefined),
+  /** カード番号を表示するか */
+  showCardNumbers: z.boolean().optional().catch(undefined),
+  /** 用量のラベル */
+  dosageLabels: z
+    .object({
+      reps: dosageLabelSchema,
+      sets: dosageLabelSchema,
+      frequency: dosageLabelSchema,
+    })
+    .optional()
+    .catch(undefined),
 });
 
 /**

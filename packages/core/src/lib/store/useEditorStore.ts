@@ -20,7 +20,6 @@ import {
   type Precaution,
   type ProjectFile,
   type ProjectMeta,
-  type ProjectSettings,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { debounce } from "@rehab-grid/core/utils/debounce";
@@ -153,9 +152,14 @@ type EditorActions = {
   appendPrecautionsToAll: (values: string[]) => AppendPrecautionsResult;
   /** アイテムを並び替え */
   reorderItems: (items: EditorItem[]) => void;
-  /** プロジェクト設定を部分的に更新（レイアウトタイプ・テーマカラー等） */
+  /**
+   * プロジェクト設定を部分的に更新（レイアウトタイプ・テーマカラー・印刷スタイル等）
+   *
+   * @remarks
+   * 用量ラベル（dosageLabels）は 3 キーそろった値で渡す
+   */
   updateSettings: (
-    updates: Partial<ProjectSettings>,
+    updates: Partial<ResolvedProjectSettings>,
     options?: HistoryMergeOptions
   ) => void;
   /** 選択中のアイテムIDを設定 */
@@ -487,8 +491,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       updateSettings: (updates, options) => {
         const { settings } = get();
         const hasChanges = (
-          Object.keys(updates) as (keyof ProjectSettings)[]
-        ).some((key) => !Object.is(settings[key], updates[key]));
+          Object.keys(updates) as (keyof ResolvedProjectSettings)[]
+        ).some((key) =>
+          // 用量ラベルは毎回新しいオブジェクトで渡されるため、中身で比べる
+          key === "dosageLabels"
+            ? !shallow(settings.dosageLabels, updates.dosageLabels)
+            : !Object.is(settings[key], updates[key])
+        );
         if (!hasChanges) return;
 
         commit({ settings: { ...settings, ...updates } }, options?.mergeKey);
