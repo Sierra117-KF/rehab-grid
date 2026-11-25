@@ -17,7 +17,7 @@ import { Toaster as SonnerToaster } from "sonner";
 export function Toaster() {
   return (
     <SonnerToaster
-      position="bottom-right"
+      position="bottom-center"
       toastOptions={{
         className: "border border-border bg-background text-foreground",
       }}

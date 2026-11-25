@@ -33,7 +33,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">01</span>
             基本方針
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは、
               <strong className="text-foreground">
@@ -57,7 +57,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">02</span>
             運営者情報
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは、GitHub上で
               <strong className="text-foreground">
@@ -81,7 +81,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">03</span>
             お問い合わせ窓口
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               プライバシーに関するご質問・ご意見は、以下の窓口までお寄せください。
             </p>
@@ -110,7 +110,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">04</span>
             個人情報の収集について
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは、
               <strong className="text-foreground">
@@ -136,7 +136,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">05</span>
             ガイドライン上の位置づけ
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本アプリは
               <strong className="text-foreground">
@@ -157,13 +157,13 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">06</span>
             データの保存場所
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスで作成・編集したデータは、ブラウザの
               <strong className="text-foreground">IndexedDB</strong>
               に保存されます。これはブラウザが提供するローカルストレージ機能であり、データはお使いの端末内にのみ存在します。
             </p>
-            <div className="bg-card/50 border border-white/10 rounded-lg p-4 mt-4">
+            <div className="bg-card/50 border border-border/60 rounded-lg p-4 mt-4">
               <p className="text-sm">
                 <span className="text-primary font-semibold">
                   重要なお知らせ:
@@ -183,7 +183,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">07</span>
             外部サービスとの通信・第三者提供
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは以下の理由により、外部サービスとの通信を行いません:
             </p>
@@ -212,7 +212,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">08</span>
             Cookieの使用について
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは
               <strong className="text-foreground">Cookieを使用しません</strong>
@@ -227,7 +227,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">09</span>
             セキュリティ推奨事項
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスはCSP（コンテンツセキュリティポリシー）を設定し、外部通信をブロックしていますが、
               <strong className="text-foreground">
@@ -247,7 +247,7 @@ export function PrivacyPage() {
                 セキュリティアップデートが適用された状態でご利用ください
               </li>
             </ul>
-            <div className="bg-card/50 border border-white/10 rounded-lg p-4 mt-4">
+            <div className="bg-card/50 border border-border/60 rounded-lg p-4 mt-4">
               <p className="text-sm">
                 <span className="text-primary font-semibold">注意:</span>
                 <br />
@@ -263,7 +263,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">10</span>
             開示・訂正・削除請求について
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは個人情報を収集・保持していないため、
               <strong className="text-foreground">
@@ -291,7 +291,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">11</span>
             要配慮個人情報の入力禁止
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               患者様の顔写真、氏名、病歴等の
               <strong className="text-foreground">
@@ -311,7 +311,7 @@ export function PrivacyPage() {
             <span className="text-primary font-mono text-lg">12</span>
             プライバシーポリシーの改定
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本ポリシーは、必要に応じて改定されることがあります。重要な変更がある場合は、本ページにて告知します。
             </p>
@@ -320,7 +320,7 @@ export function PrivacyPage() {
       </div>
 
       {/* フッター */}
-      <footer className="mt-16 pt-8 border-t border-white/5">
+      <footer className="mt-16 pt-8 border-t border-border/60">
         <p className="text-sm text-muted-foreground">
           最終更新日: 2026年1月25日
         </p>

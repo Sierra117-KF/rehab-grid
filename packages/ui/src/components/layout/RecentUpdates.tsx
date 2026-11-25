@@ -56,7 +56,7 @@ export function RecentUpdates() {
                 className={`group relative overflow-hidden rounded-lg border p-5 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 ${
                   isLatest
                     ? "border-primary/30 bg-primary/5"
-                    : "border-white/10 bg-card/30"
+                    : "border-border bg-card/30"
                 }`}
               >
                 {/* NEWバッジ（最新の1件のみ） */}

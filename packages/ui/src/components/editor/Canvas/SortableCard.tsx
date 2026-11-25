@@ -273,7 +273,7 @@ export function SortableCard({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // 枠線の色はテーマカラー（Canvas が上書きする CSS 変数）。区切り線と同じ理由でインライン style で指定する
+    // 枠線の色はテーマカラー（Canvas が上書きする CSS 変数）。Tailwind を読み込まないテストでも実測できるようインライン style で参照する
     borderColor: "var(--card-border-color)",
   };
 
@@ -650,9 +650,7 @@ export function SortableCard({
                               : "-"}
                           </span>
                         )}
-                        {/* ラベル（下線付き）
-                            線の色はテーマカラー（Canvas が上書きする CSS 変数）。globals.css のレイヤー外の
-                            `* { border-color }` は Tailwind のユーティリティより強いため、インライン style で指定する */}
+                        {/* ラベル（下線付き。線の色は Canvas がテーマカラーから上書きする CSS 変数を参照する） */}
                         <span
                           className={cn(
                             textStyle.dosageLabelSize,
@@ -671,7 +669,7 @@ export function SortableCard({
           );
         })()}
 
-        {/* 注意点（あれば）。枠線は白黒モードでだけ見える（線の色は区切り線と同じ理由でインライン style） */}
+        {/* 注意点（あれば）。枠線は白黒モードでだけ見える（Canvas が上書きする CSS 変数を参照する） */}
         {item.precautions && item.precautions.length > 0 ? (
           <div
             className="rounded-lg border bg-precaution-bg p-2.5 space-y-1"

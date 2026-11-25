@@ -36,16 +36,6 @@ type OptionButtonGroupProps<T extends string> = {
 };
 
 /**
- * 選択中ボタンの枠線色
- *
- * globals.css のレイヤー外の `* { border-color }` が Tailwind の `border-*` 色クラスに
- * 勝つため、インライン style で orange-500 を指定する
- */
-const SELECTED_BORDER_STYLE: React.CSSProperties = {
-  borderColor: "#f97316",
-};
-
-/**
  * 選択肢ボタングループコンポーネント
  *
  * @remarks
@@ -72,7 +62,6 @@ export function OptionButtonGroup<T extends string>({
             onClick={() => onChange(option.value)}
             aria-pressed={isSelected}
             disabled={option.disabled}
-            style={isSelected ? SELECTED_BORDER_STYLE : undefined}
             className={cn(
               "min-w-16 rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",

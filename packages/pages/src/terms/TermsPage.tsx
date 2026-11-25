@@ -46,7 +46,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">01</span>
             定義
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>本規約において、以下の用語は次の意味で使用します:</p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>
@@ -75,7 +75,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">02</span>
             利用規約への同意
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスを利用することにより、利用者は本規約のすべての条項に同意したものとみなされます。
             </p>
@@ -94,7 +94,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">03</span>
             サービスの概要
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは、リハビリテーション専門職（PT/OT/ST）向けの
               <strong className="text-foreground">
@@ -122,7 +122,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">04</span>
             利用条件
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスをご利用いただくにあたり、以下の条件に同意いただくものとします:
             </p>
@@ -149,7 +149,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">05</span>
             免責事項
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは「現状のまま」提供されます。提供者は、
               <strong className="text-foreground">
@@ -158,7 +158,7 @@ export function TermsPage() {
               、以下の事項について責任を負いません:
             </p>
 
-            <div className="bg-card/50 border border-white/10 rounded-lg p-4 space-y-3">
+            <div className="bg-card/50 border border-border/60 rounded-lg p-4 space-y-3">
               <h3 className="font-semibold text-foreground">データの消失</h3>
               <p className="text-sm">
                 本サービスのデータはブラウザのIndexedDBに保存されます。以下の操作によりデータが消失する可能性があります:
@@ -213,7 +213,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">06</span>
             損害賠償
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスは無料で提供されており、利用者が本サービスの利用に関連して提供者に対して損害賠償を請求できる場合においても、
               <strong className="text-foreground">
@@ -233,7 +233,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">07</span>
             禁止事項
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>本サービスの利用にあたり、以下の行為を禁止します:</p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>本サービスを利用した違法行為</li>
@@ -258,14 +258,14 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">08</span>
             オープンソースライセンス
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスのソースコードは
               <strong className="text-foreground">AGPL-3.0ライセンス</strong>
               （GNU Affero General Public License v3.0）の下で公開されています。
             </p>
 
-            <div className="bg-card/50 border border-white/10 rounded-lg p-4 space-y-3">
+            <div className="bg-card/50 border border-border/60 rounded-lg p-4 space-y-3">
               <h3 className="font-semibold text-foreground">
                 AGPL-3.0ライセンスで許可されていること
               </h3>
@@ -300,7 +300,7 @@ export function TermsPage() {
               をご確認ください。
             </p>
 
-            <div className="bg-card/50 border border-white/10 rounded-lg p-4 space-y-3">
+            <div className="bg-card/50 border border-border/60 rounded-lg p-4 space-y-3">
               <h3 className="font-semibold text-foreground">
                 「リハぐり」の名称について
               </h3>
@@ -324,7 +324,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">09</span>
             サービスの変更・終了
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               提供者は、利用者への事前通知なく、本サービスの内容を変更、または提供を終了することがあります。
             </p>
@@ -343,7 +343,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">10</span>
             規約の変更
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本規約は、法令の改正、社会情勢の変化、その他の必要に応じて変更されることがあります。
             </p>
@@ -362,7 +362,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">11</span>
             準拠法・管轄
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本規約は日本法に準拠し、本サービスに関する紛争については、日本国内の裁判所を専属的合意管轄裁判所とします。
             </p>
@@ -375,7 +375,7 @@ export function TermsPage() {
             <span className="text-primary font-mono text-lg">12</span>
             お問い合わせ
           </h2>
-          <div className="pl-8 border-l border-white/10 space-y-4 text-muted-foreground leading-relaxed">
+          <div className="pl-8 border-l border-border/60 space-y-4 text-muted-foreground leading-relaxed">
             <p>
               本サービスに関するお問い合わせは、以下の窓口にてお受けしております:
             </p>
@@ -402,7 +402,7 @@ export function TermsPage() {
       </div>
 
       {/* フッター */}
-      <footer className="mt-16 pt-8 border-t border-white/5">
+      <footer className="mt-16 pt-8 border-t border-border/60">
         <p className="text-sm text-muted-foreground">
           最終更新日: 2026年1月25日
         </p>
