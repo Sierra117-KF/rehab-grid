@@ -492,13 +492,12 @@ export function ImageEditModal({ image: sourceImage, onClose, onSave }: ImageEdi
                     key={value}
                     type="button"
                     className={cn(
-                      "size-7 rounded-full border-2 transition-transform",
+                      "size-7 rounded-full border-2 border-white transition-transform",
                       color === value
                         ? "scale-110 ring-2 ring-primary ring-offset-2"
                         : "hover:scale-105"
                     )}
-                    // globals.css のレイヤー外の `* { border-color }` が優先されるため、色はインライン style で指定する
-                    style={{ backgroundColor: value, borderColor: "#ffffff" }}
+                    style={{ backgroundColor: value }}
                     aria-label={label}
                     aria-pressed={color === value}
                     disabled={isSaving}

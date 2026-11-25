@@ -70,16 +70,6 @@ import { ThemeColorSelector } from "./ThemeColorSelector";
 const THEME_COLOR_MERGE_KEY = "settings:themeColor";
 
 /**
- * 選択中ボタンの枠線色
- *
- * globals.css のレイヤー外の `* { border-color }` が Tailwind の `border-*` 色クラスに
- * 勝つため、インライン style で orange-500 を指定する
- */
-const SELECTED_BORDER_STYLE: React.CSSProperties = {
-  borderColor: "#f97316",
-};
-
-/**
  * 設定変更のオプション
  */
 type SettingsChangeOptions = {
@@ -269,7 +259,6 @@ export function DesignSettingsDialog({
                     type="button"
                     onClick={() => onSettingsChange(preset.settings)}
                     aria-pressed={isActive}
-                    style={isActive ? SELECTED_BORDER_STYLE : undefined}
                     className={cn(
                       "flex flex-col items-start gap-0.5 rounded-lg border-2 px-3 py-2 text-left transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",

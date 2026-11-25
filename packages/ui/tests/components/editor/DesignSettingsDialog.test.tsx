@@ -90,15 +90,15 @@ describe("DesignSettingsDialog", () => {
   });
 
   describe("列数", () => {
-    it("現在の列数が選択状態になり、枠線色がインラインで指定される", () => {
+    it("現在の列数が選択状態になり、枠線色のクラスが切り替わる", () => {
       setupDialog({ layoutType: "grid3" });
 
       const selected = screen.getByRole("button", { name: "3列" });
       const unselected = screen.getByRole("button", { name: "2列" });
       expect(selected).toHaveAttribute("aria-pressed", "true");
-      expect(selected.style.borderColor).toBe("rgb(249, 115, 22)");
+      expect(selected).toHaveClass("border-orange-500");
       expect(unselected).toHaveAttribute("aria-pressed", "false");
-      expect(unselected.style.borderColor).toBe("");
+      expect(unselected).toHaveClass("border-border");
     });
 
     it("列数を選ぶと onSettingsChange が呼ばれ、ダイアログは閉じない", async () => {
@@ -127,14 +127,14 @@ describe("DesignSettingsDialog", () => {
       );
     });
 
-    it("現在の色のプリセットが選択状態になり、枠線色がインラインで区別される（大文字の HEX でも一致する）", () => {
+    it("現在の色のプリセットが選択状態になり、枠線色のクラスで区別される（大文字の HEX でも一致する）", () => {
       setupDialog({ themeColor: "#C2410C" });
 
       const selected = screen.getByRole("button", { name: "オレンジ" });
       const unselected = screen.getByRole("button", { name: "ブルー" });
       expect(selected).toHaveAttribute("aria-pressed", "true");
-      expect(selected.style.borderColor).toBe("var(--foreground)");
-      expect(unselected.style.borderColor).toBe("transparent");
+      expect(selected).toHaveClass("border-foreground");
+      expect(unselected).toHaveClass("border-transparent");
       expect(getHexInput()).toHaveValue("#c2410c");
     });
 

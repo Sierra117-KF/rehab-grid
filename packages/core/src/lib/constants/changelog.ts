@@ -34,7 +34,7 @@ export const CATEGORY_COLOR_CLASSES: Record<ChangelogCategory, string> = {
   features: "text-primary bg-primary/10 border-primary/20",
   improvements:
     "text-accent-secondary bg-accent-secondary/10 border-accent-secondary/20",
-  fixes: "text-muted-foreground bg-muted/50 border-white/10",
+  fixes: "text-muted-foreground bg-muted/50 border-border",
 };
 
 /** トップページに表示する最新エントリの件数 */
