@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  APPLY_DOSAGES_TO_ALL_TOOLTIP,
   APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
   APPLY_TO_ALL_LABEL,
+  createApplyDosagesToAllTooltip,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
@@ -382,7 +382,7 @@ export function PropertyPanel({
                 </Label>
                 {onApplyDosagesToAll ? (
                   <ApplyToAllButton
-                    title={APPLY_DOSAGES_TO_ALL_TOOLTIP}
+                    title={createApplyDosagesToAllTooltip(dosageLabels)}
                     disabled={!hasDosages}
                     onClick={() => {
                       if (selectedItem.dosages) {

@@ -16,6 +16,7 @@ import {
   TEXT_SCALE_SINGLE_COLUMN_NOTE,
   THEME_COLOR_HEX_INVALID_MESSAGE,
   THEME_COLOR_HEX_LABEL,
+  THEME_COLOR_MONOCHROME_NOTE,
   THEME_COLOR_PICKER_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
@@ -33,8 +34,6 @@ function setupDialog(settings: Partial<ResolvedProjectSettings> = {}) {
     open: true,
     onOpenChange: vi.fn(),
     settings: { ...resolveProjectSettings(undefined), ...settings },
-    onLayoutChange: vi.fn(),
-    onThemeColorChange: vi.fn(),
     onSettingsChange: vi.fn(),
   };
   const { rerender } = render(<DesignSettingsDialog {...props} />);
@@ -83,8 +82,6 @@ describe("DesignSettingsDialog", () => {
         open={false}
         onOpenChange={vi.fn()}
         settings={resolveProjectSettings(undefined)}
-        onLayoutChange={vi.fn()}
-        onThemeColorChange={vi.fn()}
         onSettingsChange={vi.fn()}
       />
     );
@@ -93,58 +90,65 @@ describe("DesignSettingsDialog", () => {
   });
 
   describe("列数", () => {
-    it("現在の列数が選択状態になる", () => {
+    it("現在の列数が選択状態になり、枠線色がインラインで指定される", () => {
       setupDialog({ layoutType: "grid3" });
 
-      expect(screen.getByRole("button", { name: "3列" })).toHaveAttribute(
-        "aria-pressed",
-        "true"
-      );
-      expect(screen.getByRole("button", { name: "2列" })).toHaveAttribute(
-        "aria-pressed",
-        "false"
-      );
+      const selected = screen.getByRole("button", { name: "3列" });
+      const unselected = screen.getByRole("button", { name: "2列" });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+      expect(selected.style.borderColor).toBe("rgb(249, 115, 22)");
+      expect(unselected).toHaveAttribute("aria-pressed", "false");
+      expect(unselected.style.borderColor).toBe("");
     });
 
-    it("列数を選ぶと onLayoutChange が呼ばれ、ダイアログは閉じない", async () => {
+    it("列数を選ぶと onSettingsChange が呼ばれ、ダイアログは閉じない", async () => {
       const user = userEvent.setup();
       const { props } = setupDialog();
 
       await user.click(screen.getByRole("button", { name: "4列" }));
 
-      expect(props.onLayoutChange).toHaveBeenCalledWith("grid4");
+      expect(props.onSettingsChange).toHaveBeenCalledWith({
+        layoutType: "grid4",
+      });
       expect(props.onOpenChange).not.toHaveBeenCalled();
     });
   });
 
   describe("テーマカラー", () => {
-    it("プリセットを選ぶと onThemeColorChange が呼ばれる", async () => {
+    it("プリセットを選ぶと mergeKey 付きで onSettingsChange が呼ばれる", async () => {
       const user = userEvent.setup();
       const { props } = setupDialog();
 
       await user.click(screen.getByRole("button", { name: "エメラルド" }));
 
-      expect(props.onThemeColorChange).toHaveBeenCalledWith("#059669");
+      expect(props.onSettingsChange).toHaveBeenCalledWith(
+        { themeColor: "#059669" },
+        { mergeKey: "settings:themeColor" }
+      );
     });
 
-    it("現在の色のプリセットが選択状態になる（大文字の HEX でも一致する）", () => {
+    it("現在の色のプリセットが選択状態になり、枠線色がインラインで区別される（大文字の HEX でも一致する）", () => {
       setupDialog({ themeColor: "#C2410C" });
 
-      expect(screen.getByRole("button", { name: "オレンジ" })).toHaveAttribute(
-        "aria-pressed",
-        "true"
-      );
+      const selected = screen.getByRole("button", { name: "オレンジ" });
+      const unselected = screen.getByRole("button", { name: "ブルー" });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+      expect(selected.style.borderColor).toBe("var(--foreground)");
+      expect(unselected.style.borderColor).toBe("transparent");
       expect(getHexInput()).toHaveValue("#c2410c");
     });
 
-    it("カラーピッカーで選んだ色が onThemeColorChange に渡される", () => {
+    it("カラーピッカーで選んだ色が onSettingsChange に渡される", () => {
       const { props } = setupDialog();
 
       fireEvent.input(screen.getByLabelText(THEME_COLOR_PICKER_LABEL), {
         target: { value: "#123456" },
       });
 
-      expect(props.onThemeColorChange).toHaveBeenCalledWith("#123456");
+      expect(props.onSettingsChange).toHaveBeenCalledWith(
+        { themeColor: "#123456" },
+        { mergeKey: "settings:themeColor" }
+      );
     });
 
     it("カラーコードは正しい形式になった時点で小文字にして反映する", async () => {
@@ -153,11 +157,14 @@ describe("DesignSettingsDialog", () => {
 
       await user.clear(getHexInput());
       await user.type(getHexInput(), "#ABCDE");
-      expect(props.onThemeColorChange).not.toHaveBeenCalled();
+      expect(props.onSettingsChange).not.toHaveBeenCalled();
       expect(screen.getByText(THEME_COLOR_HEX_INVALID_MESSAGE)).toBeInTheDocument();
 
       await user.type(getHexInput(), "F");
-      expect(props.onThemeColorChange).toHaveBeenCalledExactlyOnceWith("#abcdef");
+      expect(props.onSettingsChange).toHaveBeenCalledExactlyOnceWith(
+        { themeColor: "#abcdef" },
+        { mergeKey: "settings:themeColor" }
+      );
     });
 
     it("不正なカラーコードのままフォーカスが外れると現在の色に戻る", async () => {
@@ -180,6 +187,16 @@ describe("DesignSettingsDialog", () => {
       rerenderWith({ themeColor: "#7c3aed" });
 
       expect(getHexInput()).toHaveValue("#7c3aed");
+    });
+
+    it("白黒モードのときだけ、テーマカラーが反映されない注意を表示する", () => {
+      const { rerenderWith } = setupDialog({ printColorMode: "color" });
+      expect(
+        screen.queryByText(THEME_COLOR_MONOCHROME_NOTE)
+      ).not.toBeInTheDocument();
+
+      rerenderWith({ printColorMode: "monochrome" });
+      expect(screen.getByText(THEME_COLOR_MONOCHROME_NOTE)).toBeInTheDocument();
     });
   });
 
@@ -457,8 +474,6 @@ describe("DesignSettingsDialog", () => {
           open
           onOpenChange={vi.fn()}
           settings={resolveProjectSettings(undefined)}
-          onLayoutChange={vi.fn()}
-          onThemeColorChange={vi.fn()}
           onSettingsChange={vi.fn()}
           initialSection="sheet"
         />

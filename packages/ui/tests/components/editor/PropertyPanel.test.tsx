@@ -1,6 +1,7 @@
 import {
   APPLY_DOSAGES_TO_ALL_TOOLTIP,
   APPLY_PRECAUTIONS_TO_ALL_TOOLTIP,
+  createApplyDosagesToAllTooltip,
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
@@ -565,6 +566,26 @@ describe("PropertyPanel", () => {
         sets: "",
         frequency: "",
       });
+    });
+
+    it("デザイン設定の用量ラベルに合わせて、用量の反映ボタンの名前も変わる", () => {
+      const dosageLabels = { reps: "秒数", sets: "左右", frequency: "目安" };
+      setupPropertyPanel({
+        selectedItem: createTestItem({
+          dosages: { reps: "30秒", sets: "", frequency: "" },
+        }),
+        onApplyDosagesToAll: vi.fn(),
+        onApplyPrecautionsToAll: vi.fn(),
+        dosageLabels,
+      });
+
+      const button = screen.getByRole("button", {
+        name: createApplyDosagesToAllTooltip(dosageLabels),
+      });
+      expect(button).toHaveAttribute(
+        "title",
+        createApplyDosagesToAllTooltip(dosageLabels)
+      );
     });
 
     it("空でない注意点がないときは注意点の反映ボタンが無効になる", () => {

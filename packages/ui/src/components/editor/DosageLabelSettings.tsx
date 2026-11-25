@@ -23,6 +23,16 @@ import { useId, useState } from "react";
 const DOSAGE_LABEL_TYPES: readonly BadgeType[] = ["reps", "sets", "frequency"];
 
 /**
+ * 選択中候補ボタンの枠線色
+ *
+ * globals.css のレイヤー外の `* { border-color }` が Tailwind の `border-*` 色クラスに
+ * 勝つため、インライン style で orange-500 を指定する
+ */
+const SELECTED_BORDER_STYLE: React.CSSProperties = {
+  borderColor: "#f97316",
+};
+
+/**
  * DosageLabelSettings コンポーネントの Props
  */
 type DosageLabelSettingsProps = {
@@ -117,6 +127,7 @@ function DosageLabelField({ type, value, onChange }: DosageLabelFieldProps) {
               }}
               aria-pressed={isSelected}
               aria-label={`${createDosageLabelInputLabel(defaultLabel)}を「${suggestion}」にする`}
+              style={isSelected ? SELECTED_BORDER_STYLE : undefined}
               className={cn(
                 "rounded-full border px-2 py-0.5 text-xs transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500",

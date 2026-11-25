@@ -198,7 +198,7 @@ export const MONOCHROME_COLORS = {
  * 用量表示の色設定（HEX値）
  *
  * Canvas（CSS変数経由）とPDFの両方で使用する信頼できる単一の情報源
- * 数値強調型デザイン: グレースケール + blue-500アクセント
+ * 区切り線の色はテーマカラーから求める
  *
  * @remarks
  * 色を変更する場合は、このファイルと globals.css の両方を更新すること
@@ -208,6 +208,4 @@ export const DOSAGE_COLORS = {
   value: "#1e293b",
   /** ラベル色: slate-400 */
   label: "#94a3b8",
-  /** アクセント色: blue-500 */
-  accent: "#3b82f6",
 } as const;

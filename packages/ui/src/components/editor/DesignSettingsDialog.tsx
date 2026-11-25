@@ -35,11 +35,11 @@ import {
   TEXT_SCALE_OPTIONS,
   TEXT_SCALE_SINGLE_COLUMN_NOTE,
   THEME_COLOR_DESCRIPTION,
+  THEME_COLOR_MONOCHROME_NOTE,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import {
   type DesignSettingsSection,
-  type LayoutType,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { Checkbox } from "@rehab-grid/ui/components/ui/checkbox";
@@ -63,6 +63,23 @@ import { SheetSettings } from "./SheetSettings";
 import { ThemeColorSelector } from "./ThemeColorSelector";
 
 /**
+ * テーマカラー変更の履歴をまとめるキー
+ *
+ * カラーピッカーのドラッグ中は値が連続して変わるため、1 件の履歴にまとめる
+ */
+const THEME_COLOR_MERGE_KEY = "settings:themeColor";
+
+/**
+ * 選択中ボタンの枠線色
+ *
+ * globals.css のレイヤー外の `* { border-color }` が Tailwind の `border-*` 色クラスに
+ * 勝つため、インライン style で orange-500 を指定する
+ */
+const SELECTED_BORDER_STYLE: React.CSSProperties = {
+  borderColor: "#f97316",
+};
+
+/**
  * 設定変更のオプション
  */
 type SettingsChangeOptions = {
@@ -80,11 +97,7 @@ type DesignSettingsDialogProps = {
   onOpenChange: (open: boolean) => void;
   /** 現在のプロジェクト設定 */
   settings: ResolvedProjectSettings;
-  /** レイアウト変更ハンドラ */
-  onLayoutChange: (layout: LayoutType) => void;
-  /** テーマカラー変更ハンドラ */
-  onThemeColorChange: (color: string) => void;
-  /** そのほかの設定（印刷スタイル・プリセット・用量ラベル・ヘッダー・チェック表）の変更ハンドラ */
+  /** 設定の変更ハンドラ */
   onSettingsChange: (
     updates: Partial<ResolvedProjectSettings>,
     options?: SettingsChangeOptions
@@ -152,8 +165,6 @@ export function DesignSettingsDialog({
   open,
   onOpenChange,
   settings,
-  onLayoutChange,
-  onThemeColorChange,
   onSettingsChange,
   initialSection = null,
 }: DesignSettingsDialogProps) {
@@ -212,7 +223,7 @@ export function DesignSettingsDialog({
           >
             <GridLayoutSelector
               layoutType={settings.layoutType}
-              onLayoutChange={onLayoutChange}
+              onLayoutChange={(layoutType) => onSettingsChange({ layoutType })}
             />
           </SettingsSection>
 
@@ -258,6 +269,7 @@ export function DesignSettingsDialog({
                     type="button"
                     onClick={() => onSettingsChange(preset.settings)}
                     aria-pressed={isActive}
+                    style={isActive ? SELECTED_BORDER_STYLE : undefined}
                     className={cn(
                       "flex flex-col items-start gap-0.5 rounded-lg border-2 px-3 py-2 text-left transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
@@ -291,8 +303,16 @@ export function DesignSettingsDialog({
           >
             <ThemeColorSelector
               value={settings.themeColor}
-              onChange={onThemeColorChange}
+              onChange={(themeColor) =>
+                onSettingsChange(
+                  { themeColor },
+                  { mergeKey: THEME_COLOR_MERGE_KEY }
+                )
+              }
             />
+            {settings.printColorMode === "monochrome" ? (
+              <SettingsNote>{THEME_COLOR_MONOCHROME_NOTE}</SettingsNote>
+            ) : null}
           </SettingsSection>
 
           {/* 印刷の色 */}

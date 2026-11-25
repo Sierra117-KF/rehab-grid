@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE,
   APPLY_TO_ALL_NO_TARGET_MESSAGE,
   createApplyToAllSuccessMessage,
   createMaxItemCountReachedMessage,
@@ -288,7 +289,11 @@ export function TrainingPage() {
     (values: string[]) => {
       const { updatedCount, skippedCount } = appendPrecautionsToAll(values);
       if (updatedCount === 0) {
-        toast.info(APPLY_TO_ALL_NO_TARGET_MESSAGE);
+        toast.info(
+          skippedCount > 0
+            ? APPLY_PRECAUTIONS_ALL_AT_LIMIT_MESSAGE
+            : APPLY_TO_ALL_NO_TARGET_MESSAGE
+        );
         return;
       }
       showUndoableToast(

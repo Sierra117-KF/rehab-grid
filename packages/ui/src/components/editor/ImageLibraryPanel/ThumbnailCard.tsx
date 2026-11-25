@@ -121,7 +121,12 @@ export function ThumbnailCard({
         "transition-all",
         isBulkDeleteMode
           ? "cursor-pointer hover:border-primary/60"
-          : "cursor-pointer hover:border-primary/40 hover:shadow-md",
+          : cn(
+              isMobile
+                ? "cursor-pointer"
+                : "cursor-grab active:cursor-grabbing",
+              "hover:border-primary/40 hover:shadow-md"
+            ),
         "animate-fade-in",
         draggingImageId === image.id && "opacity-50",
         isSelected && "ring-2 ring-primary"

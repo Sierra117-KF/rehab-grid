@@ -190,6 +190,22 @@ describe("useEditorShortcuts", () => {
       expect(event.defaultPrevented).toBeFalsy();
     });
 
+    it.each([
+      ["dialog", "dialog"],
+      ["alertdialog", "alertdialog"],
+    ])(
+      "%s が開いているときは、フォーカスが body にあっても Undo / Redo しない",
+      (_, role) => {
+        renderHook(() => useEditorShortcuts());
+        appendElement("div", { role });
+
+        const event = pressKey({ key: "z", ctrlKey: true }, document.body);
+
+        expect(currentTitle()).toBe("変更後");
+        expect(event.defaultPrevented).toBeFalsy();
+      }
+    );
+
     it("入力欄以外のボタンにフォーカスがあるときは実行する", () => {
       renderHook(() => useEditorShortcuts());
 
