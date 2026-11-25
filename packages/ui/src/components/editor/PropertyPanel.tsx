@@ -7,6 +7,9 @@ import {
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
+  IMAGE_EDIT_LABEL,
+  IMAGE_FLIP_BUTTON_LABEL,
+  IMAGE_FLIP_TOOLTIP,
   MAX_PRECAUTIONS_COUNT,
   PROPERTY_PANEL_WARNING,
   SNIPPET_BUTTON_LABEL,
@@ -37,8 +40,10 @@ import {
   Copy,
   CopyCheck,
   FileText,
+  FlipHorizontal2,
   MousePointerClick,
   Plus,
+  SquarePen,
   Trash2,
   X,
 } from "lucide-react";
@@ -109,6 +114,22 @@ export type PropertyPanelProps = {
    * 未指定なら反映ボタンを表示しない（カードが 1 枚のときは渡さない）
    */
   onApplyPrecautionsToAll?: (values: string[]) => void;
+  /**
+   * 画像の左右反転ボタンが押されたときのコールバック
+   *
+   * @remarks
+   * 未指定、またはカードに画像がないときはボタンを表示しない
+   */
+  onImageFlip?: (id: string) => void;
+  /**
+   * 画像の編集ボタンが押されたときのコールバック
+   *
+   * @remarks
+   * 未指定、またはカードに画像がないときはボタンを表示しない
+   */
+  onImageEdit?: (id: string) => void;
+  /** 画像の処理中かどうか（処理中は画像の操作ボタンを押せない） */
+  isImageProcessing?: boolean;
 };
 
 /**
@@ -126,6 +147,9 @@ export function PropertyPanel({
   onItemDuplicate,
   onApplyDosagesToAll,
   onApplyPrecautionsToAll,
+  onImageFlip,
+  onImageEdit,
+  isImageProcessing = false,
 }: PropertyPanelProps) {
   // 削除確認ダイアログの状態
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -266,6 +290,40 @@ export function PropertyPanel({
         /* 編集フォーム */
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-3">
+            {/* 画像の編集（画像があるカードのみ） */}
+            {selectedItem.imageSource !== "" && (onImageFlip || onImageEdit) ? (
+              <div className="space-y-1">
+                <Label>画像</Label>
+                <div className="flex gap-2">
+                  {onImageFlip ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 bg-white"
+                      title={IMAGE_FLIP_TOOLTIP}
+                      disabled={isImageProcessing}
+                      onClick={() => onImageFlip(selectedItem.id)}
+                    >
+                      <FlipHorizontal2 className="size-3.5" />
+                      {IMAGE_FLIP_BUTTON_LABEL}
+                    </Button>
+                  ) : null}
+                  {onImageEdit ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 bg-white"
+                      disabled={isImageProcessing}
+                      onClick={() => onImageEdit(selectedItem.id)}
+                    >
+                      <SquarePen className="size-3.5" />
+                      {IMAGE_EDIT_LABEL}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
             {/* タイトル */}
             <div className="space-y-1">
               <Label htmlFor="item-title">運動名</Label>

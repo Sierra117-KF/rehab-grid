@@ -337,6 +337,7 @@ type TemplateMetadata = {
 | `export.ts` | `exportToJSON()`, `exportToZip()`, `importProject()` | プロジェクトのエクスポート・インポート |
 | `externalLink.ts` | `isAllowedExternalUrl()` | 外部リンク検証 |
 | `image.ts` | `processAndSaveImage()`, `isValidImageBlob()`, `partitionImageIds()` | 画像処理・検証 |
+| `imageEdit.ts` | `flipAndSaveImage()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
 | `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()` | PDF レイアウト計算 |
 | `project.ts` | プロジェクト操作 | プロジェクトデータ操作 |
 | `template.ts` | テンプレート読み込み | テンプレート適用処理 |

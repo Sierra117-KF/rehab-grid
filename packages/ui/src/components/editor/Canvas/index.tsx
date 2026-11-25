@@ -79,6 +79,10 @@ export type CanvasProps = {
   canAddCard?: boolean;
   /** カードの複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
   onItemDuplicate?: (itemId: string) => void;
+  /** カードの画像の左右反転ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
+  onItemImageFlip?: (itemId: string) => void;
+  /** 画像の処理中かどうか（処理中は左右反転ボタンを押せない） */
+  isImageProcessing?: boolean;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -119,6 +123,8 @@ export function Canvas({
   onAddCardWithImage,
   canAddCard = true,
   onItemDuplicate,
+  onItemImageFlip,
+  isImageProcessing = false,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -362,6 +368,12 @@ export function Canvas({
                           ? () => onItemDuplicate(item.id)
                           : undefined
                       }
+                      onFlipImage={
+                        onItemImageFlip
+                          ? () => onItemImageFlip(item.id)
+                          : undefined
+                      }
+                      isImageProcessing={isImageProcessing}
                       onImageAreaClick={onImageAreaClick}
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}

@@ -89,6 +89,7 @@ vi.mock("@rehab-grid/core/lib/db", () => ({
   saveImage: vi.fn().mockResolvedValue(undefined),
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
+  getImageRecord: vi.fn().mockResolvedValue(undefined),
 }));
 
 // 画像処理関数のモック
@@ -103,6 +104,8 @@ vi.mock("@rehab-grid/core/utils/image", () => ({
   partitionImageIds: vi.fn(() => ({ userImageIds: [], sampleImageIds: [] })),
   fetchSampleImageBlobs: vi.fn(async () => Promise.resolve(new Map())),
   isValidImageBlob: vi.fn(async () => Promise.resolve(true)),
+  MAX_WIDTH_OR_HEIGHT: 1200,
+  supportsWebP: vi.fn(() => true),
 }));
 
 // next/image のモック（ブラウザモード用）

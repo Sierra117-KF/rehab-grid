@@ -206,6 +206,7 @@ const result = projectFileSchema.safeParse(importedData);
 |---------|------|
 | `export.ts` | JSON/ZIP エクスポート・インポート |
 | `image.ts` | 画像圧縮・処理（長辺1200px, WebP推奨） |
+| `imageEdit.ts` | 画像編集（左右反転・90°回転・5:3 トリミング・注釈）と編集画像の保存 |
 | `pdf.ts` | PDF生成ヘルパー |
 | `editor.ts` | エディタロジック（並び替え等） |
 | `template.ts` | テンプレート読み込み |

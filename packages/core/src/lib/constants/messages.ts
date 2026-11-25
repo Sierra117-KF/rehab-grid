@@ -110,6 +110,93 @@ export function createApplyToAllSuccessMessage(
     : base;
 }
 
+// 画像編集関連メッセージ
+/** 左右反転ボタンのラベル（プロパティパネル） */
+export const IMAGE_FLIP_BUTTON_LABEL = "左右反転";
+
+/** カード上の左右反転ボタンのツールチップ */
+export const IMAGE_FLIP_TOOLTIP = "画像を左右反転";
+
+/** 画像編集ボタンのラベル（モーダルのタイトルも兼ねる） */
+export const IMAGE_EDIT_LABEL = "画像を編集";
+
+/** 画像編集モーダルの説明 */
+export const IMAGE_EDIT_DESCRIPTION =
+  "編集した画像は新しい画像として保存されます。元の画像はライブラリに残ります";
+
+/** 画像編集モーダルの「向き」セクションの見出し */
+export const IMAGE_EDIT_ORIENTATION_HEADING = "向き";
+
+/** 全体を左右反転するボタンのラベル */
+export const IMAGE_EDIT_FLIP_WHOLE_LABEL = "全体を左右反転";
+
+/** 左半分と右半分をそれぞれ左右反転するボタンのラベル */
+export const IMAGE_EDIT_FLIP_PANELS_LABEL = "2コマずつ左右反転";
+
+/** 2コマずつ左右反転の説明 */
+export const IMAGE_EDIT_FLIP_PANELS_HINT =
+  "左右2コマの画像は、コマの順番を変えずに向きだけ反転します";
+
+/** 90°回転ボタンのラベル */
+export const IMAGE_EDIT_ROTATE_LABEL = "右に90°回転";
+
+/** 画像編集モーダルの「トリミング」セクションの見出し */
+export const IMAGE_EDIT_CROP_HEADING = "トリミング（横5:縦3）";
+
+/** トリミングの有無を切り替えるチェックボックスのラベル */
+export const IMAGE_EDIT_CROP_TOGGLE_LABEL = "トリミングする";
+
+/** トリミングの拡大率スライダーのラベル */
+export const IMAGE_EDIT_ZOOM_LABEL = "拡大";
+
+/** トリミング位置の調整方法の案内 */
+export const IMAGE_EDIT_CROP_HINT =
+  "注釈ツールを選んでいないときは、画像をドラッグして位置を調整できます";
+
+/** 画像編集モーダルの「注釈」セクションの見出し */
+export const IMAGE_EDIT_ANNOTATION_HEADING = "注釈";
+
+/** 注釈の描き方の案内 */
+export const IMAGE_EDIT_ANNOTATION_HINT =
+  "ツールを選んで画像上をドラッグすると描けます";
+
+/** 注釈ツール（矢印）のラベル */
+export const ANNOTATION_TOOL_ARROW_LABEL = "矢印";
+
+/** 注釈ツール（丸）のラベル */
+export const ANNOTATION_TOOL_CIRCLE_LABEL = "丸";
+
+/** 注釈ツール（四角）のラベル */
+export const ANNOTATION_TOOL_RECT_LABEL = "四角";
+
+/** 注釈の色の選択欄のラベル */
+export const ANNOTATION_COLOR_LABEL = "色";
+
+/** 注釈の線の太さの選択欄のラベル */
+export const ANNOTATION_STROKE_LABEL = "太さ";
+
+/** 注釈を 1 つ取り消すボタンのラベル */
+export const ANNOTATION_UNDO_LABEL = "1つ戻す";
+
+/** 注釈をすべて消すボタンのラベル */
+export const ANNOTATION_CLEAR_LABEL = "全消去";
+
+/** 画像編集の保存ボタンのラベル */
+export const IMAGE_EDIT_SAVE_LABEL = "保存してカードに反映";
+
+/** 画像編集の保存中ラベル */
+export const IMAGE_EDIT_SAVING_LABEL = "保存中...";
+
+/** 画像の読み込みに失敗したときのメッセージ */
+export const IMAGE_EDIT_LOAD_FAILED_MESSAGE = "画像を読み込めませんでした";
+
+/** 画像の編集・保存に失敗したときのメッセージ */
+export const IMAGE_EDIT_FAILED_MESSAGE = "画像の編集に失敗しました";
+
+/** 処理中にカードの画像が差し替えられたため、編集結果を反映しなかったときのメッセージ */
+export const IMAGE_EDIT_STALE_MESSAGE =
+  "処理中にカードの画像が変更されたため、編集結果は反映していません（編集した画像はライブラリに保存されています）";
+
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */
 export const PROJECT_DELETE_TOOLTIP = "現在のプロジェクトを削除";

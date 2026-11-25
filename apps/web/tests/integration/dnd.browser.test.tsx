@@ -99,6 +99,7 @@ vi.mock("@/lib/db", () => ({
   saveImage: vi.fn().mockResolvedValue(undefined),
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
+  getImageRecord: vi.fn().mockResolvedValue(undefined),
 }));
 
 // デスクトップUIに固定（カード上の複製ボタンはデスクトップのみ表示）
