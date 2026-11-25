@@ -27,7 +27,7 @@ import {
   IMPORTED_IMAGE_FILTER,
   SAMPLE_IMAGES,
 } from "@rehab-grid/core/lib/constants";
-import { db } from "@rehab-grid/core/lib/db";
+import { collectReferencedImageIds, db } from "@rehab-grid/core/lib/db";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { UnifiedImageRecord } from "@rehab-grid/core/types";
 import {
@@ -96,6 +96,17 @@ export function ImageLibraryPanel({
   const images = useLiveQuery(
     async () => db.images.orderBy("createdAt").reverse().toArray(),
     []
+  );
+
+  // 他の指導箋（編集中以外のプロジェクト）が参照している画像ID（削除確認で警告を出すため）
+  const projectId = useEditorStore((state) => state.projectId);
+  const otherProjectImageIdList = useLiveQuery(
+    async () => [...(await collectReferencedImageIds(projectId))],
+    [projectId]
+  );
+  const otherProjectImageIds = useMemo(
+    () => new Set(otherProjectImageIdList ?? []),
+    [otherProjectImageIdList]
   );
 
   // 画像のサムネイルURLを生成（メモリリーク防止フック使用）
@@ -170,6 +181,12 @@ export function ImageLibraryPanel({
     filterValue !== DEFAULT_IMAGE_FILTER || searchQuery.trim() !== "";
   const imageCount = filteredImages?.length ?? 0;
   const importedImageCount = images?.length ?? 0;
+  const selectedUsedElsewhereCount = [...selectedImageIds].filter((id) =>
+    otherProjectImageIds.has(id)
+  ).length;
+  const displayedUsedElsewhereCount = (filteredImages ?? []).filter(
+    (img) => !img.isSample && otherProjectImageIds.has(img.id)
+  ).length;
 
   // ========== Event Handlers ==========
 
@@ -539,6 +556,7 @@ export function ImageLibraryPanel({
         thumbnailUrls={allThumbnailUrls}
         isBulkDeleteMode={isBulkDeleteMode}
         selectedImageIds={selectedImageIds}
+        otherProjectImageIds={otherProjectImageIds}
         isMobile={isMobile}
         draggingImageId={draggingImageId}
         isFiltered={isFiltered}
@@ -553,7 +571,9 @@ export function ImageLibraryPanel({
       <BulkDeleteControls
         isBulkDeleteMode={isBulkDeleteMode}
         selectedCount={selectedImageIds.size}
+        selectedUsedElsewhereCount={selectedUsedElsewhereCount}
         imageCount={imageCount}
+        displayedUsedElsewhereCount={displayedUsedElsewhereCount}
         importedImageCount={importedImageCount}
         isFiltered={isFiltered}
         onToggleBulkDeleteMode={handleToggleBulkDeleteMode}

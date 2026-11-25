@@ -10,6 +10,7 @@ import {
   createDeleteAllDialogDescription,
   createDeleteAllDialogTitle,
   createDeleteAllLabel,
+  createImagesUsedInOtherProjectsWarning,
   createSelectedImagesDeleteDescription,
   createSelectedImagesDeleteLabel,
   IMAGE_DELETE_SELECTED_TITLE,
@@ -30,6 +31,8 @@ import {
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { Trash2 } from "lucide-react";
 
+import { UsedInOtherProjectsWarning } from "./UsedInOtherProjectsWarning";
+
 /**
  * まとめて削除コントロールの Props
  */
@@ -38,8 +41,12 @@ type BulkDeleteControlsProps = {
   isBulkDeleteMode: boolean;
   /** 選択画像数 */
   selectedCount: number;
+  /** 選択画像のうち、他の指導箋で使われている数 */
+  selectedUsedElsewhereCount: number;
   /** 表示中の画像数 */
   imageCount: number;
+  /** 表示中の取り込み画像のうち、他の指導箋で使われている数 */
+  displayedUsedElsewhereCount: number;
   /** 取り込み画像数（まとめて削除ボタンの無効化条件用） */
   importedImageCount: number;
   /** フィルター適用中かどうか */
@@ -58,7 +65,9 @@ type BulkDeleteControlsProps = {
 export function BulkDeleteControls({
   isBulkDeleteMode,
   selectedCount,
+  selectedUsedElsewhereCount,
   imageCount,
+  displayedUsedElsewhereCount,
   importedImageCount,
   isFiltered,
   onToggleBulkDeleteMode,
@@ -99,6 +108,13 @@ export function BulkDeleteControls({
                 <AlertDialogDescription>
                   {createSelectedImagesDeleteDescription(selectedCount)}
                 </AlertDialogDescription>
+                {selectedUsedElsewhereCount > 0 ? (
+                  <UsedInOtherProjectsWarning>
+                    {createImagesUsedInOtherProjectsWarning(
+                      selectedUsedElsewhereCount
+                    )}
+                  </UsedInOtherProjectsWarning>
+                ) : null}
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{BUTTON_CANCEL}</AlertDialogCancel>
@@ -130,6 +146,13 @@ export function BulkDeleteControls({
                 <AlertDialogDescription>
                   {deleteAllDialogDescription}
                 </AlertDialogDescription>
+                {displayedUsedElsewhereCount > 0 ? (
+                  <UsedInOtherProjectsWarning>
+                    {createImagesUsedInOtherProjectsWarning(
+                      displayedUsedElsewhereCount
+                    )}
+                  </UsedInOtherProjectsWarning>
+                ) : null}
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{BUTTON_CANCEL}</AlertDialogCancel>

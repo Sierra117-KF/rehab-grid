@@ -1,7 +1,10 @@
 import {
+  ACTIVE_PROJECT_ID_STORAGE_KEY,
+  AUTOSAVE_DELAY,
   HISTORY_LIMIT,
   HISTORY_MERGE_WINDOW_MS,
   MAX_ITEM_COUNT,
+  PROJECT_SWITCH_FAILED_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import { stateToProjectFile, useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import {
@@ -49,20 +52,32 @@ const createTestSettings = (
  * loadProject と createNewProject はモジュール読み込み時に呼び出されるため、
  * デフォルトの戻り値を設定した状態で定義する
  */
-const { mockSaveProject, mockDeleteProject, mockDeleteImage } = vi.hoisted(
-  () => ({
-    mockSaveProject: vi.fn(),
-    mockDeleteProject: vi.fn(),
-    mockDeleteImage: vi.fn(),
-  })
-);
+const {
+  mockSaveProject,
+  mockLoadProject,
+  mockListProjects,
+  mockDeleteProject,
+  mockDuplicateProject,
+  mockDeleteImage,
+  mockApplyImportResult,
+} = vi.hoisted(() => ({
+  mockSaveProject: vi.fn(),
+  // loadProject / listProjects はモジュール読み込み時に呼び出されるため、
+  // デフォルトで空の結果を返す Promise を返す
+  mockLoadProject: vi.fn().mockResolvedValue(undefined),
+  mockListProjects: vi.fn().mockResolvedValue([]),
+  mockDeleteProject: vi.fn(),
+  mockDuplicateProject: vi.fn(),
+  mockDeleteImage: vi.fn(),
+  mockApplyImportResult: vi.fn(),
+}));
 
 vi.mock("@/lib/db", () => ({
-  // loadProject はモジュール読み込み時に呼び出されるため、
-  // デフォルトで undefined を返す Promise を返す
-  loadProject: vi.fn().mockResolvedValue(undefined),
+  loadProject: mockLoadProject,
+  listProjects: mockListProjects,
   saveProject: mockSaveProject,
   deleteProject: mockDeleteProject,
+  duplicateProject: mockDuplicateProject,
   deleteImage: mockDeleteImage,
   // createNewProject はモジュール読み込み時に呼び出されるため、
   // 常に同じ形式のデータを返す関数として定義
@@ -80,6 +95,10 @@ vi.mock("@/lib/db", () => ({
     },
     items: [],
   }),
+}));
+
+vi.mock("@/utils/project", () => ({
+  applyImportResult: mockApplyImportResult,
 }));
 
 /**
@@ -126,6 +145,8 @@ const createTestProjectFile = (
  */
 const getInitialState = () => ({
   isLoaded: false,
+  projectId: "project-a",
+  isSwitchingProject: false,
   meta: createTestMeta({ title: "無題のプロジェクト" }),
   items: [],
   settings: createTestSettings(),
@@ -926,15 +947,16 @@ describe("useEditorStore", () => {
   });
 
   describe("deleteProject", () => {
-    it("DBからプロジェクトを削除する", async () => {
+    it("引数を省略すると編集中のプロジェクトをDBから削除する", async () => {
       mockDeleteProject.mockResolvedValue(undefined);
 
       await useEditorStore.getState().deleteProject();
 
       expect(mockDeleteProject).toHaveBeenCalledTimes(1);
+      expect(mockDeleteProject).toHaveBeenCalledWith("project-a");
     });
 
-    it("ストアを初期状態にリセットする", async () => {
+    it("残りのプロジェクトがなければ新しい空のプロジェクトを開く", async () => {
       // 状態を変更
       useEditorStore.setState({
         items: [createTestItem()],
@@ -950,6 +972,7 @@ describe("useEditorStore", () => {
 
       const state = useEditorStore.getState();
       expect(state.isLoaded).toBeTruthy();
+      expect(state.projectId).not.toBe("project-a");
       expect(state.items).toEqual([]);
       expect(state.settings).toEqual({
         layoutType: "grid2",
@@ -957,6 +980,263 @@ describe("useEditorStore", () => {
         ...DEFAULT_PRINT_STYLE,
       });
       expect(state.selectedItemId).toBeNull();
+    });
+  });
+
+  describe("複数プロジェクト", () => {
+    /** 一覧用の概要を作る */
+    const createSummary = (id: string, title = id) => ({
+      id,
+      title,
+      updatedAt: new Date("2026-11-26T00:00:00.000Z"),
+      cardCount: 1,
+      layoutType: "grid2" as const,
+    });
+
+    /** オートセーブが動く状態でカードを 1 枚持たせる（2 秒後に保存が予約される） */
+    const editCurrentProject = (title: string) => {
+      useEditorStore.setState({ isLoaded: true });
+      useEditorStore.getState().addNewItem({ title });
+    };
+
+    beforeEach(() => {
+      // 前のテストで予約されたオートセーブを捨ててから始める（openProject は保留中の保存を破棄する）
+      useEditorStore.getState().openProject("project-a", createTestProjectFile());
+      useEditorStore.setState(getInitialState());
+      vi.clearAllMocks();
+
+      vi.useFakeTimers();
+      mockSaveProject.mockResolvedValue(undefined);
+      mockDeleteProject.mockResolvedValue(undefined);
+      mockApplyImportResult.mockResolvedValue(undefined);
+      window.localStorage.clear();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("オートセーブは予約した時点のプロジェクトIDへ保存する", async () => {
+      editCurrentProject("A の運動");
+      // 保存の予約後に別のプロジェクトへ切り替わっても、保存先は元のまま
+      useEditorStore.setState({ projectId: "project-b" });
+
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY);
+
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-a",
+        expect.objectContaining({
+          items: [expect.objectContaining({ title: "A の運動" })],
+        })
+      );
+    });
+
+    it("openProject はプロジェクトIDを切り替え、次回起動時に開くIDを記録し、履歴をクリアする", () => {
+      editCurrentProject("A の運動");
+
+      useEditorStore
+        .getState()
+        .openProject("project-b", createTestProjectFile());
+
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-b");
+      expect(state.items).toEqual([]);
+      expect(state.past).toEqual([]);
+      expect(window.localStorage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)).toBe(
+        "project-b"
+      );
+    });
+
+    it("openProject は開いただけでは保存しない（一覧の更新日時を変えない）", async () => {
+      useEditorStore.setState({ isLoaded: true });
+      useEditorStore
+        .getState()
+        .openProject("project-b", createTestProjectFile());
+
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY);
+
+      expect(mockSaveProject).not.toHaveBeenCalled();
+    });
+
+    it("switchProject は保留中の編集を元のプロジェクトへ保存してから切り替える", async () => {
+      editCurrentProject("A の運動");
+      mockLoadProject.mockResolvedValueOnce(
+        createTestProjectFile({ items: [createTestItem({ title: "B の運動" })] })
+      );
+
+      await useEditorStore.getState().switchProject("project-b");
+
+      // 2 秒待たずに元のプロジェクトへ保存されている
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-a",
+        expect.objectContaining({
+          items: [expect.objectContaining({ title: "A の運動" })],
+        })
+      );
+      expect(mockSaveProject.mock.invocationCallOrder[0]).toBeLessThan(
+        mockLoadProject.mock.invocationCallOrder.at(-1) ?? 0
+      );
+
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-b");
+      expect(state.items[0]?.title).toBe("B の運動");
+      expect(state.isSwitchingProject).toBeFalsy();
+
+      // 切り替え後に古い保存予約が発火して切り替え先を上書きしない
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY);
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+    });
+
+    it("switchProject は切り替え先が見つからなければエラーにし、元のプロジェクトのまま", async () => {
+      mockLoadProject.mockResolvedValueOnce(undefined);
+
+      await expect(
+        useEditorStore.getState().switchProject("missing")
+      ).rejects.toThrow(PROJECT_SWITCH_FAILED_MESSAGE);
+
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-a");
+      expect(state.isSwitchingProject).toBeFalsy();
+    });
+
+    it("switchProject は編集中と同じIDなら何もしない", async () => {
+      await useEditorStore.getState().switchProject("project-a");
+
+      expect(mockLoadProject).not.toHaveBeenCalled();
+    });
+
+    it("createProject は保留中の編集を保存してから新しい空のプロジェクトを開く", async () => {
+      editCurrentProject("A の運動");
+
+      await useEditorStore.getState().createProject();
+
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-a",
+        expect.anything()
+      );
+      const state = useEditorStore.getState();
+      expect(state.projectId).not.toBe("project-a");
+      expect(state.items).toEqual([]);
+    });
+
+    it("duplicateProject は編集中のプロジェクトを最新の内容で保存してから複製する（開いているプロジェクトは変えない）", async () => {
+      editCurrentProject("A の運動");
+      mockDuplicateProject.mockResolvedValueOnce("project-copy");
+
+      const newId = await useEditorStore
+        .getState()
+        .duplicateProject("project-a");
+
+      expect(newId).toBe("project-copy");
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-a",
+        expect.objectContaining({
+          items: [expect.objectContaining({ title: "A の運動" })],
+        })
+      );
+      expect(mockDuplicateProject).toHaveBeenCalledWith("project-a");
+      expect(useEditorStore.getState().projectId).toBe("project-a");
+    });
+
+    it("deleteProject は編集中以外のプロジェクトならDBから消すだけ", async () => {
+      useEditorStore.setState({ items: [createTestItem()] });
+
+      await useEditorStore.getState().deleteProject("project-b");
+
+      expect(mockDeleteProject).toHaveBeenCalledWith("project-b");
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-a");
+      expect(state.items).toHaveLength(1);
+    });
+
+    it("deleteProject は編集中のプロジェクトを消すと残りの最新のプロジェクトを開き、保留中の保存を捨てる", async () => {
+      editCurrentProject("A の運動");
+      mockListProjects.mockResolvedValueOnce([createSummary("project-b")]);
+      mockLoadProject.mockResolvedValueOnce(
+        createTestProjectFile({ items: [createTestItem({ title: "B の運動" })] })
+      );
+
+      await useEditorStore.getState().deleteProject();
+
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-b");
+      expect(state.items[0]?.title).toBe("B の運動");
+
+      // 削除したプロジェクトが保留中の保存で復活しない
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY);
+      expect(mockSaveProject).not.toHaveBeenCalled();
+    });
+
+    it("openImportResult（new）は新しいIDで保存して開き、元のプロジェクトの編集も保存する", async () => {
+      editCurrentProject("A の運動");
+      const project = createTestProjectFile({
+        items: [createTestItem({ title: "取り込んだ運動" })],
+      });
+
+      await useEditorStore
+        .getState()
+        .openImportResult({ project, images: new Map() }, "new");
+
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-a",
+        expect.anything()
+      );
+      const state = useEditorStore.getState();
+      expect(state.projectId).not.toBe("project-a");
+      expect(mockApplyImportResult).toHaveBeenCalledWith(
+        { project, images: new Map() },
+        state.projectId
+      );
+      expect(state.items[0]?.title).toBe("取り込んだ運動");
+    });
+
+    it("openImportResult（overwrite）は編集中のプロジェクトIDへ保存して開く", async () => {
+      const project = createTestProjectFile({
+        items: [createTestItem({ title: "取り込んだ運動" })],
+      });
+
+      await useEditorStore
+        .getState()
+        .openImportResult({ project, images: new Map() }, "overwrite");
+
+      expect(mockApplyImportResult).toHaveBeenCalledWith(
+        { project, images: new Map() },
+        "project-a"
+      );
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-a");
+      expect(state.items[0]?.title).toBe("取り込んだ運動");
+    });
+
+    it("openImportResult は保存に失敗したらストアを変えない", async () => {
+      useEditorStore.setState({ items: [createTestItem()] });
+      mockApplyImportResult.mockRejectedValueOnce(new Error("保存失敗"));
+
+      await expect(
+        useEditorStore
+          .getState()
+          .openImportResult(
+            { project: createTestProjectFile(), images: new Map() },
+            "new"
+          )
+      ).rejects.toThrow("保存失敗");
+
+      const state = useEditorStore.getState();
+      expect(state.projectId).toBe("project-a");
+      expect(state.items).toHaveLength(1);
+      expect(state.isSwitchingProject).toBeFalsy();
+    });
+
+    it("処理中に呼ばれた切り替えは何もしない", async () => {
+      useEditorStore.setState({ isSwitchingProject: true });
+
+      await useEditorStore.getState().switchProject("project-b");
+      await useEditorStore.getState().createProject();
+
+      expect(mockLoadProject).not.toHaveBeenCalled();
+      expect(useEditorStore.getState().projectId).toBe("project-a");
     });
   });
 

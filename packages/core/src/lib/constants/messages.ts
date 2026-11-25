@@ -32,7 +32,7 @@ export const IMPORT_CONFIRM_TITLE = "プロジェクトを開く";
 
 /** 上書き確認ダイアログの説明 */
 export const IMPORT_CONFIRM_DESCRIPTION =
-  "現在のプロジェクトは上書きされます。続行しますか？";
+  "新しい指導箋として開くと、現在の指導箋はそのまま「マイ指導箋」に残ります。上書きすると現在の指導箋の内容は失われます。";
 
 /** ファイルサイズ超過エラー */
 export const IMPORT_ERROR_FILE_TOO_LARGE = "ファイルサイズが大きすぎます";
@@ -230,6 +230,70 @@ export const PROJECT_DELETE_CONFIRM_DESCRIPTION =
 /** プロジェクト削除成功メッセージ */
 export const PROJECT_DELETE_SUCCESS_MESSAGE = "プロジェクトを削除しました";
 
+/**
+ * 指導箋一覧で削除するときの確認ダイアログの説明を生成
+ *
+ * @param title - 削除する指導箋のタイトル
+ * @returns ダイアログ説明文
+ */
+export function createProjectDeleteConfirmDescription(title: string): string {
+  return `「${title}」を削除します。この操作は元に戻せません。保存する場合は事前に開いてバックアップをダウンロードしてください。`;
+}
+
+// 指導箋一覧（複数プロジェクト保存）関連メッセージ
+/** 指導箋一覧を開くボタンのラベル・一覧のタイトル */
+export const PROJECT_LIST_LABEL = "マイ指導箋";
+
+/** 指導箋一覧を開くボタンのツールチップ */
+export const PROJECT_LIST_TOOLTIP = "保存した指導箋の一覧（切り替え・新規作成・複製・削除）";
+
+/** 指導箋一覧の説明 */
+export const PROJECT_LIST_DESCRIPTION =
+  "この端末に保存した指導箋を切り替え・複製・削除できます。";
+
+/** 指導箋一覧の検索欄のラベル */
+export const PROJECT_LIST_SEARCH_LABEL = "タイトルで検索";
+
+/** 指導箋一覧の検索欄のプレースホルダー */
+export const PROJECT_LIST_SEARCH_PLACEHOLDER = "タイトルで検索（例: 腰痛）";
+
+/** 新しい指導箋を作るボタンのラベル */
+export const PROJECT_LIST_NEW_LABEL = "新しい指導箋";
+
+/** 検索に一致する指導箋がないときのメッセージ */
+export const PROJECT_LIST_NO_MATCHES = "該当する指導箋がありません";
+
+/** 編集中の指導箋に付けるバッジ */
+export const PROJECT_LIST_CURRENT_BADGE = "編集中";
+
+/** 指導箋一覧の複製ボタンのラベル */
+export const PROJECT_LIST_DUPLICATE_LABEL = "複製";
+
+/** 指導箋一覧の削除ボタンのラベル */
+export const PROJECT_LIST_DELETE_LABEL = "削除";
+
+/** 指導箋一覧に置くバックアップの案内 */
+export const PROJECT_LIST_BACKUP_NOTICE =
+  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切な指導箋は「バックアップ」から画像付き（ZIP）で保存してください。";
+
+/** 新しい指導箋を作ったときのメッセージ */
+export const PROJECT_CREATE_SUCCESS_MESSAGE = "新しい指導箋を作成しました";
+
+/** 指導箋を複製したときのメッセージ */
+export const PROJECT_DUPLICATE_SUCCESS_MESSAGE = "指導箋を複製しました";
+
+/** 指導箋を切り替えられなかったときのメッセージ */
+export const PROJECT_SWITCH_FAILED_MESSAGE = "指導箋を開けませんでした";
+
+/** 複製した指導箋のタイトルに付ける文字列 */
+export const PROJECT_COPY_SUFFIX = "のコピー";
+
+/** 新しい指導箋として開くボタンのラベル（インポート・テンプレート適用） */
+export const OPEN_AS_NEW_PROJECT_LABEL = "新しい指導箋で開く";
+
+/** 現在の指導箋に上書きするボタンのラベル（インポート・テンプレート適用） */
+export const OVERWRITE_CURRENT_PROJECT_LABEL = "現在の指導箋に上書き";
+
 // PDF出力関連メッセージ
 /** PDF出力対象がない場合のエラーメッセージ */
 export const PDF_NO_CARDS_ERROR = "出力するカードがありません";
@@ -271,9 +335,6 @@ export const PDF_PREVIEW_GENERATING = "プレビューを生成中...";
 // 共通ボタンラベル
 /** キャンセルボタンのラベル */
 export const BUTTON_CANCEL = "キャンセル";
-
-/** 続行ボタンのラベル */
-export const BUTTON_CONTINUE = "続行";
 
 // エクスポートメニューのラベル
 /** 軽量JSONエクスポートのラベル */
@@ -500,6 +561,20 @@ export function createDeleteAllDialogDescription(
  */
 export function createSelectedImagesDeleteDescription(count: number): string {
   return `選択した${String(count)}件の画像をライブラリから削除しますか？この操作は取り消せません。`;
+}
+
+/** 他の指導箋でも使われている画像を削除するときの警告 */
+export const IMAGE_USED_IN_OTHER_PROJECTS_WARNING =
+  "この画像は他の指導箋でも使われています。削除すると、それらの指導箋のカードは画像なしになります。";
+
+/**
+ * 他の指導箋でも使われている画像をまとめて削除するときの警告を生成
+ *
+ * @param count - 他の指導箋でも使われている画像の数
+ * @returns 警告文
+ */
+export function createImagesUsedInOtherProjectsWarning(count: number): string {
+  return `うち${String(count)}件の画像は他の指導箋でも使われています。削除すると、それらの指導箋のカードは画像なしになります。`;
 }
 
 /**

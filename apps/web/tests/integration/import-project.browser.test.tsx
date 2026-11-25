@@ -23,7 +23,6 @@ import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { ProjectFile } from "@rehab-grid/core/types";
 import { importProject } from "@rehab-grid/core/utils/export";
-import { applyImportResult } from "@rehab-grid/core/utils/project";
 import JSZip from "jszip";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -266,7 +265,7 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       expect(result.project.items[0]?.imageSource).toBe("");
     });
 
-    it("applyImportResultでストアとDBが更新される", async () => {
+    it("新しい指導箋として開くとストアとDBが更新される", async () => {
       const file = createValidJSONFile({
         meta: {
           version: APP_VERSION,
@@ -278,8 +277,7 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       });
 
       const result = await importProject(file);
-      const { initializeFromDB } = useEditorStore.getState();
-      await applyImportResult(result, initializeFromDB);
+      await useEditorStore.getState().openImportResult(result, "new");
 
       // ストア状態の検証
       const state = useEditorStore.getState();
@@ -287,9 +285,48 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       expect(state.items).toHaveLength(2);
 
       // DB状態の検証
-      const savedProject = await loadProject();
+      const savedProject = await loadProject(state.projectId);
       expect(savedProject).toBeDefined();
       expect(savedProject?.meta.title).toBe("ストア更新テスト");
+    });
+
+    it("新しい指導箋として開くと元の指導箋は残り、上書きすると同じIDに保存される", async () => {
+      // 編集中の指導箋を保存済みにしておく
+      await useEditorStore
+        .getState()
+        .openImportResult(
+          await importProject(createValidJSONFile()),
+          "overwrite"
+        );
+      const originalId = useEditorStore.getState().projectId;
+
+      // 新しい指導箋として開く → 別IDになり、元の指導箋は DB に残る
+      await useEditorStore.getState().openImportResult(
+        await importProject(
+          createValidJSONFile({
+            meta: { ...createValidProject().meta, title: "新規で開いた" },
+          })
+        ),
+        "new"
+      );
+      const newId = useEditorStore.getState().projectId;
+      expect(newId).not.toBe(originalId);
+      expect((await loadProject(originalId))?.meta.title).toBe(
+        "インポートテスト"
+      );
+
+      // 上書き → 編集中の指導箋のIDのまま内容が置き換わる
+      await useEditorStore.getState().openImportResult(
+        await importProject(
+          createValidJSONFile({
+            meta: { ...createValidProject().meta, title: "上書きした" },
+          })
+        ),
+        "overwrite"
+      );
+      expect(useEditorStore.getState().projectId).toBe(newId);
+      expect((await loadProject(newId))?.meta.title).toBe("上書きした");
+      expect(await db.projects.count()).toBe(2);
     });
   });
 
@@ -324,12 +361,11 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       expect(result.images.has(imageSource2)).toBeTruthy();
     });
 
-    it("applyImportResultで画像がIndexedDBに保存される", async () => {
+    it("インポートした画像がIndexedDBに保存される", async () => {
       const file = await createValidZIPFile();
 
       const result = await importProject(file);
-      const { initializeFromDB } = useEditorStore.getState();
-      await applyImportResult(result, initializeFromDB);
+      await useEditorStore.getState().openImportResult(result, "new");
 
       // 画像がDBに保存されていることを確認
       const imageSource1 = result.project.items[0]?.imageSource ?? "";
@@ -360,8 +396,7 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       });
 
       const result = await importProject(file);
-      const { initializeFromDB } = useEditorStore.getState();
-      await applyImportResult(result, initializeFromDB);
+      await useEditorStore.getState().openImportResult(result, "new");
 
       const state = useEditorStore.getState();
       expect(state.meta.title).toBe("ZIPストア更新テスト");
@@ -415,8 +450,7 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       });
 
       const result = await importProject(file);
-      const { initializeFromDB } = useEditorStore.getState();
-      await applyImportResult(result, initializeFromDB);
+      await useEditorStore.getState().openImportResult(result, "new");
 
       expect(useEditorStore.getState().settings).toEqual({
         layoutType: "grid2",
@@ -493,8 +527,7 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       });
 
       const result = await importProject(file);
-      const { initializeFromDB } = useEditorStore.getState();
-      await applyImportResult(result, initializeFromDB);
+      await useEditorStore.getState().openImportResult(result, "new");
 
       const state = useEditorStore.getState();
       expect(state.items[0]?.title).toBe("First");

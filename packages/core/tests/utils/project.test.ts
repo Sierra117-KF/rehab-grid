@@ -1,4 +1,4 @@
-import { APP_VERSION, CURRENT_PROJECT_ID } from "@rehab-grid/core/lib/constants";
+import { APP_VERSION } from "@rehab-grid/core/lib/constants";
 import {
   type EditorItem,
   type ImportResult,
@@ -22,17 +22,23 @@ import {
  * @remarks
  * vi.hoisted でモック関数を定義し、vi.mock 内で参照できるようにする
  */
-const { mockProjectsPut, mockImagesPut, mockTransaction } = vi.hoisted(() => ({
-  mockProjectsPut: vi.fn(),
-  mockImagesPut: vi.fn(),
-  mockTransaction: vi.fn(),
-}));
+const { mockProjectsPut, mockImagesPut, mockTransaction, mockCreateProjectRecord } =
+  vi.hoisted(() => ({
+    mockProjectsPut: vi.fn(),
+    mockImagesPut: vi.fn(),
+    mockTransaction: vi.fn(),
+    // 更新日時の付け直しは lib/db のテストで確認するため、ここでは渡された値を記録するだけ
+    mockCreateProjectRecord: vi.fn((id: string, data: unknown) => ({
+      id,
+      data,
+    })),
+  }));
 
 /**
  * lib/db モジュールのモック
  *
  * @remarks
- * applyImportResult が使用する db.transaction, db.projects.put, db.images.put をモック
+ * applyImportResult が使用する db.transaction, db.projects.put, db.images.put, createProjectRecord をモック
  */
 vi.mock("@/lib/db", () => ({
   db: {
@@ -40,6 +46,7 @@ vi.mock("@/lib/db", () => ({
     projects: { put: mockProjectsPut },
     images: { put: mockImagesPut },
   },
+  createProjectRecord: mockCreateProjectRecord,
 }));
 
 // モック定義後に実装ファイルをインポート（順序重要）
@@ -124,7 +131,7 @@ describe("utils/project", () => {
       vi.clearAllMocks();
     });
 
-    it("画像とプロジェクトがDBに保存されること", async () => {
+    it("画像とプロジェクトが1つのトランザクションで指定IDに保存されること", async () => {
       const blob1 = new Blob(["image1"], { type: "image/png" });
       const blob2 = new Blob(["image2"], { type: "image/png" });
       const project = createTestProjectFile({
@@ -138,9 +145,8 @@ describe("utils/project", () => {
         ["img-2", blob2],
       ]);
       const result: ImportResult = { project, images };
-      const initializeFromDB = vi.fn();
 
-      await applyImportResult(result, initializeFromDB);
+      await applyImportResult(result, "project-new");
 
       // トランザクションが呼ばれたこと
       expect(mockTransaction).toHaveBeenCalledTimes(1);
@@ -163,74 +169,40 @@ describe("utils/project", () => {
         createdAt: FIXED_DATE,
       });
 
-      // プロジェクトが保存されたこと
+      // プロジェクトが指定IDのレコードとして保存されたこと
+      expect(mockCreateProjectRecord).toHaveBeenCalledWith(
+        "project-new",
+        project
+      );
       expect(mockProjectsPut).toHaveBeenCalledTimes(1);
       expect(mockProjectsPut).toHaveBeenCalledWith({
-        id: CURRENT_PROJECT_ID,
-        title: project.meta.title,
-        data: expect.objectContaining({
-          meta: expect.objectContaining({
-            updatedAt: FIXED_DATE.toISOString(),
-          }),
-        }),
-        updatedAt: FIXED_DATE,
+        id: "project-new",
+        data: project,
       });
-
-      // initializeFromDB が呼ばれたこと
-      expect(initializeFromDB).toHaveBeenCalledTimes(1);
-      expect(initializeFromDB).toHaveBeenCalledWith(project);
     });
 
     it("画像が空でもプロジェクトが保存されること", async () => {
       const project = createTestProjectFile();
-      const images = new Map<string, Blob>();
-      const result: ImportResult = { project, images };
-      const initializeFromDB = vi.fn();
+      const result: ImportResult = { project, images: new Map() };
 
-      await applyImportResult(result, initializeFromDB);
+      await applyImportResult(result, "project-1");
 
       // 画像の保存は呼ばれないこと
       expect(mockImagesPut).not.toHaveBeenCalled();
 
       // プロジェクトは保存されること
       expect(mockProjectsPut).toHaveBeenCalledTimes(1);
-
-      // initializeFromDB は呼ばれること
-      expect(initializeFromDB).toHaveBeenCalledWith(project);
     });
 
-    it("updatedAt が現在時刻に更新されること", async () => {
-      const originalUpdatedAt = "2024-01-01T00:00:00.000Z";
-      const project = createTestProjectFile({
-        meta: createTestMeta({ updatedAt: originalUpdatedAt }),
-      });
-      const result: ImportResult = { project, images: new Map() };
-      const initializeFromDB = vi.fn();
+    it("トランザクションが失敗した場合は例外を投げること", async () => {
+      mockTransaction.mockRejectedValueOnce(new Error("保存失敗"));
 
-      await applyImportResult(result, initializeFromDB);
-
-      // 保存されたプロジェクトの updatedAt が更新されていること
-      const savedProject = mockProjectsPut.mock.calls[0]?.[0] as {
-        data: ProjectFile;
-      };
-      expect(savedProject.data.meta.updatedAt).toBe(FIXED_DATE.toISOString());
-      expect(savedProject.data.meta.updatedAt).not.toBe(originalUpdatedAt);
-    });
-
-    it("initializeFromDB には元の project オブジェクト（updatedAt 未更新）が渡されること", async () => {
-      const originalUpdatedAt = "2024-01-01T00:00:00.000Z";
-      const project = createTestProjectFile({
-        meta: createTestMeta({ updatedAt: originalUpdatedAt }),
-      });
-      const result: ImportResult = { project, images: new Map() };
-      const initializeFromDB = vi.fn();
-
-      await applyImportResult(result, initializeFromDB);
-
-      // initializeFromDB には元の project が渡される
-      const passedProject = initializeFromDB.mock.calls[0]?.[0] as ProjectFile;
-      expect(passedProject.meta.updatedAt).toBe(originalUpdatedAt);
-      expect(passedProject).toBe(project);
+      await expect(
+        applyImportResult(
+          { project: createTestProjectFile(), images: new Map() },
+          "project-1"
+        )
+      ).rejects.toThrow("保存失敗");
     });
 
     it("複数の画像がある場合、全て正しく保存されること", async () => {
@@ -243,9 +215,8 @@ describe("utils/project", () => {
       );
       const project = createTestProjectFile();
       const result: ImportResult = { project, images };
-      const initializeFromDB = vi.fn();
 
-      await applyImportResult(result, initializeFromDB);
+      await applyImportResult(result, "project-1");
 
       expect(mockImagesPut).toHaveBeenCalledTimes(5);
       for (let i = 0; i < 5; i++) {

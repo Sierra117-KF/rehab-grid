@@ -21,6 +21,8 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  PROJECT_LIST_LABEL,
+  PROJECT_LIST_TOOLTIP,
   REDO_TOOLTIP,
   TEMPLATE_APPLY_SUCCESS,
   TEMPLATE_BUTTON_LABEL,
@@ -33,6 +35,7 @@ import {
   useEditorStore,
 } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
+import { type ImportOpenMode } from "@rehab-grid/core/types";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
@@ -43,10 +46,10 @@ import {
   generatePdfFilename,
   preparePdfGenerationData,
 } from "@rehab-grid/core/utils/pdf";
-import { applyImportResult } from "@rehab-grid/core/utils/project";
 import { loadTemplate } from "@rehab-grid/core/utils/template";
 import { DesignSettingsDialog } from "@rehab-grid/ui/components/editor/DesignSettingsDialog";
 import { PdfPreviewModal } from "@rehab-grid/ui/components/editor/PdfPreviewModal";
+import { ProjectListModal } from "@rehab-grid/ui/components/editor/ProjectListModal";
 import { TemplateSelectModal } from "@rehab-grid/ui/components/editor/TemplateSelectModal";
 import { MobileDropdownMenu } from "@rehab-grid/ui/components/layout/MobileDropdownMenu";
 import { MobileFloatingHeader } from "@rehab-grid/ui/components/layout/MobileFloatingHeader";
@@ -62,6 +65,7 @@ import {
 } from "@rehab-grid/ui/components/wrapped/AlertDialog";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
+  Files,
   FolderOpen,
   LayoutTemplate,
   Loader2,
@@ -112,7 +116,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const meta = useEditorStore((state) => state.meta);
   const items = useEditorStore((state) => state.items);
   const settings = useEditorStore((state) => state.settings);
-  const initializeFromDB = useEditorStore((state) => state.initializeFromDB);
+  const openImportResult = useEditorStore((state) => state.openImportResult);
   const deleteProject = useEditorStore((state) => state.deleteProject);
   const updateSettings = useEditorStore((state) => state.updateSettings);
   const undo = useEditorStore((state) => state.undo);
@@ -133,6 +137,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   // テンプレート関連の状態
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+
+  // 指導箋一覧（マイ指導箋）の開閉
+  const [showProjectList, setShowProjectList] = useState(false);
 
   // プロジェクト削除関連の状態
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
@@ -258,13 +265,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   /**
    * インポートを実行
+   *
+   * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
   const executeImport = useCallback(
-    async (file: File) => {
+    async (file: File, mode: ImportOpenMode) => {
       setIsImporting(true);
       try {
         const result = await importProject(file);
-        await applyImportResult(result, initializeFromDB);
+        await openImportResult(result, mode);
         toast.success(IMPORT_SUCCESS_MESSAGE);
       } catch (error) {
         const message =
@@ -275,7 +284,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         setPendingFile(null);
       }
     },
-    [initializeFromDB],
+    [openImportResult],
   );
 
   /**
@@ -289,26 +298,30 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       // input をリセット（同じファイルを再選択できるように）
       event.target.value = "";
 
-      // 既存データがあれば確認ダイアログを表示
+      // 編集中のカードがあれば、新しい指導箋として開くか上書きするかを選ばせる
+      // （空の指導箋はそのまま上書きする。空の指導箋を一覧に残さないため）
       if (items.length > 0) {
         setPendingFile(file);
         setShowConfirmDialog(true);
       } else {
-        void executeImport(file);
+        void executeImport(file, "overwrite");
       }
     },
     [items.length, executeImport],
   );
 
   /**
-   * 確認ダイアログでの続行
+   * 確認ダイアログで開き方を選んだとき
    */
-  const handleConfirmImport = useCallback(() => {
-    setShowConfirmDialog(false);
-    if (pendingFile) {
-      void executeImport(pendingFile);
-    }
-  }, [pendingFile, executeImport]);
+  const handleConfirmImport = useCallback(
+    (mode: ImportOpenMode) => {
+      setShowConfirmDialog(false);
+      if (pendingFile) {
+        void executeImport(pendingFile, mode);
+      }
+    },
+    [pendingFile, executeImport],
+  );
 
   /**
    * 確認ダイアログでのキャンセル
@@ -346,10 +359,10 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * テンプレート選択時の処理
    */
   const handleTemplateSelect = useCallback(
-    async (templateId: string) => {
+    async (templateId: string, mode: ImportOpenMode) => {
       try {
         const result = await loadTemplate(templateId);
-        await applyImportResult(result, initializeFromDB);
+        await openImportResult(result, mode);
         toast.success(TEMPLATE_APPLY_SUCCESS);
       } catch (error) {
         const message =
@@ -357,8 +370,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         toast.error(message);
       }
     },
-    [initializeFromDB],
+    [openImportResult],
   );
+
+  /**
+   * 指導箋一覧を開く
+   */
+  const handleOpenProjectList = useCallback(() => {
+    setShowProjectList(true);
+  }, []);
 
   /**
    * プロジェクト削除ダイアログを開く
@@ -371,8 +391,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * プロジェクト削除確認時の処理
    *
    * @remarks
-   * ストアの deleteProject アクションを使用して、IndexedDB削除と
-   * ストア状態のリセットを一括で実行する。
+   * ストアの deleteProject アクションで編集中のプロジェクトを IndexedDB から削除し、
+   * 残りのうち最新の指導箋（なければ新しい空の指導箋）を開く。
    */
   const handleConfirmDeleteProject = useCallback(async () => {
     try {
@@ -492,6 +512,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               canRedo={canRedo}
               onUndo={undo}
               onRedo={redo}
+              onProjectListClick={handleOpenProjectList}
               layoutType={settings.layoutType}
               onDesignSettingsClick={handleOpenDesignSettings}
               onTemplateClick={handleTemplateButtonClick}
@@ -552,7 +573,21 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 <Redo2 className="size-4" />
               </Button>
 
-              {/* プロジェクト名 + 削除ボタン */}
+              {/* 指導箋一覧 + プロジェクト名 + 削除ボタン */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-foreground"
+                onClick={handleOpenProjectList}
+                title={PROJECT_LIST_TOOLTIP}
+                aria-label={PROJECT_LIST_LABEL}
+              >
+                <Files className="size-4 text-orange-500" />
+                {/* ヘッダーに余裕のない幅ではアイコンのみ（ツールチップで補う） */}
+                <span className="hidden xl:inline">
+                  {PROJECT_LIST_LABEL}
+                </span>
+              </Button>
               <ProjectInfo />
               <Button
                 variant="ghost"
@@ -628,12 +663,18 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         </header>
       )}
 
-      {/* 上書き確認ダイアログ */}
+      {/* インポートの開き方（新規 / 上書き）の確認ダイアログ */}
       <ImportConfirmDialog
         open={showConfirmDialog}
         onOpenChange={handleDialogOpenChange}
         onConfirm={handleConfirmImport}
         onCancel={handleCancelImport}
+      />
+
+      {/* 指導箋一覧（マイ指導箋） */}
+      <ProjectListModal
+        open={showProjectList}
+        onOpenChange={setShowProjectList}
       />
 
       {/* PDFプレビューモーダル */}

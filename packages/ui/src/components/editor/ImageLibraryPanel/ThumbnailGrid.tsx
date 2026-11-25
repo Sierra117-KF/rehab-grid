@@ -35,6 +35,8 @@ type ThumbnailGridProps = {
   isBulkDeleteMode: boolean;
   /** 選択された画像IDのセット */
   selectedImageIds: Set<string>;
+  /** 他の指導箋で使われている画像IDのセット（削除確認で警告を出す） */
+  otherProjectImageIds: Set<string>;
   /** モバイルモードかどうか */
   isMobile: boolean;
   /** ドラッグ中の画像ID */
@@ -61,6 +63,7 @@ export function ThumbnailGrid({
   thumbnailUrls,
   isBulkDeleteMode,
   selectedImageIds,
+  otherProjectImageIds,
   isMobile,
   draggingImageId,
   isFiltered,
@@ -106,6 +109,7 @@ export function ThumbnailGrid({
             thumbnailUrl={thumbnailUrl}
             isBulkDeleteMode={isBulkDeleteMode}
             isSelected={isSelected}
+            isUsedInOtherProjects={otherProjectImageIds.has(image.id)}
             isMobile={isMobile}
             draggingImageId={draggingImageId}
             animationIndex={i}

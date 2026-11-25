@@ -10,6 +10,7 @@ import {
   IMPORT_OPEN_LABEL,
   LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
+  PROJECT_LIST_LABEL,
   REDO_LABEL,
   TEMPLATE_BUTTON_LABEL,
   UNDO_LABEL,
@@ -22,6 +23,7 @@ import {
   ChevronRight,
   Download,
   FileJson,
+  Files,
   FolderArchive,
   FolderOpen,
   Home,
@@ -47,6 +49,8 @@ type MobileEditorMenuProps = {
   onUndo: () => void;
   /** 取り消した操作をやり直す */
   onRedo: () => void;
+  /** 指導箋一覧（マイ指導箋）を開く */
+  onProjectListClick: () => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
   /** デザイン設定ダイアログを開く */
@@ -137,6 +141,7 @@ export function MobileEditorMenu({
   canRedo,
   onUndo,
   onRedo,
+  onProjectListClick,
   layoutType,
   onDesignSettingsClick,
   onTemplateClick,
@@ -165,6 +170,14 @@ export function MobileEditorMenu({
     onClose();
     onRedo();
   }, [onClose, onRedo]);
+
+  /**
+   * 指導箋一覧クリックハンドラ
+   */
+  const handleProjectListClick = useCallback(() => {
+    onClose();
+    onProjectListClick();
+  }, [onClose, onProjectListClick]);
 
   /**
    * デザイン設定クリックハンドラ
@@ -239,6 +252,14 @@ export function MobileEditorMenu({
 
       {/* 区切り線 */}
       <div className="my-2 h-px bg-border/40" aria-hidden="true" />
+
+      {/* 指導箋一覧（マイ指導箋） */}
+      <MenuItem
+        icon={Files}
+        label={PROJECT_LIST_LABEL}
+        onClick={handleProjectListClick}
+        iconColor="text-orange-500"
+      />
 
       {/* デザイン設定（列数バッジ付き） */}
       <MenuItem

@@ -6,23 +6,41 @@
  */
 
 import {
+  ACTIVE_PROJECT_ID_STORAGE_KEY,
   AUTOSAVE_DELAY,
   HISTORY_LIMIT,
   HISTORY_MERGE_WINDOW_MS,
   MAX_ITEM_COUNT,
   MAX_PRECAUTIONS_COUNT,
+  PROJECT_SWITCH_FAILED_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
-import { createNewProject, loadProject, saveProject } from "@rehab-grid/core/lib/db";
+import {
+  createNewProject,
+  deleteImage,
+  deleteProject as deleteProjectFromDB,
+  duplicateProject as duplicateProjectInDB,
+  listProjects,
+  loadProject,
+  saveProject,
+} from "@rehab-grid/core/lib/db";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import {
   type Dosages,
   type EditorItem,
+  type ImportOpenMode,
+  type ImportResult,
   type Precaution,
   type ProjectFile,
   type ProjectMeta,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { debounce } from "@rehab-grid/core/utils/debounce";
+import { applyImportResult } from "@rehab-grid/core/utils/project";
+import {
+  readLocalStorage,
+  requestPersistentStorage,
+  writeLocalStorage,
+} from "@rehab-grid/core/utils/storage";
 import { nanoid } from "nanoid";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -60,6 +78,10 @@ type LastHistoryCommit = {
 type EditorState = EditorSnapshot & {
   /** 初期読み込み完了フラグ */
   isLoaded: boolean;
+  /** 編集中のプロジェクトID（オートセーブの保存先） */
+  projectId: string;
+  /** プロジェクトの切り替え・作成・複製・削除・インポートの処理中か（処理中は一覧の操作を無効にする） */
+  isSwitchingProject: boolean;
   /** 選択中のアイテムID */
   selectedItemId: string | null;
 
@@ -118,8 +140,36 @@ type AppendPrecautionsResult = {
  * エディタストアのアクション
  */
 type EditorActions = {
-  /** DBからプロジェクトを初期化（編集履歴もクリアする） */
+  /** DBからプロジェクトを初期化（編集履歴もクリアする。編集中のプロジェクトIDは変えない） */
   initializeFromDB: (data: ProjectFile) => void;
+  /**
+   * 指定IDのプロジェクトとして開く（編集履歴をクリアし、次回起動時に開くプロジェクトとして記録する）
+   *
+   * @remarks
+   * 保留中のオートセーブは破棄するため、必要なら呼び出し前に確定させておく
+   */
+  openProject: (projectId: string, data: ProjectFile) => void;
+  /**
+   * 保存済みの別のプロジェクトへ切り替える
+   *
+   * @remarks
+   * 保留中のオートセーブを元のプロジェクトへ保存し終えてから読み込む
+   */
+  switchProject: (projectId: string) => Promise<void>;
+  /** 新しい空のプロジェクトを作って開く（カードやタイトルを編集した時点で保存される） */
+  createProject: () => Promise<void>;
+  /**
+   * プロジェクトを複製して保存する（開いているプロジェクトは変えない）
+   *
+   * @returns 複製したプロジェクトのID（複製元が存在しない場合は undefined）
+   */
+  duplicateProject: (projectId: string) => Promise<string | undefined>;
+  /**
+   * インポート結果（ファイル・テンプレート）を保存して開く
+   *
+   * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
+   */
+  openImportResult: (result: ImportResult, mode: ImportOpenMode) => Promise<void>;
   /** アイテム一覧を設定 */
   setItems: (items: EditorItem[]) => void;
   /** アイテムを追加 */
@@ -170,8 +220,13 @@ type EditorActions = {
   undo: () => void;
   /** 取り消した操作をやり直す */
   redo: () => void;
-  /** プロジェクトを削除し、初期状態にリセット */
-  deleteProject: () => Promise<void>;
+  /**
+   * プロジェクトを削除する（省略時は編集中のプロジェクト）
+   *
+   * @remarks
+   * 編集中のプロジェクトを削除した場合は、残りのうち最新のもの（なければ新しい空のプロジェクト）を開く
+   */
+  deleteProject: (projectId?: string) => Promise<void>;
   /** 画像を削除し、関連するアイテムのimageSourceをクリア */
   deleteImageAndClearReferences: (imageId: string) => Promise<void>;
 
@@ -429,6 +484,60 @@ function keepSelectionIfExists(
 }
 
 /**
+ * ストアの状態からProjectFileを生成
+ *
+ * @remarks
+ * エクスポート機能などで現在のプロジェクト状態を取得する際に使用
+ *
+ * @param state - エディタストアの状態（meta / settings / items のみ参照する）
+ * @returns ProjectFile形式のデータ
+ */
+export function stateToProjectFile(state: EditorSnapshot): ProjectFile {
+  return {
+    meta: state.meta,
+    settings: state.settings,
+    items: state.items,
+  };
+}
+
+/**
+ * オートセーブ関数（debounce適用済み）
+ *
+ * @remarks
+ * 保存先IDはスケジュールした時点の値を引数で受け取る。
+ * 実行時にストアの projectId を読むと、切り替え直後に発火したとき切り替え先へ旧プロジェクトの内容を書き込んでしまう。
+ */
+const debouncedSave = debounce(
+  async (projectId: string, state: EditorSnapshot) =>
+    saveProject(projectId, stateToProjectFile(state)),
+  AUTOSAVE_DELAY
+);
+
+/**
+ * 起動時に開くプロジェクトを DB から探す
+ *
+ * @remarks
+ * 前回開いていたID → 更新日時が最新のもの、の順に探す。
+ * 旧バージョンの 'current' のレコードも、ほかのプロジェクトと同じく一覧の 1 件として見つかる。
+ *
+ * @returns 開くプロジェクト（DB が空なら undefined）
+ */
+async function findInitialProject(): Promise<
+  { projectId: string; data: ProjectFile } | undefined
+> {
+  const activeId = readLocalStorage(ACTIVE_PROJECT_ID_STORAGE_KEY);
+  if (activeId !== undefined) {
+    const data = await loadProject(activeId);
+    if (data) return { projectId: activeId, data };
+  }
+
+  const [latest] = await listProjects();
+  if (latest === undefined) return undefined;
+  const data = await loadProject(latest.id);
+  return data ? { projectId: latest.id, data } : undefined;
+}
+
+/**
  * エディタストア
  *
  * @remarks
@@ -488,9 +597,37 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       });
     };
 
+    /**
+     * プロジェクトの切り替え系の処理を 1 つずつ実行する
+     *
+     * @remarks
+     * 「保存の確定 → 読み込み → ストアへの反映」の途中で別の切り替えが割り込むと、
+     * 保存先と内容が食い違う恐れがあるため、処理中に呼ばれた操作は何もしない。
+     */
+    const runProjectTransition = async <T>(
+      task: () => Promise<T>
+    ): Promise<T | undefined> => {
+      if (get().isSwitchingProject) return undefined;
+      set({ isSwitchingProject: true });
+      try {
+        return await task();
+      } finally {
+        set({ isSwitchingProject: false });
+      }
+    };
+
+    /**
+     * 新しい空のプロジェクトを開く
+     */
+    const openNewProject = () => {
+      get().openProject(nanoid(), createNewProject());
+    };
+
     return {
       // 状態の初期値（空の状態で開始）
       isLoaded: false,
+      projectId: nanoid(),
+      isSwitchingProject: false,
       ...projectToState(initialProject),
 
       // モバイルUI用ステートの初期値
@@ -501,6 +638,58 @@ export const useEditorStore = create<EditorState & EditorActions>()(
       // アクション
       initializeFromDB: (data) =>
         set({ isLoaded: true, ...projectToState(data) }),
+
+      openProject: (projectId, data) => {
+        set({ isLoaded: true, projectId, ...projectToState(data) });
+        // 読み込んだ内容は DB と同じなので、この set を拾ったオートセーブは捨てる
+        // （開いただけで更新日時が変わり、一覧の並び順が入れ替わるのを防ぐ）
+        debouncedSave.cancel();
+        writeLocalStorage(ACTIVE_PROJECT_ID_STORAGE_KEY, projectId);
+      },
+
+      switchProject: async (projectId) => {
+        if (projectId === get().projectId) return;
+        await runProjectTransition(async () => {
+          // 編集中の内容を元のプロジェクトへ保存し終えてから切り替える
+          await debouncedSave.flush();
+          const data = await loadProject(projectId);
+          if (!data) throw new Error(PROJECT_SWITCH_FAILED_MESSAGE);
+          get().openProject(projectId, data);
+        });
+      },
+
+      createProject: async () => {
+        await runProjectTransition(async () => {
+          await debouncedSave.flush();
+          openNewProject();
+          // 保存件数が増えると、ブラウザに消されたときの損失が大きくなるため
+          void requestPersistentStorage();
+        });
+      },
+
+      duplicateProject: async (projectId) =>
+        runProjectTransition(async () => {
+          if (projectId === get().projectId) {
+            // 編集中のプロジェクトは保存前の変更も含めて複製する（未保存の新規プロジェクトも複製できる）
+            debouncedSave.cancel();
+            await saveProject(projectId, stateToProjectFile(get()));
+          }
+          const newId = await duplicateProjectInDB(projectId);
+          if (newId !== undefined) void requestPersistentStorage();
+          return newId;
+        }),
+
+      openImportResult: async (result, mode) => {
+        await runProjectTransition(async () => {
+          // 新規でも上書きでも、編集中の内容はいったん元のプロジェクトへ保存しておく
+          // （上書きの保存に失敗しても直前の編集を失わない。保留中の保存が上書き後に発火することも防ぐ）
+          await debouncedSave.flush();
+          const projectId = mode === "new" ? nanoid() : get().projectId;
+          await applyImportResult(result, projectId);
+          get().openProject(projectId, result.project);
+          if (mode === "new") void requestPersistentStorage();
+        });
+      },
 
       setItems: (items) => commit({ items }),
 
@@ -665,16 +854,26 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           };
         }),
 
-      deleteProject: async () => {
-        // 1. IndexedDBから即座にプロジェクトを削除（リロード時の復元を防ぐ）
-        const { deleteProject: deleteFromDB } = await import(
-          "@rehab-grid/core/lib/db"
-        );
-        await deleteFromDB();
+      deleteProject: async (projectId = get().projectId) => {
+        await runProjectTransition(async () => {
+          if (projectId !== get().projectId) {
+            await deleteProjectFromDB(projectId);
+            return;
+          }
 
-        // 2. Zustandストアの全状態を初期値にリセット
-        // 他のプロジェクト切り替えと同じ入口を通し、設定・選択・履歴まで一貫してリセットする
-        get().initializeFromDB(createNewProject());
+          // 保留中の保存が削除後に発火して、消したプロジェクトを復活させないよう捨てる
+          debouncedSave.cancel();
+          await deleteProjectFromDB(projectId);
+
+          // 残りのうち最新のプロジェクトを開く（なければ新しい空のプロジェクト）
+          const [latest] = await listProjects();
+          const data = latest ? await loadProject(latest.id) : undefined;
+          if (latest && data) {
+            get().openProject(latest.id, data);
+          } else {
+            openNewProject();
+          }
+        });
       },
 
       deleteImageAndClearReferences: async (imageId) => {
@@ -687,7 +886,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         }));
 
         // IndexedDBから画像を削除
-        const { deleteImage } = await import("@rehab-grid/core/lib/db");
         await deleteImage(imageId);
       },
 
@@ -707,30 +905,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 );
 
 /**
- * ストアの状態からProjectFileを生成
- *
- * @remarks
- * エクスポート機能などで現在のプロジェクト状態を取得する際に使用
- *
- * @param state - エディタストアの状態（meta / settings / items のみ参照する）
- * @returns ProjectFile形式のデータ
- */
-export function stateToProjectFile(state: EditorSnapshot): ProjectFile {
-  return {
-    meta: state.meta,
-    settings: state.settings,
-    items: state.items,
-  };
-}
-
-/**
- * オートセーブ関数（debounce適用済み）
- */
-const debouncedSave = debounce((state: EditorSnapshot) => {
-  void saveProject(stateToProjectFile(state));
-}, AUTOSAVE_DELAY);
-
-/**
  * オートセーブの設定
  *
  * @remarks
@@ -747,7 +921,9 @@ useEditorStore.subscribe(
   () => {
     // 初期読み込み完了後のみオートセーブを実行
     if (useEditorStore.getState().isLoaded) {
-      debouncedSave(useEditorStore.getState());
+      // 保存先はこの時点のプロジェクトID（実行時に読むと切り替え先へ書き込む恐れがある）
+      const state = useEditorStore.getState();
+      debouncedSave(state.projectId, state);
     }
   },
   { equalityFn: shallow }
@@ -761,14 +937,14 @@ useEditorStore.subscribe(
  * クライアントサイドでのみ実行される
  */
 if (typeof window !== "undefined") {
-  void loadProject()
-    .then((data) => {
-      if (data) {
-        useEditorStore.getState().initializeFromDB(data);
+  void findInitialProject()
+    .then((initial) => {
+      if (initial) {
+        useEditorStore.getState().openProject(initial.projectId, initial.data);
       } else {
-        // DBが空の場合も initializeFromDB を使用して一貫した状態遷移を保証
-        // これにより、サーバー/クライアント間で状態が統一される
-        useEditorStore.getState().initializeFromDB(createNewProject());
+        // DB が空の場合も openProject を通して一貫した状態遷移を保証する
+        // （新しいプロジェクトはカードやタイトルを編集した時点で保存される）
+        useEditorStore.getState().openProject(nanoid(), createNewProject());
       }
     })
     .catch(() => {
@@ -776,21 +952,19 @@ if (typeof window !== "undefined") {
       // - ブラウザのストレージ制限やプライベートモードによる制限
       // - DB初期化中のタイミング競合（テスト環境含む）
       //
-      // 重要:
-      // ここで `initializeFromDB(createNewProject())` を行うと、
-      // 状態更新 → オートセーブ（debounce）により「既存データを空で上書き」するリスクが理論上発生する。
-      //
-      // そのため、失敗時は「UIを操作可能にする」最小限として isLoaded のみ true にし、
-      // データの上書きはユーザー操作による明示的な変更が発生した時点に限定する。
+      // 失敗時は「UIを操作可能にする」最小限として isLoaded のみ true にする。
+      // 保存先は初期値の新しい ID のままなので、編集しても既存のプロジェクトを上書きしない。
       useEditorStore.setState({ isLoaded: true });
 
       // 一時的な失敗（DB初期化中など）に備え、1回だけ遅延リトライする。
       // 成功すれば正しいデータで初期化される（この場合は読み込んだデータで上書きされる）。
       setTimeout(() => {
-        void loadProject()
-          .then((data) => {
-            if (data) {
-              useEditorStore.getState().initializeFromDB(data);
+        void findInitialProject()
+          .then((initial) => {
+            if (initial) {
+              useEditorStore
+                .getState()
+                .openProject(initial.projectId, initial.data);
             }
           })
           .catch(() => {
