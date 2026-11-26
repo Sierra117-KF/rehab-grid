@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-26
+
+### Fixed
+
+- 運動カードの回数・セット数・頻度などの用量項目（および用量ラベル）に全角で長めの文字を入力した際、特に 3〜4 列レイアウトで 2 行以上に折り返して見た目が崩れる問題を修正。編集画面（Canvas）と PDF 出力・A4 ページ収容見積もりの両方で、幅に収まらない項目のみ自動でフォントサイズを縮小して 1 行に収め、同じ行内の区切り線とラベルの縦位置が揃うようにした
+
 ## [1.3.0] - 2026-11-26
 
 ### Added
@@ -112,7 +118,8 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.0.0...v1.1.0
