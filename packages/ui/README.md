@@ -20,7 +20,11 @@ packages/ui/
 │   │   ├── editor/                 # エディタUI
 │   │   │   ├── Canvas/             # D&Dグリッド
 │   │   │   │   ├── index.tsx
+│   │   │   │   ├── AutoFitText.tsx
 │   │   │   │   ├── EmptyState.tsx
+│   │   │   │   ├── InlineEditInput.tsx
+│   │   │   │   ├── PageEstimateBadge.tsx
+│   │   │   │   ├── SheetSummary.tsx
 │   │   │   │   └── SortableCard.tsx
 │   │   │   ├── EditorHeader/       # ヘッダーメニュー群
 │   │   │   │   ├── index.tsx
@@ -40,13 +44,16 @@ packages/ui/
 │   │   │   │   ├── ThumbnailGrid.tsx
 │   │   │   │   └── UsedInOtherProjectsWarning.tsx
 │   │   │   ├── DesignSettingsDialog.tsx
+│   │   │   ├── DosageLabelSettings.tsx
 │   │   │   ├── ExerciseCardLibraryModal.tsx
 │   │   │   ├── GridLayoutSelector.tsx
 │   │   │   ├── ImageEditModal.tsx
+│   │   │   ├── OptionButtonGroup.tsx
 │   │   │   ├── PdfPreviewModal.tsx
 │   │   │   ├── PrecautionSnippetDialog.tsx
 │   │   │   ├── ProjectListModal.tsx
 │   │   │   ├── PropertyPanel.tsx
+│   │   │   ├── SheetSettings.tsx
 │   │   │   ├── TemplateSelectModal.tsx
 │   │   │   └── ThemeColorSelector.tsx
 │   │   ├── layout/                 # レイアウトUI
@@ -86,8 +93,9 @@ packages/ui/
 │       └── globals.css             # Tailwind CSS v4 グローバルスタイル
 ├── tests/                          # テストファイル
 │   └── components/
-│       ├── editor/                 # エディタコンポーネントテスト（8ファイル）
-│       └── layout/                 # レイアウトコンポーネントテスト（10ファイル）
+│       ├── editor/                 # エディタコンポーネントテスト（12ファイル）
+│       ├── layout/                 # レイアウトコンポーネントテスト（10ファイル）
+│       └── wrapped/                # ラッパーコンポーネントテスト（1ファイル）
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.mjs
@@ -129,7 +137,7 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 
 | コンポーネント | 説明 | サブコンポーネント |
 |--------------|------|------------------|
-| `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド | `EmptyState`, `SortableCard` |
+| `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド（インライン編集・A4収容ガイド・用量自動縮小対応） | `AutoFitText`, `EmptyState`, `InlineEditInput`, `PageEstimateBadge`, `SheetSummary`, `SortableCard` |
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
 | `ImageLibraryPanel` | 画像アップロード・管理・検索・一括削除（他の指導箋で使われている画像は削除確認で警告） | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ImageSearchInput`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons`, `UsedInOtherProjectsWarning` |
 | `DesignSettingsDialog` | デザイン設定（列数・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
@@ -286,10 +294,12 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 | `@dnd-kit/core` | 6.3.1 | ドラッグ&ドロップ基盤 |
 | `@dnd-kit/sortable` | 10.0.0 | ソート機能 |
 | `@dnd-kit/utilities` | 3.2.2 | D&Dユーティリティ |
-| `@radix-ui/react-*` | 各種 | shadcn/ui基盤（10パッケージ） |
+| `@radix-ui/react-*` | 各種 | shadcn/ui基盤（8パッケージ） |
 | `class-variance-authority` | 0.7.1 | CVAスタイリング |
 | `clsx` | 2.1.1 | クラス名結合 |
+| `dexie-react-hooks` | 4.4.0 | IndexedDB データのリアクティブ購読 |
 | `lucide-react` | 0.563.0 | アイコン |
+| `nanoid` | 5.1.16 | 一意 ID 生成 |
 | `sonner` | 2.0.7 | トースト通知 |
 | `tailwind-merge` | 3.6.0 | Tailwindクラスマージ |
 
@@ -314,7 +324,7 @@ import { Button, Dialog, Input } from "@rehab-grid/ui";
 
 - **テストランナー**: Vitest
 - **環境**: jsdom
-- **テストファイル数**: 20
+- **テストファイル数**: 23
 
 ### テストファイル配置
 
@@ -334,7 +344,7 @@ tests/
     │   ├── ProjectListModal.test.tsx
     │   ├── PropertyPanel.test.tsx
     │   └── TemplateSelectModal.test.tsx
-    └── layout/          # 10ファイル
+    ├── layout/          # 10ファイル
     │   ├── DisclaimerModalProvider.test.tsx
     │   ├── FAQ.test.tsx
     │   ├── Footer.test.tsx
@@ -344,7 +354,9 @@ tests/
     │   ├── MobileSidebar.test.tsx
     │   ├── RecentUpdates.test.tsx
     │   ├── ScrollAnimationSection.test.tsx
-        └── SecurityDisclaimerModal.test.tsx
+    │   └── SecurityDisclaimerModal.test.tsx
+    └── wrapped/         # 1ファイル
+        └── ExternalLink.test.tsx
 ```
 
 ### テスト実行コマンド

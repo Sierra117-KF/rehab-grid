@@ -9,5 +9,6 @@
 - `sw.js`（ビルド前に `scripts/generate-sw.mjs` が `scripts/sw.template.js` から生成。Git 管理外）
 - `icons/`（PWA アイコン）
 - `images/bento-grid/`（トップページ用の装飾画像）
+- `images/og-image.png`（SNS 共有用 OGP 画像）
 
 共有アセット（fonts, images/samples, templates, logo）は `packages/assets/` で管理します。

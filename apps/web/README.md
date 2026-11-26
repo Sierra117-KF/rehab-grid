@@ -14,15 +14,15 @@
 
 ### Desktop版との主な違い
 
-| 項目               | Web版                    | Desktop版                              |
-| ------------------ | ------------------------ | -------------------------------------- |
-| エントリーポイント | `/` = ランディングページ | `/` = エディタ直接表示                 |
-| ヘッダー           | 共有EditorHeader         | Desktop専用ヘッダー + 情報リンク       |
-| 起動時モーダル     | なし                     | セキュリティ免責モーダル表示           |
-| ファイルアクセス   | Web File API             | Tauri File API（ネイティブダイアログ） |
-| CSP                | 標準CSP                  | `ipc:`, `tauri:` スキーム追加          |
-| ホスティング       | Cloudflare Pages         | ローカルインストール（Tauri）          |
-| オフライン動作     | PWA（Service Worker）    | 完全ネイティブ                         |
+| 項目               | Web版                    | Desktop版                                          |
+| ------------------ | ------------------------ | -------------------------------------------------- |
+| エントリーポイント | `/` = ランディングページ | `/` = エディタ直接表示                             |
+| ヘッダー           | 共有EditorHeader         | Desktop専用ヘッダー（アプリ名非表示）+ 情報フッター |
+| 起動時モーダル     | なし                     | セキュリティ免責モーダル表示                       |
+| 外部リンク         | ブラウザ新規タブ         | OS既定ブラウザ（`tauri-plugin-opener` 許可リスト） |
+| CSP                | 標準CSP                  | `ipc:`, `tauri:` スキーム追加                      |
+| ホスティング       | Cloudflare Pages         | ローカルインストール（Tauri）                      |
+| オフライン動作     | PWA（Service Worker）    | 完全ネイティブ                                     |
 
 ## ディレクトリ構造
 
@@ -35,7 +35,7 @@ apps/web/
 │   ├── fonts/                      # 日本語フォント（自動コピー）
 │   ├── icons/                      # PWA/ロゴアイコン
 │   ├── images/
-│   │   ├── og-image.webp           # OGP画像（SNS共有用）
+│   │   ├── og-image.png            # OGP画像（SNS共有用）
 │   │   ├── bento-grid/             # トップページ装飾画像
 │   │   └── samples/                # サンプル運動画像（自動コピー）
 │   └── templates/                  # テンプレートJSON（自動コピー）
@@ -77,12 +77,12 @@ apps/web/
 
 | カテゴリ       | 技術                | バージョン |
 | -------------- | ------------------- | ---------- |
-| フレームワーク | Next.js             | 16.1.4     |
-| UI             | React               | 19.2.4     |
-| 言語           | TypeScript          | 5          |
-| スタイル       | Tailwind CSS        | 4          |
-| アイコン       | lucide-react        | 0.562.0    |
-| テスト         | Vitest + Playwright | -          |
+| フレームワーク | Next.js             | 16.4.6     |
+| UI             | React               | 19.2.7     |
+| 言語           | TypeScript          | 5.9.x      |
+| スタイル       | Tailwind CSS        | 4.3.x      |
+| アイコン       | lucide-react        | 0.563.0    |
+| テスト         | Vitest + Playwright | 4.1.x      |
 
 ### 内部パッケージ依存
 
@@ -138,10 +138,11 @@ pnpm copy-assets
 アプリケーションの紹介ページ。以下のセクションで構成：
 
 1. **ヒーローセクション**: タイトル、バージョン表示、メインCTA
-2. **機能紹介**: ベンチグリッドレイアウトで3大機能を紹介
+2. **機能紹介**: ベントグリッドレイアウトで3大機能を紹介
 3. **FAQセクション**: よくある質問
 4. **最新更新情報**: 最新バージョンの変更内容
 5. **コールアウト**: 最終CTA
+6. **Windows版ダウンロード（PC専用）**: Desktop版インストーラーへの導線
 
 ### エディタページ (`/training`)
 
@@ -161,19 +162,21 @@ pnpm copy-assets
 
 ### テストファイル一覧
 
-| ファイル                                | テスト対象           |
-| --------------------------------------- | -------------------- |
-| `db.browser.test.ts`                    | IndexedDB操作        |
-| `delete-project.browser.test.tsx`       | プロジェクト削除     |
-| `dnd.browser.test.tsx`                  | ドラッグ&ドロップ    |
-| `export-zip.browser.test.ts`            | ZIPエクスポート      |
-| `grid-select.browser.test.tsx`          | グリッド切り替え     |
-| `import-project.browser.test.tsx`       | インポート機能       |
-| `pdf-export.browser.test.tsx`           | PDF出力              |
-| `template-select.browser.test.tsx`      | テンプレート選択     |
-| `training-page.browser.test.tsx`        | エディタメインフロー |
-| `training-page-mobile.browser.test.tsx` | モバイルビュー       |
-| `paste-image.browser.test.tsx`          | 画像ペースト         |
+| ファイル                                | テスト対象               |
+| --------------------------------------- | ------------------------ |
+| `db.browser.test.ts`                    | IndexedDB操作            |
+| `delete-project.browser.test.tsx`       | プロジェクト削除         |
+| `design-settings.browser.test.tsx`      | デザイン設定（列数・色等） |
+| `dnd.browser.test.tsx`                  | ドラッグ&ドロップ        |
+| `export-zip.browser.test.ts`            | ZIPエクスポート          |
+| `image-edit.browser.test.ts`            | 画像編集（反転・回転等） |
+| `image-library.browser.test.tsx`        | 画像ライブラリ操作・検索 |
+| `import-project.browser.test.tsx`       | インポート機能           |
+| `paste-image.browser.test.tsx`          | 画像ペースト             |
+| `pdf-export.browser.test.tsx`           | PDF出力                  |
+| `template-select.browser.test.tsx`      | テンプレート選択         |
+| `training-page-mobile.browser.test.tsx` | モバイルビュー           |
+| `training-page.browser.test.tsx`        | エディタメインフロー     |
 
 ### テスト実行
 
@@ -271,15 +274,15 @@ SNS（note、X、Facebookなど）でリンク共有時にサムネイル画像�
 
 ### 設定内容
 
-- **OGP画像**: `public/images/og-image.webp`（1200×630px）
+- **OGP画像**: `public/images/og-image.png`（1200×630px、PNG形式）
 - **Twitter Card**: `summary_large_image`（大きな画像カード）
 
 ### OGP画像の更新
 
-新しいOGP画像を作成する場合は、`scripts/convert-ogp-image.mjs` を使用して1200×630pxにリサイズ・変換できます：
+新しいOGP画像を作成する場合は、`scripts/convert-ogp-image.mjs` を使用して1200×630pxのPNGにリサイズ・変換できます：
 
 ```bash
-node scripts/convert-ogp-image.mjs 元画像.png apps/web/public/images/og-image.webp
+node scripts/convert-ogp-image.mjs 元画像.png apps/web/public/images/og-image.png
 ```
 
 ### 確認方法

@@ -256,6 +256,7 @@ export default defineConfig({
       "packages/core/vitest.config.ts",
       "packages/ui/vitest.config.ts",
       "apps/web/vitest.config.ts",
+      "apps/desktop/vitest.config.ts",
     ],
   },
 });
@@ -267,13 +268,14 @@ export default defineConfig({
 | --------------- | -------------------- | ---------------------------------------------- |
 | `packages/core` | jsdom                | ユーティリティ、フック、ストアのユニットテスト |
 | `packages/ui`   | jsdom                | UIコンポーネントのユニットテスト               |
+| `apps/desktop`  | jsdom                | Desktop専用コンポーネントのユニットテスト      |
 | `apps/web`      | playwright (browser) | 統合テスト、E2Eテスト                          |
 
 ### 実行コマンド
 
 ```bash
 pnpm test              # 全テスト（単発実行）
-pnpm test:jsdom        # jsdom環境のみ（core + ui）
+pnpm test:jsdom        # jsdom環境のみ（core + ui + desktop）
 pnpm test:browser      # ブラウザ環境のみ（web）
 pnpm test:watch        # ウォッチモード
 pnpm test:coverage     # カバレッジ付き
@@ -403,29 +405,29 @@ error TS2307: Cannot find module 'jszip' or its corresponding type declarations.
 - TypeScriptはパッケージ境界を超えた間接的な依存関係の型を自動解決しない
 - これは依存関係の配置の問題ではなく、**TypeScriptの型解決の問題**
 
-**解決策:**
+**解決策（優先順位順、詳細: `docs/architecture.md`）:**
 
-`tsconfig.test.json`（または該当するtsconfig）の`paths`に、他パッケージの`node_modules`内のモジュールへのパスマッピングを追加します：
+1. **使用するパッケージの `package.json` に依存を明示追加する（推奨）**
+   - テストのみで使用する場合は `devDependencies` に追加する（例: `apps/web/package.json` の `jszip`）
+   - pnpm ワークスペースでは同バージョンがホイスティングされるため実質的な重複は起きず、Turbopack / Next.js 16 でも確実に動作する
+2. **テスト環境限定でワークスペースパッケージを `tsconfig.test.json` にマッピングする**
+   - `@rehab-grid/core/*` のような内部パッケージ参照に限り `tsconfig.test.json` の `paths` を使用する
 
 ```json
 {
   "compilerOptions": {
     "paths": {
-      // 既存のパスマッピング...
       "@rehab-grid/core": ["../../packages/core/src"],
-      "@rehab-grid/core/*": ["../../packages/core/src/*"],
-      // 他パッケージの依存モジュールへのパスマッピングを追加
-      "jszip": ["../../packages/core/node_modules/jszip"]
+      "@rehab-grid/core/*": ["../../packages/core/src/*"]
     }
   }
 }
 ```
 
-**ポイント:**
+**禁止事項:**
 
-- ❌ 依存関係を重複して定義しない（`apps/web`のdevDependenciesに`jszip`を追加するのは避ける）
-- ✅ `paths`マッピングで型解決のみを対応する
-- ✅ 本番の依存関係は元のパッケージ（`packages/core`）で一元管理を維持
+- ❌ `tsconfig.json` / `tsconfig.test.json` の `paths` で他パッケージの `node_modules` 内モジュール（例: `"jszip": ["../../packages/core/node_modules/jszip"]`）に直接マッピングしないこと。Turbopack が `paths` をモジュール解決に使うため、ChunkLoadError やバージョン不整合の原因になる
+- ✅ 外部パッケージの型が必要な場合は該当パッケージの `package.json`（`dependencies` または `devDependencies`）に明示的に追加する
 
 ---
 

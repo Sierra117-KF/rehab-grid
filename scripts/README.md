@@ -4,7 +4,7 @@
 
 ## 概要
 
-このディレクトリのスクリプトは、以下の3つの目的で使用されます：
+このディレクトリのスクリプトは、以下の5つの目的で使用されます：
 
 1. **フォント最適化**: PDF出力機能で使用する日本語フォント（Noto Sans JP）のサブセット化
 2. **テンプレート画像マッピング**: テンプレート内の重複画像をサンプル画像への参照に置き換えるためのマッピング生成
@@ -196,13 +196,13 @@ node scripts/generate-pwa-icons.mjs
 
 ### 5. `convert-ogp-image.mjs`
 
-**目的**: 正方形の画像を1200×630pxのOGP推奨サイズにクロップし、WebP形式に変換します。
+**目的**: 正方形の画像を1200×630pxのOGP推奨サイズにクロップし、PNG形式に変換します（X や note などの SNS で確実に表示するため PNG を採用）。
 
 **処理内容**:
 
 1. 元画像のアスペクト比を計算
 2. OGP推奨サイズ（1200×630）に合わせて中央クロップ
-3. WebP形式（品質85%）で出力
+3. PNG形式（`compressionLevel: 9`）で出力
 
 **前提条件**:
 
@@ -215,7 +215,7 @@ node scripts/generate-pwa-icons.mjs
 node scripts/convert-ogp-image.mjs <入力ファイル> [出力ファイル]
 
 # 例
-node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-image.webp
+node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-image.png
 ```
 
 **入力**:
@@ -224,7 +224,7 @@ node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-imag
 
 **出力**:
 
-- 1200×630pxのWebP画像（OGP推奨サイズ）
+- 1200×630pxのPNG画像（OGP推奨サイズ）
 
 **用途**:
 

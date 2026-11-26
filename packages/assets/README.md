@@ -59,23 +59,27 @@ PDF 生成時に使用する日本語フォントを配置します。
 
 ### 現在のサンプル画像
 
+合計 **42枚** のサンプル画像（2 コマ構成）を収録しています：
+
 | カテゴリ         | 画像数 |
 | ---------------- | ------ |
-| 立位（standing） | 6枚    |
-| 座位（sitting）  | 2枚    |
-| 臥位（lying）    | 4枚    |
+| 臥位（lying）    | 20枚   |
+| 座位（sitting）  | 12枚   |
+| 立位（standing） | 10枚   |
 
 ### ファイル命名規則
 
 ```text
-{position}_{order:2桁}_{displayName}.webp
+{position}_{order:2桁}_{slug}.webp
 ```
 
 **例:**
 
-- `standing_01_起立訓練（椅子）.webp`
-- `sitting_02_片麻痺上肢挙上.webp`
-- `lying_03_SLR.webp`
+- `standing_01_stand-up-table.webp`
+- `sitting_04_arm-raise.webp`
+- `lying_02_SLR.webp`
+
+> UI 上の日本語表示名は `packages/core/src/lib/constants/sampleImages.ts` の `fileName` フィールド（例: `"standing_01_起立訓練（テーブル）"`）で定義します。
 
 ### 新しいサンプル画像を追加する手順
 
@@ -172,9 +176,9 @@ packages/assets/templates/{template-id}/
 ```json
 {
   "meta": {
-    "version": "0.1.0",
-    "createdAt": "2025-01-01T00:00:00.000Z",
-    "updatedAt": "2025-01-01T00:00:00.000Z",
+    "version": "1.3.1",
+    "createdAt": "2026-01-25T00:00:00.000Z",
+    "updatedAt": "2026-01-25T00:00:00.000Z",
     "title": "テンプレート名",
     "projectType": "training"
   },
@@ -214,7 +218,7 @@ packages/assets/templates/{template-id}/
 | `meta.projectType`    | `"training"` 固定                                  |
 | `settings.layoutType` | グリッドレイアウト（`grid1`〜`grid4`）             |
 | `settings.themeColor` | テーマカラー（HEX 形式）                           |
-| `items[].imageSource` | 画像パス（テンプレートディレクトリからの相対パス） |
+| `items[].imageSource` | 画像パス（相対パス）またはサンプル画像 ID（例: `"sample_lying_01"`） |
 | `items[].dosages`     | 回数・セット数・頻度                               |
 | `items[].precautions` | 注意事項リスト                                     |
 
@@ -251,16 +255,13 @@ export const TEMPLATES: TemplateMetadata[] = [
 
 ### 既存テンプレートの例
 
-#### `lying-ex` - 寝たまま簡単トレーニング
+現在の公式プリセットテンプレート（全 8 種類）は、サンプル画像 ID を参照する形で `project.json` のみで構成されています（独自画像を含める場合は `images/` を併用できます）：
+
+#### `low-back-pain` - 腰痛体操
 
 ```text
-templates/lying-ex/
-├── project.json      # 4カードのプロジェクト
-└── images/
-    ├── img_001.webp  # 上体起こし
-    ├── img_002.webp  # ブリッジ
-    ├── img_003.webp  # 片足上げ
-    └── img_004.webp  # 手と腰のストレッチ
+templates/low-back-pain/
+└── project.json      # 6カードのプロジェクト（サンプル画像 ID を参照）
 ```
 
 ---

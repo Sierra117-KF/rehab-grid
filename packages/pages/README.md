@@ -96,18 +96,20 @@ packages/pages/
 
 #### 主要機能
 
-| 機能              | 説明                                                    |
-| ----------------- | ------------------------------------------------------- |
-| カード追加        | 新規カードの作成（最大数制限あり）                      |
-| 画像アップロード  | ファイル選択・ドラッグ&ドロップ・クリップボード貼り付け |
-| ドラッグ&ドロップ | カードの並び替え、画像のカードへのドロップ              |
-| プロパティ編集    | タイトル、説明、回数/セット、注意事項の編集             |
+| 機能                    | 説明                                                                 |
+| ----------------------- | -------------------------------------------------------------------- |
+| カード編集・操作        | 新規追加（最大10枚）・複製・削除・全カードへの用量/注意点一括反映    |
+| インライン編集・Undo    | カード上ダブルクリック編集（デスクトップ）、Undo / Redo（最大50件）  |
+| 画像アップロード・編集  | D&D・ファイル選択・クリップボード貼付、クイック左右反転・編集モーダル |
+| マイ運動ライブラリ      | 編集したカードを「マイ運動」に保存・呼び出し                         |
+| A4 ページ収容ガイド     | PDF のページ数目安と改ページ境界のリアルタイム表示                   |
 
 #### 使用するフック
 
 ```typescript
 // @rehab-grid/core から
 useEditorStore(); // Zustand ストア（状態管理）
+useModalStore(); // デザイン設定・マイ運動モーダル等の開閉状態
 useCanvasImages(); // 画像URL生成（IndexedDB + サンプル画像）
 useIsMobile(); // モバイル判定
 usePasteImage(); // クリップボード貼り付け
@@ -122,6 +124,8 @@ Canvas; // ドラッグ&ドロップグリッド
 ImageLibraryPanel; // 画像ライブラリ
 PropertyPanel; // プロパティ編集パネル
 MobileSidebar; // モバイル用スライドインサイドバー
+ExerciseCardLibraryModal; // マイ運動ライブラリモーダル
+ImageEditModal; // 画像編集モーダル（反転・回転・トリミング・注釈）
 ```
 
 ---
@@ -141,7 +145,7 @@ MobileSidebar; // モバイル用スライドインサイドバー
 更新履歴データは `@rehab-grid/core` の `getSortedEntries()` から取得します。
 
 ```typescript
-// packages/core/src/lib/changelog/entries.ts
+// packages/core/src/lib/changelog/entries/ 配下（バージョン別ファイル）
 // で定義された ChangelogEntry[] を使用
 ```
 
@@ -209,8 +213,8 @@ MobileSidebar; // モバイル用スライドインサイドバー
 
 ```json
 {
-  "react": "19.2.4",
-  "react-dom": "19.2.4"
+  "react": "19.2.7",
+  "react-dom": "19.2.7"
 }
 ```
 
@@ -221,14 +225,14 @@ MobileSidebar; // モバイル用スライドインサイドバー
 ### Web版（apps/web）
 
 ```typescript
-// apps/web/src/app/training/page.tsx
+// apps/web/src/app/(editor)/training/page.tsx
 import { TrainingPage } from "@rehab-grid/pages";
 
 export default function Page() {
   return <TrainingPage />;
 }
 
-// apps/web/src/app/changelog/page.tsx
+// apps/web/src/app/(info)/changelog/page.tsx
 import { ChangelogPage } from "@rehab-grid/pages";
 
 export default function Page() {
@@ -276,14 +280,14 @@ export default function InfoLayout({ children }) {
 
 ## 関連ファイル
 
-| ファイルパス                                 | 説明                        |
-| -------------------------------------------- | --------------------------- |
-| `packages/core/src/lib/store/editorStore.ts` | エディタ状態管理（Zustand） |
-| `packages/core/src/hooks/useCanvasImages.ts` | 画像URL生成フック           |
-| `packages/core/src/lib/changelog/entries.ts` | 更新履歴データ定義          |
-| `packages/core/src/lib/constants/urls.ts`    | 外部URL定数                 |
-| `packages/ui/src/components/editor/`         | エディタUIコンポーネント群  |
-| `packages/ui/src/components/layout/`         | レイアウトコンポーネント群  |
+| ファイルパス                                    | 説明                        |
+| ----------------------------------------------- | --------------------------- |
+| `packages/core/src/lib/store/useEditorStore.ts` | エディタ状態管理（Zustand） |
+| `packages/core/src/hooks/useCanvasImages.ts`    | 画像URL生成フック           |
+| `packages/core/src/lib/changelog/entries/`      | 更新履歴データ定義          |
+| `packages/core/src/lib/constants/externalLinks.ts` | 外部URL定数              |
+| `packages/ui/src/components/editor/`            | エディタUIコンポーネント群  |
+| `packages/ui/src/components/layout/`            | レイアウトコンポーネント群  |
 
 ---
 

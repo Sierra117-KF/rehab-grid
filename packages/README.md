@@ -48,10 +48,8 @@ assets/
 ├── icons/              # アプリアイコン
 │   └── logo.png
 ├── images/
-│   └── samples/        # サンプル画像（44枚）
-│       ├── standing/   # 立位（10枚）
-│       ├── sitting/    # 座位（12枚）
-│       └── lying/      # 臥位（22枚）
+│   └── samples/        # サンプル画像（42枚：立位10 / 座位12 / 臥位20）
+│       └── thumbs/     # 一覧用の軽量サムネイル（42枚）
 └── templates/          # プリセットテンプレート（8種類）
     ├── low-back-pain/
     ├── shoulder-stiffness/
@@ -62,8 +60,8 @@ assets/
 ### 特徴
 
 - **git管理対象外**: コピー先のアセットは `.gitignore` で除外
-- **WebP形式**: 画像はファイルサイズ最適化済み（14-79KB/枚）
-- **テンプレート**: 各テンプレートは `project.json` + 画像ファイルで構成
+- **WebP形式**: 画像はファイルサイズ最適化済み。一覧表示は `thumbs/` の軽量サムネイルを使用
+- **テンプレート**: 各テンプレートは `project.json`（サンプル画像 ID 参照、または独自画像ファイル）で構成
 
 ---
 
@@ -107,8 +105,8 @@ import postcssConfig from "@rehab-grid/config/postcss";
 ### 管理する依存関係
 
 ESLint関連の依存関係はすべてこのパッケージで一元管理：
-- `typescript-eslint` (v8.53)
-- `eslint-config-next` (v16.1.4)
+- `typescript-eslint` (v8.73)
+- `eslint-config-next` (v16.4.6)
 - `eslint-plugin-react` / `react-hooks`
 - `eslint-plugin-jsdoc`
 - `@vitest/eslint-plugin`
@@ -182,9 +180,9 @@ const { openModal, closeModal } = useModalStore();
 ```typescript
 import { db, saveProject, loadProject, saveImage } from "@rehab-grid/core";
 
-// プロジェクト保存・読み込み
-await saveProject(projectData);
-const project = await loadProject();
+// プロジェクト保存・読み込み（ID を指定して複数指導箋を管理）
+await saveProject(projectId, projectData);
+const project = await loadProject(projectId);
 
 // 画像保存・取得
 await saveImage(id, blob, fileName);
@@ -207,12 +205,14 @@ const result = projectFileSchema.safeParse(importedData);
 | `color.ts` | HEX 色と白の合成色生成 |
 | `date.ts` | ローカル日付の文字列整形 |
 | `export.ts` | JSON/ZIP エクスポート・インポート |
+| `externalLink.ts` | 外部リンクの許可リスト検証 |
 | `image.ts` | 画像圧縮・処理（長辺1200px, WebP推奨） |
 | `imageEdit.ts` | 画像編集（左右反転・90°回転・5:3 トリミング・注釈）と編集画像の保存 |
 | `pdf.ts` | PDF生成ヘルパー |
 | `editor.ts` | エディタロジック（並び替え等） |
 | `project.ts` | インポート／テンプレート結果の適用 |
 | `search.ts` | 表記揺れを吸収したキーワード検索 |
+| `storage.ts` | ストレージ永続化要求・localStorage 読み書き |
 | `template.ts` | テンプレート読み込み |
 | `download.ts` | ファイルダウンロード処理 |
 | `debounce.ts` | debounce関数 |
@@ -310,9 +310,12 @@ ui/src/
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 |
 | `PropertyPanel` | 選択カードの編集パネル |
 | `DesignSettingsDialog` | デザイン設定（列数・テーマカラー・印刷スタイル・PDF のヘッダーと実施チェック表） |
-| `TemplateSelectModal` | テンプレート選択 |
+| `ImageEditModal` | 画像編集（反転・90°回転・5:3 トリミング・注釈） |
+| `ProjectListModal` | マイ指導箋一覧（検索・切替・新規・複製・削除） |
+| `ExerciseCardLibraryModal` | マイ運動ライブラリ（保存済みカードの検索・追加・削除） |
+| `TemplateSelectModal` | テンプレート選択（公式／マイテンプレート） |
 | `PdfPreviewModal` | PDFプレビュー |
-| `PrecautionSnippetDialog` | 注意点スニペット挿入 |
+| `PrecautionSnippetDialog` | 注意点スニペット挿入（マイ定型文含む） |
 
 #### レイアウトコンポーネント
 
@@ -341,7 +344,7 @@ export const Button = ({ ... }) => { ... };
 |-----------|-----------|------|
 | @dnd-kit/core | 6.3.1 | ドラッグ&ドロップ |
 | @dnd-kit/sortable | 10.0.0 | ソート機能 |
-| @radix-ui/react-* | 各種 | shadcn/ui 基盤（10パッケージ） |
+| @radix-ui/react-* | 各種 | shadcn/ui 基盤（8パッケージ） |
 | class-variance-authority | 0.7.1 | CVAスタイリング |
 | sonner | 2.0.7 | トースト通知 |
 
@@ -391,8 +394,8 @@ import { TrainingPage } from "@rehab-grid/pages/training";
 
 | パッケージ | 環境 | テストファイル数 |
 |-----------|------|-----------------|
-| core | jsdom | 21 |
-| ui | jsdom | 19 |
+| core | jsdom | 38 |
+| ui | jsdom | 23 |
 | pages | - | - |
 
 ### テストコマンド

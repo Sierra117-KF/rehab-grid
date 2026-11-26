@@ -8,15 +8,15 @@ Desktop版は、Web版と同じNext.jsコードベースをTauriでラップし�
 
 ### Web版との主な違い
 
-| 項目               | Desktop版                              | Web版                    |
-| ------------------ | -------------------------------------- | ------------------------ |
-| エントリーポイント | `/` = エディタ直接表示                 | `/` = ランディングページ |
-| ヘッダー           | Desktop専用ヘッダー + 情報リンク       | 共有EditorHeader         |
-| 起動時モーダル     | セキュリティ免責モーダル表示           | なし                     |
-| ファイルアクセス   | Tauri File API（ネイティブダイアログ） | Web File API             |
-| CSP                | `ipc:`, `tauri:` スキーム追加          | 標準CSP                  |
-| ホスティング       | ローカルインストール（Tauri）          | Cloudflare Pages         |
-| オフライン動作     | 完全ネイティブ                         | PWA（Service Worker）    |
+| 項目               | Desktop版                                          | Web版                    |
+| ------------------ | -------------------------------------------------- | ------------------------ |
+| エントリーポイント | `/` = エディタ直接表示                             | `/` = ランディングページ |
+| ヘッダー           | Desktop専用ヘッダー（アプリ名非表示）+ 情報フッター | 共有EditorHeader         |
+| 起動時モーダル     | セキュリティ免責モーダル表示                       | なし                     |
+| 外部リンク         | OS既定ブラウザ（`tauri-plugin-opener` 許可リスト） | ブラウザ新規タブ         |
+| CSP                | `ipc:`, `tauri:` スキーム追加                      | 標準CSP                  |
+| ホスティング       | ローカルインストール（Tauri）                      | Cloudflare Pages         |
+| オフライン動作     | 完全ネイティブ                                     | PWA（Service Worker）    |
 
 ## ディレクトリ構造
 
@@ -140,7 +140,7 @@ const nextConfig: NextConfig = {
 
 ```json
 {
-  "productName": "リハぐり",
+  "productName": "rehab-grid",
   "identifier": "com.rehab-grid.app",
   "build": {
     "beforeDevCommand": "pnpm --filter @rehab-grid/desktop dev",
@@ -186,23 +186,12 @@ const nextConfig: NextConfig = {
 
 ### DesktopEditorHeader
 
-Web版の`EditorHeader`をラップし、情報ページへのリンクを追加したDesktop専用ヘッダー。
+Web版の`EditorHeader`をラップするDesktop専用ヘッダー。Desktop版ではウィンドウタイトルバーにアプリ名が表示されるため、ヘッダー内のアプリ名を非表示にしてロゴアイコンのみを表示します（情報ページへのリンクは`DesktopNavFooter`に配置）。
 
 ```typescript
 // src/components/DesktopEditorHeader.tsx
 export function DesktopEditorHeader() {
-  return (
-    <>
-      {/* 情報リンクバー（利用規約、プライバシー、更新履歴） */}
-      <div className="...">
-        <Link href="/terms">利用規約</Link>
-        <Link href="/privacy">プライバシー</Link>
-        <Link href="/changelog">更新履歴</Link>
-      </div>
-      {/* 既存のEditorHeader */}
-      <EditorHeader />
-    </>
-  );
+  return <EditorHeader hideAppName />;
 }
 ```
 
@@ -210,19 +199,15 @@ export function DesktopEditorHeader() {
 
 Desktop版の起動時にセキュリティ免責モーダルを自動表示するプロバイダーコンポーネント。
 
-- **表示条件**: セッション開始時、または前回の承認から24時間経過後
+- **表示条件**: エディタページ（`/`）表示時に未同意の場合（SessionStorage + LocalStorage の 2 層キャッシュで判定、他ページから戻った際も再チェック）
 - **目的**: 医療機関で使用される可能性を考慮し、免責事項への同意を定期的に確認
-- **状態管理**: `sessionStorage` でセッション内の表示済みフラグを管理
+- **挙動**: ユーザーが同意するまで閉じられない（`preventDismiss`, `showCancelButton={false}`）
 
 ```typescript
 // src/components/DesktopDisclaimerModalProvider.tsx
-export function DesktopDisclaimerModalProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // セッション開始時または24時間経過後に免責モーダルを表示
-  // ユーザーが承認するまでメインコンテンツをブロック
+export function DesktopDisclaimerModalProvider() {
+  // pathname === "/" かつ checkDisclaimerRequired() のときに SecurityDisclaimerModal を表示
+  // 同意すると recordDisclaimerConsent() を記録して閉じる
 }
 ```
 
@@ -403,7 +388,7 @@ pnpm --filter @rehab-grid/desktop test
 pnpm --filter @rehab-grid/desktop test:watch
 
 # カバレッジ付き
-pnpm --filter @rehab-grid/desktop test:coverage
+pnpm --filter @rehab-grid/desktop test -- --coverage
 ```
 
 ### テストファイル構成
@@ -421,7 +406,7 @@ pnpm --filter @rehab-grid/desktop test:coverage
 ## 技術的特徴
 
 1. **完全オフライン動作** - インターネット接続不要
-2. **ネイティブファイルダイアログ** - OS標準UIでファイル操作
+2. **安全な外部リンク制御** - 許可リスト照合＋`tauri-plugin-opener`でOS既定ブラウザ起動
 3. **セキュリティファースト** - 外部通信なし、厳格なCSP
 4. **高速開発** - Turbopack + Tauri HMR
 5. **共通コードベース** - Web版と同じReactコンポーネントを使用

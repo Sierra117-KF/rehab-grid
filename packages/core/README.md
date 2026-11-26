@@ -97,7 +97,7 @@ packages/core/
 │   │   └── usePdfWorker.ts
 │   ├── lib/
 │   │   ├── changelog/      # 更新履歴エントリ
-│   │   ├── constants/      # 定数定義（12モジュール）
+│   │   ├── constants/      # 定数定義（13モジュール）
 │   │   ├── db/             # IndexedDB（Dexie）
 │   │   ├── pdf/            # PDF ドキュメント要素の組み立て（layout/metrics はメインスレッド共用）
 │   │   ├── schemas/        # Zod スキーマ
@@ -107,7 +107,7 @@ packages/core/
 │   │   ├── settings.ts     # プロジェクト設定のデフォルト値補完
 │   │   └── utils.ts        # cn() 関数
 │   ├── types/              # 型定義（8モジュール）
-│   ├── utils/              # ユーティリティ関数（13モジュール）
+│   ├── utils/              # ユーティリティ関数（14モジュール）
 │   └── workers/            # Web Worker
 │       └── pdf.worker.ts
 ├── tests/                  # テストファイル
@@ -234,7 +234,7 @@ const {
   isSwitchingProject, // 切り替え・作成・複製・削除・インポートの処理中か
   items,
   meta,
-  settings, // { layoutType, themeColor }（resolveProjectSettings でデフォルト値を補完済み）
+  settings, // ResolvedProjectSettings（layoutType, themeColor, printColorMode, textScale, pageOrientation, showCardNumbers, dosageLabels, header, checkTable）
   past, // Undo で戻れる状態（最大 HISTORY_LIMIT 件、永続化しない）
   future, // Redo で進める状態
 
@@ -247,7 +247,7 @@ const {
   applyDosagesToAll, // 全カードの用量を上書き（変わった枚数を返す）
   appendPrecautionsToAll, // 全カードに注意点を追記（{ updatedCount, skippedCount }）
   reorderItems,
-  updateSettings, // updateSettings({ layoutType?, themeColor? }, { mergeKey? })
+  updateSettings, // updateSettings(partialSettings, { mergeKey? }) デザイン・印刷スタイル・PDFヘッダー・チェック表の更新
   setProjectTitle,
   undo,
   redo,
@@ -277,6 +277,8 @@ const {
   isDesignSettingsOpen, // デザイン設定ダイアログ（ヘッダー以外からも開けるようストアで持つ）
   designSettingsSection, // 開いたときに表示するセクション（"sheet" = ヘッダー・チェック表）
   setDesignSettingsOpen, // (open, section?) — キャンバスの要約からは setDesignSettingsOpen(true, "sheet")
+  isExerciseCardLibraryOpen, // マイ運動モーダル（左サイドバー・モバイルメニューから開く）
+  setExerciseCardLibraryOpen,
 } = useModalStore();
 ```
 
@@ -311,15 +313,18 @@ const safeText = sanitizeText(userInput);
 | モジュール | 主な定数 |
 |-----------|---------|
 | `app.ts` | `APP_NAME`, `APP_VERSION`, `AUTOSAVE_DELAY`, `LEGACY_PROJECT_ID`, `ACTIVE_PROJECT_ID_STORAGE_KEY` |
-| `shared.ts` | `LAYOUT_COLUMNS`, `FONT_SIZES`, `LABELS`, `TEXT_LIMITS` |
-| `editor.ts` | `DEFAULT_PROJECT_TITLE`, `MAX_ITEM_COUNT`, `LAYOUT_OPTIONS` |
+| `changelog.ts` | 更新履歴のカテゴリ表示設定・ラベル |
+| `editor.ts` | `DEFAULT_PROJECT_TITLE`, `MAX_ITEM_COUNT`, `LAYOUT_OPTIONS`, `THEME_COLOR_PRESETS`, `DESIGN_PRESETS`, `DOSAGE_LABEL_SUGGESTIONS` |
+| `exerciseCards.ts` | マイ運動ライブラリ関連のラベル・メッセージ |
+| `externalLinks.ts` | `GITHUB_REPO_URL`, `GITHUB_ISSUES_URL`, `GITHUB_LICENSE_URL`, `FEEDBACK_FORM_URL`, `ALLOWED_EXTERNAL_URLS` |
+| `image.ts` | `MAX_FILE_SIZE`, `IMAGE_ACCEPT_TYPES`, `MAX_IMPORT_ZIP_SIZE`, 画像編集（注釈色・線幅・ズーム上限） |
 | `messages.ts` | UI メッセージ（140 以上） |
-| `image.ts` | `MAX_FILE_SIZE`, `IMAGE_ACCEPT_TYPES`, `MAX_IMPORT_ZIP_SIZE` |
-| `sampleImages.ts` | `SAMPLE_IMAGES`, `getSampleImagePath()`, `getSampleThumbnailPath()`（一覧用サムネイル）, `isSampleImage()` |
+| `modal.ts` | `SECURITY_DISCLAIMER_EXPIRY_MS` |
 | `pdf.ts` | `PDF_PAGE_SIZE`, `PDF_MARGINS`, `PDF_FONT_FAMILY`, `PDF_COLORS` |
 | `precautions.ts` | `PRECAUTION_SNIPPETS`, `PRECAUTION_SNIPPET_CATEGORIES` |
-| `externalLinks.ts` | `GITHUB_REPO_URL`, `FEEDBACK_FORM_URL` |
-| `modal.ts` | `SECURITY_DISCLAIMER_EXPIRY_MS` |
+| `sampleImages.ts` | `SAMPLE_IMAGES`, `getSampleImagePath()`, `getSampleThumbnailPath()`（一覧用サムネイル）, `isSampleImage()` |
+| `shared.ts` | `LAYOUT_COLUMNS`, `FONT_SIZES`, `LABELS`, `TEXT_LIMITS` |
+| `template.ts` | テンプレート読み込みパス・UI ラベル |
 
 ```typescript
 import {
@@ -343,22 +348,22 @@ import { TEMPLATES } from "@rehab-grid/core";
 
 // TEMPLATES の構造
 type TemplateMetadata = {
-  id: string;          // "lying-ex"
-  name: string;        // "寝たまま簡単トレーニング"
-  description: string; // "ベッド上でできる運動メニュー"
-  cardCount: number;   // 4
-  path: string;        // "lying-ex"
+  id: string;          // "low-back-pain"
+  name: string;        // "腰痛体操"
+  description: string; // "主に腰椎屈曲傾向の患者さん向けの自主トレ"
+  cardCount: number;   // 6
+  path: string;        // "low-back-pain"
 };
 ```
 
 | テンプレート ID | 名前 | カード数 |
 |----------------|------|---------|
-| `stroke-bed` | 脳卒中向け（ベッド上） | 6 |
-| `stroke-sitting` | 脳卒中向け（座位） | 6 |
-| `stroke-upper-limb` | 脳卒中向け（上肢） | 4 |
-| `swallowing` | 嚥下体操 | 8 |
-| `full-body` | 全身の自主トレ | 8 |
-| `lower-limb-ortho` | 下肢整形外科術後 | 6 |
+| `in-bed-for-stroke` | 【脳卒中】ベッド上の自主トレ | 6 |
+| `seated-in-a-chair-for-stroke` | 【脳卒中】座位の自主トレ | 5 |
+| `upper-extremity-for-stroke` | 【脳卒中】上肢の自主トレ | 6 |
+| `swallowing` | 嚥下体操 | 5 |
+| `full-body-workout` | 全身の自主トレ | 6 |
+| `after-lower-limb-orthopedic-surgery` | 下肢の整形外科術後の自主トレ | 8 |
 | `low-back-pain` | 腰痛体操 | 6 |
 | `shoulder-stiffness` | 肩こり体操 | 6 |
 
@@ -503,8 +508,16 @@ type ProjectMeta = {
 type ProjectSettings = {
   layoutType: LayoutType;
   themeColor: string;
+  printColorMode?: PrintColorMode;       // "color" | "monochrome"
+  textScale?: TextScale;                 // "standard" | "large"
+  pageOrientation?: PageOrientation;     // "auto" | "portrait" | "landscape"
+  showCardNumbers?: boolean;
+  dosageLabels?: Partial<DosageLabels>;  // { reps, sets, frequency }
+  header?: Partial<SheetHeaderSettings>; // 氏名欄・日付欄・施設名・担当者名・全体メモ
+  checkTable?: CheckTableType;           // "none" | "weekly" | "monthly"
 };
 
+// ストアと PDF 生成では resolveProjectSettings() でデフォルト値を補った ResolvedProjectSettings を使用
 type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 ```
 
@@ -568,6 +581,7 @@ const blob = data ? await generatePdf(data) : null;
 | dexie-react-hooks | 4.4.0 | Dexie の React フック |
 | zod | 4.6.7 | スキーマバリデーション |
 | @react-pdf/renderer | 4.5.1 | PDF 生成 |
+| @tauri-apps/api | 2.11.1 | Tauri ランタイム検出・連携 |
 | browser-image-compression | 2.0.2 | 画像圧縮 |
 | jszip | 3.10.1 | ZIP 生成・展開 |
 | dompurify | 3.4.17 | XSS 対策 |
@@ -585,14 +599,18 @@ const blob = data ? await generatePdf(data) : null;
 ```
 tests/
 ├── hooks/
-│   ├── useCanvasImages.test.tsx
+│   ├── useCanvasImages.test.ts
 │   ├── useEditorShortcuts.test.ts
-│   ├── useImageUpload.test.tsx
-│   ├── useMediaQuery.test.tsx
-│   ├── useObjectUrls.test.tsx
-│   ├── usePasteImage.test.tsx
+│   ├── useImageUpload.test.ts
+│   ├── useMediaQuery.test.ts
+│   ├── useObjectUrls.test.ts
+│   ├── usePasteImage.test.ts
 │   └── usePdfWorker.test.ts
 ├── lib/
+│   ├── changelog/
+│   │   └── index.test.ts
+│   ├── constants/
+│   │   └── sampleImages.test.ts
 │   ├── db/
 │   │   └── index.test.ts
 │   ├── pdf/
@@ -626,6 +644,7 @@ tests/
 │   ├── pdf.test.ts
 │   ├── project.test.ts
 │   ├── search.test.ts
+│   ├── storage.test.ts
 │   └── template.test.ts
 └── workers/
     └── pdf.worker.test.ts
