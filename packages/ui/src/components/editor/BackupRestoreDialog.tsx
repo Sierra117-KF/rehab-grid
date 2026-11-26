@@ -152,7 +152,7 @@ function BackupRestoreDialogBody({
   return (
     <>
       {hasAnyData ? (
-        <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
           {/* 復元するカテゴリ選択 */}
           <fieldset className="space-y-2">
             <legend className="text-sm font-semibold text-foreground">
@@ -264,39 +264,39 @@ function BackupRestoreDialogBody({
               </label>
             </div>
           </fieldset>
-
-          {/* 「すべて置き換える」選択時の強い警告 */}
-          {isReplace ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
-            >
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>
-                {createBackupReplaceWarning(
-                  currentCounts ?? {
-                    projects: 0,
-                    userTemplates: 0,
-                    exerciseCards: 0,
-                    customSnippets: 0,
-                    totalImages: 0,
-                  }
-                )}
-              </span>
-            </div>
-          ) : null}
-
-          {!hasSelection ? (
-            <p className="text-xs text-destructive">
-              {BACKUP_RESTORE_SELECT_REQUIRED}
-            </p>
-          ) : null}
         </div>
       ) : (
         <p className="py-6 text-center text-sm text-muted-foreground">
           {BACKUP_RESTORE_EMPTY_BACKUP_MESSAGE}
         </p>
       )}
+
+      {/* 警告・案内はスクロール領域の外に置き、実行ボタンの直上で必ず見えるようにする */}
+      {hasAnyData && isReplace ? (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
+        >
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {createBackupReplaceWarning(
+              currentCounts ?? {
+                projects: 0,
+                userTemplates: 0,
+                exerciseCards: 0,
+                customSnippets: 0,
+                totalImages: 0,
+              }
+            )}
+          </span>
+        </div>
+      ) : null}
+
+      {hasAnyData && !hasSelection ? (
+        <p className="text-xs text-destructive">
+          {BACKUP_RESTORE_SELECT_REQUIRED}
+        </p>
+      ) : null}
 
       <DialogFooter>
         <Button
@@ -362,7 +362,9 @@ export function BackupRestoreDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      {/* 画面の低い端末でも実行ボタンが見切れないよう、高さを画面内に収めて中身だけスクロールさせる */}
       <DialogContent
+        className="flex max-h-[calc(100dvh-2rem)] flex-col"
         preventDismiss={isRestoring}
         showCloseButton={!isRestoring}
       >

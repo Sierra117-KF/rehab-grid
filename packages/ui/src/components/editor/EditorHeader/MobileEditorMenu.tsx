@@ -2,6 +2,8 @@
 
 import {
   BACKUP_EXPORT_ALL_LABEL,
+  BACKUP_MENU_ALL_SECTION,
+  BACKUP_MENU_CURRENT_SECTION,
   BACKUP_RESTORE_LABEL,
   BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
@@ -363,6 +365,9 @@ export function MobileEditorMenu({
       {/* エクスポートサブメニュー */}
       {isExportExpanded ? (
         <div className="ml-8 flex flex-col border-l border-border/40 pl-2">
+          <p className="px-3 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">
+            {BACKUP_MENU_CURRENT_SECTION}
+          </p>
           <button
             type="button"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
@@ -380,6 +385,9 @@ export function MobileEditorMenu({
             <span>{EXPORT_ZIP_LABEL}</span>
           </button>
           <div className="my-1 h-px bg-border/40" aria-hidden="true" />
+          <p className="px-3 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">
+            {BACKUP_MENU_ALL_SECTION}
+          </p>
           <button
             type="button"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"

@@ -1,5 +1,7 @@
 import {
   BACKUP_EXPORT_ALL_LABEL,
+  BACKUP_MENU_ALL_SECTION,
+  BACKUP_MENU_CURRENT_SECTION,
   BACKUP_RESTORE_LABEL,
   BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
@@ -132,6 +134,16 @@ describe("MobileEditorMenu", () => {
   });
 
   describe("まとめてバックアップ・復元", () => {
+    it("バックアップを展開すると「この指導箋」と「全データ」の見出しを表示する", async () => {
+      const user = userEvent.setup();
+      setupMenu();
+
+      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+
+      expect(screen.getByText(BACKUP_MENU_CURRENT_SECTION)).toBeInTheDocument();
+      expect(screen.getByText(BACKUP_MENU_ALL_SECTION)).toBeInTheDocument();
+    });
+
     it("バックアップを展開して「まとめてバックアップ（ZIP）」を押すと onExportBackup を呼ぶ", async () => {
       const user = userEvent.setup();
       const props = setupMenu();

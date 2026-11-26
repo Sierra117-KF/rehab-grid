@@ -150,6 +150,7 @@ function BackupExportDialogBody({
           <div className="space-y-2">
             {rows.map((row) => {
               const disabled = row.count === 0 || isExporting;
+              const isExceeded = row === exceededRow;
               const checkboxId = `backup-export-${row.key}`;
               return (
                 <label
@@ -159,7 +160,8 @@ function BackupExportDialogBody({
                     "flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors",
                     disabled
                       ? "cursor-not-allowed border-border/60 bg-muted/40 text-muted-foreground"
-                      : "cursor-pointer border-border bg-card hover:bg-accent/40"
+                      : "cursor-pointer border-border bg-card hover:bg-accent/40",
+                    isExceeded && "border-destructive/60"
                   )}
                 >
                   <span className="flex items-center gap-3">
@@ -173,7 +175,14 @@ function BackupExportDialogBody({
                     />
                     <span className="font-medium">{row.label}</span>
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span
+                    className={cn(
+                      "text-xs",
+                      isExceeded
+                        ? "font-semibold text-destructive"
+                        : "text-muted-foreground"
+                    )}
+                  >
                     {row.count}
                     {row.unit}
                   </span>
