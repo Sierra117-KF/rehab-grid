@@ -21,6 +21,7 @@ import {
 import { getImages } from "@rehab-grid/core/lib/db";
 import { projectFileSchema } from "@rehab-grid/core/lib/schemas";
 import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
+import type JSZip from "jszip";
 import { nanoid } from "nanoid";
 
 import { getDateString } from "./date";
@@ -299,23 +300,13 @@ async function importFromJSON(file: File): Promise<ImportResult> {
 }
 
 /**
- * ZIPファイルをインポート
+ * 読み込み済み JSZip インスタンスから単一プロジェクトをインポート
  *
- * @param file - ZIPファイル
+ * @param zip - 読み込み済み JSZip インスタンス
  * @returns インポート結果
- * @throws 破損したZIP、project.json不在、バリデーションエラー時
+ * @throws project.json 不在、バリデーションエラー、ZIP爆弾対策エラー時
  */
-async function importFromZIP(file: File): Promise<ImportResult> {
-  // 動的インポートで jszip を読み込み（Turbopack 互換性のため）
-  const JSZip = (await import("jszip")).default;
-
-  let zip: InstanceType<typeof JSZip>;
-  try {
-    zip = await JSZip.loadAsync(file);
-  } catch {
-    throw new Error(IMPORT_ERROR_CORRUPTED_ZIP);
-  }
-
+export async function importFromLoadedZIP(zip: JSZip): Promise<ImportResult> {
   // project.json を取得
   const projectJsonFile = zip.file("project.json");
   if (!projectJsonFile) {
@@ -409,6 +400,27 @@ async function importFromZIP(file: File): Promise<ImportResult> {
     project,
     images,
   };
+}
+
+/**
+ * ZIPファイルをインポート
+ *
+ * @param file - ZIPファイル
+ * @returns インポート結果
+ * @throws 破損したZIP、project.json不在、バリデーションエラー時
+ */
+async function importFromZIP(file: File): Promise<ImportResult> {
+  // 動的インポートで jszip を読み込み（Turbopack 互換性のため）
+  const JSZipModule = (await import("jszip")).default;
+
+  let zip: JSZip;
+  try {
+    zip = await JSZipModule.loadAsync(file);
+  } catch {
+    throw new Error(IMPORT_ERROR_CORRUPTED_ZIP);
+  }
+
+  return importFromLoadedZIP(zip);
 }
 
 /**

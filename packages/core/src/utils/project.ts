@@ -4,7 +4,7 @@
 
 import {
   APP_VERSION,
-  isSampleImage,
+  getSampleImagePath,
   PRECAUTION_SNIPPETS,
 } from "@rehab-grid/core/lib/constants";
 import { createProjectRecord, db } from "@rehab-grid/core/lib/db";
@@ -24,10 +24,11 @@ import {
 } from "@rehab-grid/core/types";
 import { nanoid } from "nanoid";
 
+import { parseIsoDateOrFallback } from "./date";
 import { cloneItemWithNewIds } from "./template";
 
 /** すべてのバックアップカテゴリを選択した状態 */
-const ALL_CATEGORIES: BackupCategorySelection = {
+export const ALL_BACKUP_CATEGORIES_SELECTED: BackupCategorySelection = {
   projects: true,
   userTemplates: true,
   exerciseCards: true,
@@ -36,21 +37,16 @@ const ALL_CATEGORIES: BackupCategorySelection = {
 };
 
 /**
- * ISO 文字列から有効な Date を作る（不正なら fallback を返す）
- */
-function toValidDate(isoString: string, fallback: Date): Date {
-  const date = new Date(isoString);
-  return Number.isNaN(date.getTime()) ? fallback : date;
-}
-
-/**
  * 復元時の画像ソースを新しい画像IDへ解決する
+ *
+ * @remarks
+ * 実在するサンプル画像 ID（`getSampleImagePath` に存在する ID）のみそのまま維持する
  */
 function resolveImageSourceForRestore(
   imageSource: string,
   pathToNewId: ReadonlyMap<string, string>
 ): string {
-  if (imageSource === "" || isSampleImage(imageSource)) {
+  if (imageSource === "" || getSampleImagePath(imageSource) !== undefined) {
     return imageSource;
   }
   return pathToNewId.get(imageSource) ?? "";
@@ -151,7 +147,7 @@ export async function applyBackupToDB(
   latestProjectId: string | undefined;
 }> {
   const effectiveSelection: BackupCategorySelection =
-    mode === "replace" ? ALL_CATEGORIES : selection;
+    mode === "replace" ? ALL_BACKUP_CATEGORIES_SELECTED : selection;
 
   const targetProjects = effectiveSelection.projects
     ? backup.manifest.projects
@@ -208,7 +204,7 @@ export async function applyBackupToDB(
   const now = new Date();
 
   const projectRecords: ProjectRecord[] = targetProjects.map((entry) => {
-    const updatedAt = toValidDate(entry.updatedAt, now);
+    const updatedAt = parseIsoDateOrFallback(entry.updatedAt, now);
     const data = prepareRestoredProject(entry.data, pathToNewId);
     return {
       id: nanoid(),
@@ -228,7 +224,7 @@ export async function applyBackupToDB(
     id: nanoid(),
     name: entry.name,
     data: prepareRestoredProject(entry.data, pathToNewId),
-    updatedAt: toValidDate(entry.updatedAt, now),
+    updatedAt: parseIsoDateOrFallback(entry.updatedAt, now),
   }));
 
   const cardRecords: ExerciseCardRecord[] = targetCards.map((entry) => {
@@ -237,7 +233,7 @@ export async function applyBackupToDB(
       id: nanoid(),
       title: item.title,
       item,
-      updatedAt: toValidDate(entry.updatedAt, now),
+      updatedAt: parseIsoDateOrFallback(entry.updatedAt, now),
     };
   });
 
@@ -285,7 +281,7 @@ export async function applyBackupToDB(
         snippetRecords.push({
           id: nanoid(),
           value: entry.value,
-          createdAt: toValidDate(entry.createdAt, now),
+          createdAt: parseIsoDateOrFallback(entry.createdAt, now),
         });
       }
       insertedSnippetCount = snippetRecords.length;

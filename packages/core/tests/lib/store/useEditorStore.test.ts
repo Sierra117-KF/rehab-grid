@@ -1929,5 +1929,32 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().projectId).not.toBe("restored-latest");
       expect(useEditorStore.getState().items).toHaveLength(0);
     });
+
+    it("replace モードでは置換前に未保存の編集を確定するため、置換失敗時も編集が失われない", async () => {
+      useEditorStore.setState({
+        ...getInitialState(),
+        isLoaded: true,
+        projectId: "project-editing",
+      });
+      // 未保存の編集を起こす（デバウンス待ち）
+      useEditorStore.getState().setProjectTitle("未保存のタイトル");
+      mockSaveProject.mockClear();
+      mockApplyBackupToDB.mockRejectedValueOnce(new Error("容量不足"));
+
+      await expect(
+        useEditorStore
+          .getState()
+          .restoreBackup(dummyBackup, selection, "replace")
+      ).rejects.toThrow("容量不足");
+
+      // 置換前に saveProject が実行されて未保存の編集が保護されている
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "project-editing",
+        expect.objectContaining({
+          meta: expect.objectContaining({ title: "未保存のタイトル" }),
+        })
+      );
+      expect(useEditorStore.getState().projectId).toBe("project-editing");
+    });
   });
 });

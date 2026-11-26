@@ -81,11 +81,13 @@ type CategoryRowItem = {
 function BackupRestoreDialogBody({
   backup,
   currentCounts,
+  isRestoring,
   onCancel,
   onRestore,
 }: {
   backup: ParsedBackup;
   currentCounts: BackupSummaryCounts | null;
+  isRestoring: boolean;
   onCancel: () => void;
   onRestore: (
     backup: ParsedBackup,
@@ -97,7 +99,6 @@ function BackupRestoreDialogBody({
     createInitialBackupSelection(backup.counts)
   );
   const [mode, setMode] = useState<BackupRestoreMode>("merge");
-  const [isRestoring, setIsRestoring] = useState(false);
 
   const rows: CategoryRowItem[] = [
     {
@@ -145,12 +146,7 @@ function BackupRestoreDialogBody({
 
   const handleSubmit = async () => {
     if (!hasAnyData || !hasSelection || isRestoring) return;
-    setIsRestoring(true);
-    try {
-      await onRestore(backup, selection, mode);
-    } finally {
-      setIsRestoring(false);
-    }
+    await onRestore(backup, selection, mode);
   };
 
   return (
@@ -335,6 +331,7 @@ function BackupRestoreDialogBody({
  *
  * 解析済みのバックアップファイルの内容を確認し、
  * 復元するカテゴリと復元方法（追加／すべて置き換え）を選択して復元を実行する。
+ * 復元実行中は ESC・外側クリック・閉じるボタンで閉じられないように制御する。
  */
 export function BackupRestoreDialog({
   open,
@@ -343,9 +340,32 @@ export function BackupRestoreDialog({
   currentCounts,
   onRestore,
 }: BackupRestoreDialogProps) {
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (isRestoring) return;
+    handleOpenChange(nextOpen);
+  };
+
+  const handleRestore = async (
+    targetBackup: ParsedBackup,
+    selection: BackupCategorySelection,
+    mode: BackupRestoreMode
+  ) => {
+    setIsRestoring(true);
+    try {
+      await onRestore(targetBackup, selection, mode);
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent
+        preventDismiss={isRestoring}
+        showCloseButton={!isRestoring}
+      >
         <DialogHeader>
           <DialogTitle>{BACKUP_RESTORE_DIALOG_TITLE}</DialogTitle>
           <DialogDescription>
@@ -358,8 +378,9 @@ export function BackupRestoreDialog({
             key={backup.manifest.exportedAt}
             backup={backup}
             currentCounts={currentCounts}
-            onCancel={() => handleOpenChange(false)}
-            onRestore={onRestore}
+            isRestoring={isRestoring}
+            onCancel={() => handleDialogOpenChange(false)}
+            onRestore={handleRestore}
           />
         ) : null}
       </DialogContent>

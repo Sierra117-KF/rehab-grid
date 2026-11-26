@@ -15,6 +15,7 @@ import {
   BACKUP_RESTORE_MODE_MERGE_LABEL,
   BACKUP_RESTORE_MODE_REPLACE_LABEL,
   BACKUP_RESTORE_REPLACE_BUTTON_LABEL,
+  MAX_BACKUP_RECORD_COUNT,
 } from "@rehab-grid/core/lib/constants";
 import { BACKUP_FORMAT, BACKUP_SCHEMA_VERSION } from "@rehab-grid/core/lib/schemas";
 import type { BackupSummaryCounts, ParsedBackup } from "@rehab-grid/core/types";
@@ -162,6 +163,36 @@ describe("BackupExportDialog", () => {
       screen.getByRole("button", { name: BACKUP_EXPORT_BUTTON_LABEL })
     ).toBeDisabled();
   });
+
+  it("選択中のカテゴリが上限件数を超えている場合は警告を表示し、チェックを外すと作成可能になる", async () => {
+    const user = userEvent.setup();
+    render(
+      <BackupExportDialog
+        open
+        onOpenChange={vi.fn()}
+        counts={createCounts({ projects: MAX_BACKUP_RECORD_COUNT + 1 })}
+        onExport={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      `上限（${String(MAX_BACKUP_RECORD_COUNT)}件）を超えています`
+    );
+    expect(
+      screen.getByRole("button", { name: BACKUP_EXPORT_BUTTON_LABEL })
+    ).toBeDisabled();
+
+    // 上限超過しているマイ指導箋のチェックを外すと警告が消え、他カテゴリだけで作成できる
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: new RegExp(BACKUP_CATEGORY_PROJECTS_LABEL),
+      })
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: BACKUP_EXPORT_BUTTON_LABEL })
+    ).toBeEnabled();
+  });
 });
 
 describe("BackupRestoreDialog", () => {
@@ -307,5 +338,48 @@ describe("BackupRestoreDialog", () => {
     expect(
       screen.getByRole("button", { name: BACKUP_RESTORE_BUTTON_LABEL })
     ).toBeDisabled();
+  });
+
+  it("復元処理中は閉じるボタンが隠れ、Escape キーでもダイアログを閉じられない", async () => {
+    const user = userEvent.setup();
+    let resolveRestore: (() => void) | undefined;
+    const onRestore = vi.fn(
+      async () =>
+        new Promise<void>((resolve) => {
+          resolveRestore = resolve;
+        })
+    );
+    const onOpenChange = vi.fn();
+
+    render(
+      <BackupRestoreDialog
+        open
+        onOpenChange={onOpenChange}
+        backup={createParsedBackup()}
+        currentCounts={createCounts()}
+        onRestore={onRestore}
+      />
+    );
+
+    // 処理開始前は閉じるボタンがある
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+
+    // 復元開始
+    await user.click(
+      screen.getByRole("button", { name: BACKUP_RESTORE_BUTTON_LABEL })
+    );
+
+    // 処理中は閉じるボタンが消え、Escape を押しても onOpenChange が呼ばれない
+    expect(
+      screen.queryByRole("button", { name: "Close" })
+    ).not.toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // 完了すると閉じるボタンが戻る
+    resolveRestore?.();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    });
   });
 });

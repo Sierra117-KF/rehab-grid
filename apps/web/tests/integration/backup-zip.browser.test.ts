@@ -25,11 +25,11 @@ import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { ProjectFile } from "@rehab-grid/core/types";
 import {
-  ALL_BACKUP_CATEGORIES_SELECTED,
   createBackupZIP,
   inspectImportFile,
   parseBackupZIP,
 } from "@rehab-grid/core/utils/backup";
+import { ALL_BACKUP_CATEGORIES_SELECTED } from "@rehab-grid/core/utils/project";
 import { beforeEach, describe, expect, it } from "vitest";
 
 /** DB を空状態にリセットする */

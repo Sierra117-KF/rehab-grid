@@ -5,8 +5,11 @@
  */
 import {
   APP_VERSION,
+  BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
   BACKUP_ERROR_NO_BACKUP,
   BACKUP_ERROR_UNSUPPORTED_VERSION,
+  createBackupImageLimitExceededMessage,
+  createBackupRecordLimitExceededMessage,
   IMPORT_ERROR_CORRUPTED_ZIP,
   IMPORT_ERROR_EXTRACTED_TOO_LARGE,
   IMPORT_ERROR_FILE_TOO_LARGE,
@@ -16,6 +19,7 @@ import {
   IMPORT_ERROR_VALIDATION,
   MAX_BACKUP_EXTRACTED_SIZE,
   MAX_BACKUP_IMAGE_COUNT,
+  MAX_BACKUP_RECORD_COUNT,
   MAX_BACKUP_ZIP_SIZE,
   PRECAUTION_SNIPPETS,
 } from "@rehab-grid/core/lib/constants";
@@ -116,7 +120,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import {
-  ALL_BACKUP_CATEGORIES_SELECTED,
   BACKUP_MANIFEST_FILENAME,
   type BackupSourceData,
   collectCurrentBackupCounts,
@@ -125,7 +128,10 @@ import {
   inspectImportFile,
   parseBackupZIP,
 } from "@rehab-grid/core/utils/backup";
-import { applyBackupToDB } from "@rehab-grid/core/utils/project";
+import {
+  ALL_BACKUP_CATEGORIES_SELECTED,
+  applyBackupToDB,
+} from "@rehab-grid/core/utils/project";
 
 // ============================================================================
 // テストヘルパー
@@ -404,6 +410,86 @@ describe("backup.ts", () => {
       expect(manifest.images).toHaveLength(1);
       expect(manifest.images[0]?.fileName).toBe("共有画像");
     });
+
+    it("未知の sample_* ID は空文字に正規化される", async () => {
+      const source = createFullSourceData();
+      source.projects = [
+        {
+          id: "proj-unknown-sample",
+          title: "未知サンプル",
+          data: createProjectFile("未知サンプル", "sample_nonexistent_99"),
+          updatedAt: new Date("2026-11-26T10:00:00.000Z"),
+        },
+      ];
+      const blob = await createBackupZIP(source, {
+        projects: true,
+        userTemplates: false,
+        exerciseCards: false,
+        customSnippets: false,
+        unusedImages: false,
+      });
+
+      const zip = await JSZip.loadAsync(blob);
+      const manifest = JSON.parse(
+        (await zip.file(BACKUP_MANIFEST_FILENAME)?.async("string")) ?? "{}"
+      ) as BackupManifest;
+      expect(manifest.projects[0]?.data.items[0]?.imageSource).toBe("");
+    });
+
+    it("書き出し時にレコード件数や画像枚数が上限を超えるとエラーを投げる", async () => {
+      const tooManySnippets: CustomSnippetRecord[] = Array.from(
+        { length: MAX_BACKUP_RECORD_COUNT + 1 },
+        (_, i) => ({
+          id: `s-${String(i)}`,
+          value: `定型文${String(i)}`,
+          createdAt: new Date("2026-11-26T00:00:00.000Z"),
+        })
+      );
+      await expect(
+        createBackupZIP(
+          {
+            projects: [],
+            userTemplates: [],
+            exerciseCards: [],
+            customSnippets: tooManySnippets,
+            images: [],
+          },
+          ALL_BACKUP_CATEGORIES_SELECTED
+        )
+      ).rejects.toThrow(
+        createBackupRecordLimitExceededMessage(
+          BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
+          MAX_BACKUP_RECORD_COUNT + 1,
+          MAX_BACKUP_RECORD_COUNT
+        )
+      );
+
+      const tooManyImages: ImageRecord[] = Array.from(
+        { length: MAX_BACKUP_IMAGE_COUNT + 1 },
+        (_, i) => ({
+          id: `img-${String(i)}`,
+          blob: createPngBlob(`IMG${String(i)}`),
+          createdAt: new Date("2026-11-26T00:00:00.000Z"),
+        })
+      );
+      await expect(
+        createBackupZIP(
+          {
+            projects: [],
+            userTemplates: [],
+            exerciseCards: [],
+            customSnippets: [],
+            images: tooManyImages,
+          },
+          ALL_BACKUP_CATEGORIES_SELECTED
+        )
+      ).rejects.toThrow(
+        createBackupImageLimitExceededMessage(
+          MAX_BACKUP_IMAGE_COUNT + 1,
+          MAX_BACKUP_IMAGE_COUNT
+        )
+      );
+    });
   });
 
   describe("parseBackupZIP", () => {
@@ -503,6 +589,40 @@ describe("backup.ts", () => {
       ).rejects.toThrow(IMPORT_ERROR_VALIDATION);
     });
 
+    it("レコード件数が上限を超える ZIP は切り捨てずにエラーを投げる", async () => {
+      const zip = new JSZip();
+      zip.file(
+        BACKUP_MANIFEST_FILENAME,
+        JSON.stringify({
+          format: BACKUP_FORMAT,
+          schemaVersion: BACKUP_SCHEMA_VERSION,
+          appVersion: APP_VERSION,
+          exportedAt: "2026-11-26T00:00:00.000Z",
+          customSnippets: Array.from(
+            { length: MAX_BACKUP_RECORD_COUNT + 1 },
+            (_, i) => ({
+              id: `s-${String(i)}`,
+              value: `定型文${String(i)}`,
+              createdAt: "2026-11-26T00:00:00.000Z",
+            })
+          ),
+        })
+      );
+      const bytes = (await zip.generateAsync({
+        type: "uint8array",
+      })) as Uint8Array<ArrayBuffer>;
+
+      await expect(
+        parseBackupZIP(createZipFileFromBytes("too-many-records.zip", bytes))
+      ).rejects.toThrow(
+        createBackupRecordLimitExceededMessage(
+          BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
+          MAX_BACKUP_RECORD_COUNT + 1,
+          MAX_BACKUP_RECORD_COUNT
+        )
+      );
+    });
+
     it("画像枚数が上限を超える ZIP は拒否する（ZIP爆弾対策）", async () => {
       const zip = new JSZip();
       zip.file(
@@ -595,17 +715,19 @@ describe("backup.ts", () => {
       expect(inspected.backup.counts.projects).toBe(2);
     });
 
-    it("project.json を含む ZIP は project として判別する", async () => {
+    it("project.json を含む ZIP は project として判別し、JSZip.loadAsync を1回だけ呼ぶ", async () => {
       const zip = new JSZip();
       zip.file("project.json", JSON.stringify(createProjectFile("単一指導箋")));
       const bytes = (await zip.generateAsync({
         type: "uint8array",
       })) as Uint8Array<ArrayBuffer>;
+      const loadSpy = vi.spyOn(JSZip, "loadAsync");
 
       const inspected = await inspectImportFile(
         createZipFileFromBytes("single.zip", bytes)
       );
 
+      expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(inspected.kind).toBe("project");
       if (inspected.kind !== "project") return;
       expect(inspected.result.project.meta.title).toBe("単一指導箋");

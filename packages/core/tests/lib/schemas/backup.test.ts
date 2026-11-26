@@ -203,17 +203,8 @@ describe("backupManifestSchema", () => {
     expect(result.data.images[0]?.fileName).toBe("画像名");
   });
 
-  it("テンプレート名の文字数上限とレコード最大件数をカットする", () => {
-    const manySnippets = Array.from(
-      { length: MAX_BACKUP_RECORD_COUNT + 10 },
-      (_, i) => ({
-        id: `s-${String(i)}`,
-        value: `定型文${String(i)}`,
-        createdAt: "2026-11-26T09:00:00.000Z",
-      })
-    );
-
-    const input = createValidManifest({
+  it("テンプレート名の文字数上限はカットし、レコード最大件数を超える配列は拒否する", () => {
+    const validInput = createValidManifest({
       userTemplates: [
         {
           id: "t1",
@@ -222,16 +213,26 @@ describe("backupManifestSchema", () => {
           data: createValidProjectData(),
         },
       ],
-      customSnippets: manySnippets,
     });
 
-    const result = backupManifestSchema.safeParse(input);
-    expect(result.success).toBeTruthy();
-    if (!result.success) return;
-
-    expect(result.data.userTemplates[0]?.name).toHaveLength(
+    const validResult = backupManifestSchema.safeParse(validInput);
+    expect(validResult.success).toBeTruthy();
+    if (!validResult.success) return;
+    expect(validResult.data.userTemplates[0]?.name).toHaveLength(
       TEXT_LIMITS.projectTitle
     );
-    expect(result.data.customSnippets).toHaveLength(MAX_BACKUP_RECORD_COUNT);
+
+    const tooManySnippets = Array.from(
+      { length: MAX_BACKUP_RECORD_COUNT + 1 },
+      (_, i) => ({
+        id: `s-${String(i)}`,
+        value: `定型文${String(i)}`,
+        createdAt: "2026-11-26T09:00:00.000Z",
+      })
+    );
+    const exceededResult = backupManifestSchema.safeParse(
+      createValidManifest({ customSnippets: tooManySnippets })
+    );
+    expect(exceededResult.success).toBeFalsy();
   });
 });

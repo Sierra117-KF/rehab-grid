@@ -896,7 +896,7 @@ export const BACKUP_INCLUDED_IMAGES_NOTE =
 
 /** バックアップ時の個人情報に関する注意書き */
 export const BACKUP_EXPORT_PRIVACY_NOTE =
-  "バックアップファイルには患者様の氏名・顔写真などの個人情報は含めないでください。";
+  "バックアップファイルには登録済みの画像やテキストが含まれます。個人情報が含まれていないか確認のうえ、取り扱いにご注意ください。";
 
 /** バックアップ実行ボタンのラベル */
 export const BACKUP_EXPORT_BUTTON_LABEL = "バックアップを作成";
@@ -953,7 +953,7 @@ export const BACKUP_RESTORE_MODE_MERGE_LABEL = "現在のデータに追加す�
 
 /** 復元方法：追加（マージ）の説明 */
 export const BACKUP_RESTORE_MODE_MERGE_DESCRIPTION =
-  "この端末のデータは残したまま、選択した項目を追加します。同じ文言のマイ定型文は重複登録されません。";
+  "この端末のデータは残したまま、選択した項目を追加します。同じバックアップを複数回復元すると、マイ定型文以外は重複して追加されます（同じ文言のマイ定型文はスキップされます）。";
 
 /** 復元方法：すべて置き換えのラベル */
 export const BACKUP_RESTORE_MODE_REPLACE_LABEL =
@@ -991,6 +991,40 @@ export const BACKUP_ERROR_NO_BACKUP =
 /** サポート対象外のバックアップバージョンエラー */
 export const BACKUP_ERROR_UNSUPPORTED_VERSION =
   "このバージョンでは読み込めないバックアップ形式です";
+
+/** バックアップのファイルサイズまたは展開後サイズが上限を超えたエラー */
+export const BACKUP_EXPORT_ERROR_TOO_LARGE =
+  "バックアップのサイズが上限を超えているため作成できません。対象を絞って書き出してください";
+
+/**
+ * バックアップのカテゴリ件数が上限を超えたエラーメッセージを生成
+ *
+ * @param categoryLabel - カテゴリ名（例: 「マイ指導箋」）
+ * @param count - 現在の件数
+ * @param max - 上限件数
+ * @returns エラーメッセージ
+ */
+export function createBackupRecordLimitExceededMessage(
+  categoryLabel: string,
+  count: number,
+  max: number
+): string {
+  return `${categoryLabel}が上限（${String(max)}件）を超えています（現在${String(count)}件）。不要なデータを整理するか、対象を絞ってください`;
+}
+
+/**
+ * バックアップの取り込み画像枚数が上限を超えたエラーメッセージを生成
+ *
+ * @param count - 対象の画像枚数
+ * @param max - 上限枚数
+ * @returns エラーメッセージ
+ */
+export function createBackupImageLimitExceededMessage(
+  count: number,
+  max: number
+): string {
+  return `対象の取り込み画像が上限（${String(max)}枚）を超えています（現在${String(count)}枚）。対象を絞るか不要な画像を整理してください`;
+}
 
 /**
  * 「すべて置き換える」選択時の警告メッセージを生成

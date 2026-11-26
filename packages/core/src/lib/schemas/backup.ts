@@ -135,30 +135,27 @@ export const backupManifestSchema = z.object({
   /** マイ指導箋一覧 */
   projects: z
     .array(backupProjectEntrySchema)
-    .default([])
-    .transform((arr) => arr.slice(0, MAX_BACKUP_RECORD_COUNT)),
+    .max(MAX_BACKUP_RECORD_COUNT)
+    .default([]),
   /** マイテンプレート一覧 */
   userTemplates: z
     .array(backupUserTemplateEntrySchema)
-    .default([])
-    .transform((arr) => arr.slice(0, MAX_BACKUP_RECORD_COUNT)),
+    .max(MAX_BACKUP_RECORD_COUNT)
+    .default([]),
   /** マイ運動一覧 */
   exerciseCards: z
     .array(backupExerciseCardEntrySchema)
-    .default([])
-    .transform((arr) => arr.slice(0, MAX_BACKUP_RECORD_COUNT)),
-  /** マイ定型文一覧（正規化後に空文字になったエントリは除外） */
+    .max(MAX_BACKUP_RECORD_COUNT)
+    .default([]),
+  /** マイ定型文一覧（上限超過は拒否し、正規化後に空文字になったエントリは除外） */
   customSnippets: z
     .array(backupCustomSnippetEntrySchema)
+    .max(MAX_BACKUP_RECORD_COUNT)
     .default([])
-    .transform((arr) =>
-      arr
-        .filter((entry) => entry.value !== "")
-        .slice(0, MAX_BACKUP_RECORD_COUNT)
-    ),
+    .transform((arr) => arr.filter((entry) => entry.value !== "")),
   /** 取り込み画像のメタ情報一覧 */
   images: z
     .array(backupImageEntrySchema)
-    .default([])
-    .transform((arr) => arr.slice(0, MAX_BACKUP_IMAGE_COUNT)),
+    .max(MAX_BACKUP_IMAGE_COUNT)
+    .default([]),
 });

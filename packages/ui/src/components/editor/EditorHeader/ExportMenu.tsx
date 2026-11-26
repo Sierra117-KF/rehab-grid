@@ -70,7 +70,7 @@ export function ExportMenu({
           <span className="hidden xl:inline">{BUTTON_BACKUP}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
           {BACKUP_MENU_CURRENT_SECTION}
         </DropdownMenuLabel>

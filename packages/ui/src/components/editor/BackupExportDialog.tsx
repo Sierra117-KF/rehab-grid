@@ -15,6 +15,8 @@ import {
   BACKUP_EXPORT_SELECT_REQUIRED,
   BACKUP_INCLUDED_IMAGES_NOTE,
   BUTTON_CANCEL,
+  createBackupRecordLimitExceededMessage,
+  MAX_BACKUP_RECORD_COUNT,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import {
@@ -35,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@rehab-grid/ui/components/wrapped/Dialog";
-import { Info, Loader2, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Info, Loader2, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
 /**
@@ -58,6 +60,8 @@ type CategoryRowItem = {
   label: string;
   count: number;
   unit: "件" | "枚";
+  /** レコード件数上限チェックの対象か */
+  hasRecordLimit: boolean;
 };
 
 /**
@@ -65,17 +69,18 @@ type CategoryRowItem = {
  */
 function BackupExportDialogBody({
   counts,
+  isExporting,
   onCancel,
   onExport,
 }: {
   counts: BackupSummaryCounts;
+  isExporting: boolean;
   onCancel: () => void;
   onExport: (selection: BackupCategorySelection) => Promise<void>;
 }) {
   const [selection, setSelection] = useState<BackupCategorySelection>(() =>
     createInitialBackupSelection(counts)
   );
-  const [isExporting, setIsExporting] = useState(false);
 
   const rows: CategoryRowItem[] = [
     {
@@ -83,35 +88,48 @@ function BackupExportDialogBody({
       label: BACKUP_CATEGORY_PROJECTS_LABEL,
       count: counts.projects,
       unit: "件",
+      hasRecordLimit: true,
     },
     {
       key: "userTemplates",
       label: BACKUP_CATEGORY_TEMPLATES_LABEL,
       count: counts.userTemplates,
       unit: "件",
+      hasRecordLimit: true,
     },
     {
       key: "exerciseCards",
       label: BACKUP_CATEGORY_EXERCISE_CARDS_LABEL,
       count: counts.exerciseCards,
       unit: "件",
+      hasRecordLimit: true,
     },
     {
       key: "customSnippets",
       label: BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
       count: counts.customSnippets,
       unit: "件",
+      hasRecordLimit: true,
     },
     {
       key: "unusedImages",
       label: BACKUP_CATEGORY_UNUSED_IMAGES_LABEL,
       count: counts.unusedImages,
       unit: "枚",
+      hasRecordLimit: false,
     },
   ];
 
   const hasAnyData = rows.some((row) => row.count > 0);
   const hasSelection = hasAnySelectedBackupCategory(selection);
+
+  // 選択中のカテゴリで上限件数を超えているものを検出
+  const exceededRow = rows.find(
+    (row) =>
+      row.hasRecordLimit &&
+      selection[row.key] &&
+      row.count > MAX_BACKUP_RECORD_COUNT
+  );
 
   const toggleCategory = (
     key: keyof BackupCategorySelection,
@@ -121,13 +139,8 @@ function BackupExportDialogBody({
   };
 
   const handleSubmit = async () => {
-    if (!hasSelection || isExporting) return;
-    setIsExporting(true);
-    try {
-      await onExport(selection);
-    } finally {
-      setIsExporting(false);
-    }
+    if (!hasSelection || exceededRow !== undefined || isExporting) return;
+    await onExport(selection);
   };
 
   return (
@@ -179,6 +192,22 @@ function BackupExportDialogBody({
             <span>{BACKUP_EXPORT_PRIVACY_NOTE}</span>
           </p>
 
+          {exceededRow !== undefined ? (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              <span>
+                {createBackupRecordLimitExceededMessage(
+                  exceededRow.label,
+                  exceededRow.count,
+                  MAX_BACKUP_RECORD_COUNT
+                )}
+              </span>
+            </div>
+          ) : null}
+
           {!hasSelection ? (
             <p className="text-xs text-destructive">
               {BACKUP_EXPORT_SELECT_REQUIRED}
@@ -203,7 +232,12 @@ function BackupExportDialogBody({
         <Button
           type="button"
           onClick={() => void handleSubmit()}
-          disabled={!hasAnyData || !hasSelection || isExporting}
+          disabled={
+            !hasAnyData ||
+            !hasSelection ||
+            exceededRow !== undefined ||
+            isExporting
+          }
           className="gap-2"
         >
           {isExporting ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -221,6 +255,7 @@ function BackupExportDialogBody({
  *
  * マイ指導箋・マイテンプレート・マイ運動・マイ定型文・未使用の取り込み画像から
  * バックアップ対象を選択して ZIP ファイルをダウンロードする。
+ * 作成中は ESC・外側クリック・閉じるボタンで閉じられないように制御する。
  */
 export function BackupExportDialog({
   open,
@@ -228,9 +263,28 @@ export function BackupExportDialog({
   counts,
   onExport,
 }: BackupExportDialogProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (isExporting) return;
+    handleOpenChange(nextOpen);
+  };
+
+  const handleExport = async (selection: BackupCategorySelection) => {
+    setIsExporting(true);
+    try {
+      await onExport(selection);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent
+        preventDismiss={isExporting}
+        showCloseButton={!isExporting}
+      >
         <DialogHeader>
           <DialogTitle>{BACKUP_EXPORT_DIALOG_TITLE}</DialogTitle>
           <DialogDescription>
@@ -241,8 +295,9 @@ export function BackupExportDialog({
         {open && counts !== null ? (
           <BackupExportDialogBody
             counts={counts}
-            onCancel={() => handleOpenChange(false)}
-            onExport={onExport}
+            isExporting={isExporting}
+            onCancel={() => handleDialogOpenChange(false)}
+            onExport={handleExport}
           />
         ) : null}
       </DialogContent>

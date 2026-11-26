@@ -761,9 +761,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       restoreBackup: async (backup, selection, mode) =>
         runProjectTransition(async () => {
+          // 置換でも追加でも、先に未保存の編集を確定しておく
+          // （置換が失敗しても直前の編集や failedSave を失わない。成功すれば全消去される）
+          await flushPendingAutosave();
+
           if (mode === "replace") {
-            // 保留中の保存が置換後に発火して旧プロジェクトを復活させないよう破棄する
-            cancelPendingAutosave();
             const { summary, latestProjectId } = await applyBackupToDB(
               backup,
               selection,
@@ -782,7 +784,6 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             return summary;
           }
 
-          await flushPendingAutosave();
           const { summary } = await applyBackupToDB(backup, selection, "merge");
           void requestPersistentStorage();
           return summary;
@@ -1020,10 +1021,10 @@ useEditorStore.subscribe(
     meta: state.meta,
   }),
   () => {
-    // 初期読み込み完了後のみオートセーブを実行
-    if (useEditorStore.getState().isLoaded) {
+    // 初期読み込み完了後かつプロジェクト切り替え・復元処理中でないときのみオートセーブを予約する
+    const state = useEditorStore.getState();
+    if (state.isLoaded && !state.isSwitchingProject) {
       // 保存先はこの時点のプロジェクトID（実行時に読むと切り替え先へ書き込む恐れがある）
-      const state = useEditorStore.getState();
       failedSave = null;
       debouncedSave(state.projectId, state);
     }

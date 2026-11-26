@@ -5,15 +5,24 @@
  * 1つの ZIP ファイル（backup.json + images/）にまとめて書き出し・復元する。
  *
  * @remarks
- * - サンプル画像（sample_*）はアプリ同梱アセットのため ZIP に実体を含めず ID のまま保持する
+ * - サンプル画像（実在する sample_* ID）はアプリ同梱アセットのため ZIP に実体を含めず ID のまま保持する
  * - 複数箇所から参照されている取り込み画像は ZIP 内に 1 回だけ格納して重複排除する
+ * - 書き出し側と復元側で同じ上限（件数・画像枚数・展開サイズ・ZIPサイズ）を検証し、復元できないZIPを作らない
  * - 復元時は Zod + DOMPurify・マジックバイト検証・ZIP 爆弾対策（extractWithLimit）をすべて通す
  */
 
 import {
   APP_VERSION,
+  BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
+  BACKUP_CATEGORY_EXERCISE_CARDS_LABEL,
+  BACKUP_CATEGORY_PROJECTS_LABEL,
+  BACKUP_CATEGORY_TEMPLATES_LABEL,
   BACKUP_ERROR_NO_BACKUP,
   BACKUP_ERROR_UNSUPPORTED_VERSION,
+  BACKUP_EXPORT_ERROR_TOO_LARGE,
+  createBackupImageLimitExceededMessage,
+  createBackupRecordLimitExceededMessage,
+  getSampleImagePath,
   IMPORT_ERROR_CORRUPTED_ZIP,
   IMPORT_ERROR_EXTRACTED_TOO_LARGE,
   IMPORT_ERROR_FILE_TOO_LARGE,
@@ -21,10 +30,10 @@ import {
   IMPORT_ERROR_NO_PROJECT,
   IMPORT_ERROR_TOO_MANY_IMAGES,
   IMPORT_ERROR_VALIDATION,
-  isSampleImage,
   MAX_BACKUP_EXTRACTED_SIZE,
   MAX_BACKUP_IMAGE_COUNT,
   MAX_BACKUP_JSON_SIZE,
+  MAX_BACKUP_RECORD_COUNT,
   MAX_BACKUP_ZIP_SIZE,
   MAX_IMPORT_ZIP_SIZE,
 } from "@rehab-grid/core/lib/constants";
@@ -54,9 +63,9 @@ import {
 } from "@rehab-grid/core/types";
 import type JSZip from "jszip";
 
-import { getDateString } from "./date";
+import { getDateString, parseIsoDateOrFallback } from "./date";
 import { downloadBlob } from "./download";
-import { importProject } from "./export";
+import { importFromLoadedZIP, importProject } from "./export";
 import { detectImageMimeType } from "./image";
 import {
   detectImportFileType,
@@ -69,15 +78,6 @@ export const BACKUP_MANIFEST_FILENAME = "backup.json";
 
 /** 単一指導箋 ZIP 内のプロジェクトファイル名 */
 const SINGLE_PROJECT_FILENAME = "project.json";
-
-/** すべてのカテゴリを選択した状態 */
-export const ALL_BACKUP_CATEGORIES_SELECTED: BackupCategorySelection = {
-  projects: true,
-  userTemplates: true,
-  exerciseCards: true,
-  customSnippets: true,
-  unusedImages: true,
-};
 
 /**
  * 一括バックアップ対象の DB スナップショット
@@ -96,12 +96,48 @@ export type BackupSourceData = {
 };
 
 /**
- * アイテム一覧からサンプル以外の参照画像ID／パスを集める
+ * 各カテゴリの件数が上限（MAX_BACKUP_RECORD_COUNT）以内かを検証する
+ *
+ * @throws いずれかのカテゴリが上限を超えている場合
+ */
+function validateBackupRecordCounts(counts: {
+  projects: number;
+  userTemplates: number;
+  exerciseCards: number;
+  customSnippets: number;
+}): void {
+  const checks: { label: string; count: number }[] = [
+    { label: BACKUP_CATEGORY_PROJECTS_LABEL, count: counts.projects },
+    { label: BACKUP_CATEGORY_TEMPLATES_LABEL, count: counts.userTemplates },
+    { label: BACKUP_CATEGORY_EXERCISE_CARDS_LABEL, count: counts.exerciseCards },
+    {
+      label: BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL,
+      count: counts.customSnippets,
+    },
+  ];
+  for (const check of checks) {
+    if (check.count > MAX_BACKUP_RECORD_COUNT) {
+      throw new Error(
+        createBackupRecordLimitExceededMessage(
+          check.label,
+          check.count,
+          MAX_BACKUP_RECORD_COUNT
+        )
+      );
+    }
+  }
+}
+
+/**
+ * アイテム一覧から実在サンプル以外の参照画像ID／パスを集める
  */
 function collectNonSampleImageSources(items: readonly EditorItem[]): Set<string> {
   const ids = new Set<string>();
   for (const item of items) {
-    if (item.imageSource !== "" && !isSampleImage(item.imageSource)) {
+    if (
+      item.imageSource !== "" &&
+      getSampleImagePath(item.imageSource) === undefined
+    ) {
       ids.add(item.imageSource);
     }
   }
@@ -133,14 +169,6 @@ async function readAllBackupSourceData(): Promise<BackupSourceData> {
       db.images.toArray(),
     ]);
   return { projects, userTemplates, exerciseCards, customSnippets, images };
-}
-
-/**
- * ISO 文字列から有効な Date を作る（不正なら fallback を返す）
- */
-function toValidDate(isoString: string, fallback: Date): Date {
-  const date = new Date(isoString);
-  return Number.isNaN(date.getTime()) ? fallback : date;
 }
 
 /**
@@ -209,13 +237,13 @@ export function hasAnySelectedBackupCategory(
  * 画像ソースをバックアップ用の相対パスへ変換する
  *
  * @remarks
- * サンプル画像はアプリ同梱アセットのため ID をそのまま保持する
+ * 実在するサンプル画像 ID（`getSampleImagePath` に存在する ID）のみそのまま保持する
  */
 function convertImageSourceForExport(
   imageSource: string,
   imageIdToPath: ReadonlyMap<string, string>
 ): string {
-  if (imageSource === "" || isSampleImage(imageSource)) {
+  if (imageSource === "" || getSampleImagePath(imageSource) !== undefined) {
     return imageSource;
   }
   return imageIdToPath.get(imageSource) ?? "";
@@ -240,21 +268,31 @@ function convertProjectForExport(
 /**
  * 全データまたは選択カテゴリのデータから一括バックアップ ZIP を生成する
  *
+ * @remarks
+ * 復元側と同じ上限（レコード件数・画像枚数・JSONサイズ・展開合計サイズ・ZIP本体サイズ）を
+ * 事前に検証し、復元できないバックアップ ZIP が作られないようにする。
+ *
  * @param data - バックアップ元の全テーブルデータ
  * @param selection - バックアップ対象とするカテゴリの選択状態
  * @returns 生成された ZIP ファイルの Blob
+ * @throws 件数・画像枚数・サイズが上限を超えている場合
  */
 export async function createBackupZIP(
   data: BackupSourceData,
   selection: BackupCategorySelection
 ): Promise<Blob> {
-  const JSZipModule = (await import("jszip")).default;
-  const zip = new JSZipModule();
-
   const selectedProjects = selection.projects ? data.projects : [];
   const selectedTemplates = selection.userTemplates ? data.userTemplates : [];
   const selectedCards = selection.exerciseCards ? data.exerciseCards : [];
   const selectedSnippets = selection.customSnippets ? data.customSnippets : [];
+
+  // 復元側と揃えた件数上限チェック
+  validateBackupRecordCounts({
+    projects: selectedProjects.length,
+    userTemplates: selectedTemplates.length,
+    exerciseCards: selectedCards.length,
+    customSnippets: selectedSnippets.length,
+  });
 
   // 選択されたデータから参照されている取り込み画像ID（重複排除済み）
   const selectedReferencedIds = collectNonSampleImageSources([
@@ -266,18 +304,33 @@ export async function createBackupZIP(
   // 全データから参照されている画像ID（「未使用の取り込み画像」の判定に使用）
   const allReferencedIds = collectAllReferencedImageIds(data);
 
+  const targetImages = data.images.filter((image) => {
+    const isReferencedBySelected = selectedReferencedIds.has(image.id);
+    const isUnused = !allReferencedIds.has(image.id);
+    return isReferencedBySelected || (selection.unusedImages && isUnused);
+  });
+
+  // 復元側と揃えた画像枚数上限チェック
+  if (targetImages.length > MAX_BACKUP_IMAGE_COUNT) {
+    throw new Error(
+      createBackupImageLimitExceededMessage(
+        targetImages.length,
+        MAX_BACKUP_IMAGE_COUNT
+      )
+    );
+  }
+
+  const JSZipModule = (await import("jszip")).default;
+  const zip = new JSZipModule();
+
   const imageIdToPath = new Map<string, string>();
   const imageEntries: BackupImageEntry[] = [];
   const imagesFolder = zip.folder("images");
 
+  let totalImageBytes = 0;
   let imageIndex = 1;
-  for (const image of data.images) {
-    const isReferencedBySelected = selectedReferencedIds.has(image.id);
-    const isUnused = !allReferencedIds.has(image.id);
-    if (!isReferencedBySelected && !(selection.unusedImages && isUnused)) {
-      continue;
-    }
-
+  for (const image of targetImages) {
+    totalImageBytes += image.blob.size;
     const mimeType =
       image.blob.type || (await detectImageMimeType(image.blob)) || "";
     const ext = getExtensionFromMimeType(mimeType);
@@ -331,9 +384,27 @@ export async function createBackupZIP(
     images: imageEntries,
   };
 
-  zip.file(BACKUP_MANIFEST_FILENAME, JSON.stringify(manifest, null, 2));
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  const manifestByteLength = new TextEncoder().encode(manifestJson).byteLength;
 
-  return zip.generateAsync({ type: "blob" });
+  // 復元側と揃えた JSON 単体サイズ・展開後合計サイズ上限チェック
+  if (
+    manifestByteLength > MAX_BACKUP_JSON_SIZE ||
+    manifestByteLength + totalImageBytes > MAX_BACKUP_EXTRACTED_SIZE
+  ) {
+    throw new Error(BACKUP_EXPORT_ERROR_TOO_LARGE);
+  }
+
+  zip.file(BACKUP_MANIFEST_FILENAME, manifestJson);
+
+  const zipBlob = await zip.generateAsync({ type: "blob" });
+
+  // 復元側と揃えた ZIP 本体サイズ上限チェック
+  if (zipBlob.size > MAX_BACKUP_ZIP_SIZE) {
+    throw new Error(BACKUP_EXPORT_ERROR_TOO_LARGE);
+  }
+
+  return zipBlob;
 }
 
 /**
@@ -353,6 +424,31 @@ export async function exportBackupAsZIP(
   const zipBlob = await createBackupZIP(data, selection);
   const filename = `rehab-grid-backup-${getDateString()}.zip`;
   downloadBlob(zipBlob, filename);
+}
+
+/**
+ * パース済み JSON の配列長を事前検証し、上限超過時に分かりやすいエラーを返す
+ */
+function checkRawManifestLimits(parsed: Record<string, unknown>): void {
+  validateBackupRecordCounts({
+    projects: Array.isArray(parsed.projects) ? parsed.projects.length : 0,
+    userTemplates: Array.isArray(parsed.userTemplates)
+      ? parsed.userTemplates.length
+      : 0,
+    exerciseCards: Array.isArray(parsed.exerciseCards)
+      ? parsed.exerciseCards.length
+      : 0,
+    customSnippets: Array.isArray(parsed.customSnippets)
+      ? parsed.customSnippets.length
+      : 0,
+  });
+
+  if (
+    Array.isArray(parsed.images) &&
+    parsed.images.length > MAX_BACKUP_IMAGE_COUNT
+  ) {
+    throw new Error(IMPORT_ERROR_TOO_MANY_IMAGES);
+  }
 }
 
 /**
@@ -378,16 +474,15 @@ async function parseBackupFromLoadedZip(zip: JSZip): Promise<ParsedBackup> {
     throw new Error(IMPORT_ERROR_VALIDATION);
   }
 
-  // 既知フォーマットだが未対応のスキーマバージョンの場合は専用エラーを返す
-  if (
-    typeof parsed === "object" &&
-    parsed !== null &&
-    "format" in parsed &&
-    parsed.format === BACKUP_FORMAT &&
-    "schemaVersion" in parsed &&
-    parsed.schemaVersion !== BACKUP_SCHEMA_VERSION
-  ) {
-    throw new Error(BACKUP_ERROR_UNSUPPORTED_VERSION);
+  // 既知フォーマットの場合はバージョンと件数上限を先に検証して明確なエラーを返す
+  if (typeof parsed === "object" && parsed !== null) {
+    const raw = parsed as Record<string, unknown>;
+    if (raw.format === BACKUP_FORMAT) {
+      if (raw.schemaVersion !== BACKUP_SCHEMA_VERSION) {
+        throw new Error(BACKUP_ERROR_UNSUPPORTED_VERSION);
+      }
+      checkRawManifestLimits(raw);
+    }
   }
 
   const result = backupManifestSchema.safeParse(parsed);
@@ -458,7 +553,7 @@ async function parseBackupFromLoadedZip(zip: JSZip): Promise<ParsedBackup> {
         ...(meta?.fileName !== undefined && meta.fileName !== ""
           ? { fileName: meta.fileName }
           : {}),
-        createdAt: meta ? toValidDate(meta.createdAt, now) : now,
+        createdAt: meta ? parseIsoDateOrFallback(meta.createdAt, now) : now,
       });
     } catch (error: unknown) {
       if (
@@ -531,6 +626,7 @@ export async function parseBackupZIP(file: File): Promise<ParsedBackup> {
  * @remarks
  * 「指導箋を開く」と「バックアップから復元」のどちらからファイルを選んでも
  * 正しいフローへ案内できるようにするための共通入口。
+ * 読み込み済みの JSZip インスタンスをそのまま引き渡し、二重展開を防ぐ。
  *
  * @param file - ユーザーが選択した JSON または ZIP ファイル
  * @returns 自動判別されたインポート解析結果
@@ -570,7 +666,7 @@ export async function inspectImportFile(
     if (file.size > MAX_IMPORT_ZIP_SIZE) {
       throw new Error(IMPORT_ERROR_FILE_TOO_LARGE);
     }
-    const result = await importProject(file);
+    const result = await importFromLoadedZIP(zip);
     return { kind: "project", result };
   }
 

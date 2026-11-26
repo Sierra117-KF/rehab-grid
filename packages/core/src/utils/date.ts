@@ -49,3 +49,15 @@ export function formatJapaneseDate(date: Date): string {
   const { year, month, day } = getLocalDateParts(date);
   return `${String(year)}年${String(month)}月${String(day)}日`;
 }
+
+/**
+ * ISO 8601 日時文字列を Date へ変換する（不正な日時は fallback を返す）
+ *
+ * @param isoString - 変換対象の ISO 8601 文字列
+ * @param fallback - パースできない場合に返す日時
+ * @returns 有効な Date インスタンス
+ */
+export function parseIsoDateOrFallback(isoString: string, fallback: Date): Date {
+  const date = new Date(isoString);
+  return Number.isNaN(date.getTime()) ? fallback : date;
+}
