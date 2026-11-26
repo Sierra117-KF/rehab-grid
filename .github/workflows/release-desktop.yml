@@ -59,12 +59,31 @@ jobs:
           tagName: v__VERSION__
           releaseName: "リハぐり v__VERSION__"
           releaseBody: |
-            ## ダウンロード
+            <!-- このバージョンの概要を1〜2文で記載 -->
 
-            Windows版をダウンロードするには、下記の「Assets」セクションから `.exe` ファイルをダウンロードしてください。
+            ### ✨ 新機能
 
-            ## 変更内容
+            - **機能名**：説明
 
-            [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) を参照してください。
+            ### 🔧 改善
+
+            - 改善内容
+
+            ### 🐛 バグ修正
+
+            - 修正内容
+
+            ---
+
+            ### 📥 Windows版のダウンロード・インストール
+
+            1. 下部の **「Assets」** から `rehab-grid___VERSION___x64-setup.exe` をダウンロードして実行してください。
+            2. 対応環境：Windows 10 / 11（64bit）・オフライン動作対応（外部サーバーへのデータ送信はありません）。
+            3. **アップデートの方へ**：旧バージョンが入っている場合も、そのまま上書きインストールで更新できます（保存データは引き継がれます）。
+            4. 実行時に「Windows によって PC が保護されました」と表示された場合は、**「詳細情報」→「実行」** を選択してください。
+
+            ### 🔗 詳細な変更履歴
+
+            技術的な詳細や過去の変更点は [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) をご覧ください。
           releaseDraft: true
           prerelease: false

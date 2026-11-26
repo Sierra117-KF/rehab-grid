@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-26
+
 ### Added
 
 - 複数の指導箋の保存（マイ指導箋ライブラリ）。ヘッダーの「マイ指導箋」（モバイルはメニュー）から一覧（タイトル・更新日時・カード枚数・列数）を開き、タイトル検索・切り替え・新規作成・複製・削除ができる。旧バージョンで保存していた指導箋は 1 件目としてそのまま開ける。前回開いていた指導箋を次回起動時に開く
@@ -110,7 +112,8 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Sierra117-KF/rehab-grid/releases/tag/v1.0.0
