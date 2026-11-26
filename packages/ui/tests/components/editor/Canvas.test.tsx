@@ -180,6 +180,79 @@ describe("Canvas", () => {
       expect(screen.getByText("10回")).toBeInTheDocument();
     });
 
+    it("用量の文字列が親幅を超える場合、1行に収まるフォントサイズへ自動縮小される", () => {
+      const clientWidthSpy = vi
+        .spyOn(HTMLElement.prototype, "clientWidth", "get")
+        .mockReturnValue(80);
+      const scrollWidthSpy = vi
+        .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+        .mockImplementation(function (this: HTMLElement) {
+          // 基準サイズでは 160px（幅の 2 倍）、縮小後は 80px に収まる想定
+          return this.style.fontSize === "" ? 160 : 80;
+        });
+      const originalGetComputedStyle = window.getComputedStyle.bind(window);
+      const getComputedStyleSpy = vi
+        .spyOn(window, "getComputedStyle")
+        .mockImplementation((el, pseudo) =>
+          Object.assign(originalGetComputedStyle(el, pseudo), {
+            fontSize: "24px",
+          })
+        );
+
+      try {
+        setupCanvas({
+          items: [
+            createTestItem({
+              dosages: {
+                reps: "左右各１０回ずつ",
+                sets: "",
+                frequency: "",
+              },
+            }),
+          ],
+          layoutType: "grid3",
+        });
+
+        const valueEl = screen.getByText("左右各１０回ずつ");
+        expect(valueEl).toHaveClass("whitespace-nowrap");
+        expect(valueEl.style.fontSize).toBe("12px");
+      } finally {
+        clientWidthSpy.mockRestore();
+        scrollWidthSpy.mockRestore();
+        getComputedStyleSpy.mockRestore();
+      }
+    });
+
+    it("用量の文字列が親幅に収まる場合は縮小しない", () => {
+      const clientWidthSpy = vi
+        .spyOn(HTMLElement.prototype, "clientWidth", "get")
+        .mockReturnValue(120);
+      const scrollWidthSpy = vi
+        .spyOn(HTMLElement.prototype, "scrollWidth", "get")
+        .mockReturnValue(60);
+
+      try {
+        setupCanvas({
+          items: [
+            createTestItem({
+              dosages: {
+                reps: "10回",
+                sets: "",
+                frequency: "",
+              },
+            }),
+          ],
+          layoutType: "grid3",
+        });
+
+        const valueEl = screen.getByText("10回");
+        expect(valueEl.style.fontSize).toBe("");
+      } finally {
+        clientWidthSpy.mockRestore();
+        scrollWidthSpy.mockRestore();
+      }
+    });
+
     it("precautions（注意点）が正しく表示される", () => {
       setupCanvas({
         items: [

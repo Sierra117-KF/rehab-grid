@@ -215,6 +215,7 @@ export const pdfStyles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     alignItems: "center",
+    justifyContent: "flex-end",
     paddingVertical: PDF_SPACING.dosagePaddingVertical,
   },
   dosageValue: {

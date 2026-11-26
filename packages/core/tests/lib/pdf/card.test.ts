@@ -255,6 +255,94 @@ describe("createCard", () => {
       expect(texts).not.toContain(LABELS.sets);
       expect(texts).not.toContain(LABELS.frequency);
     });
+
+    it("長い全角の用量値は 1 行に収まるよう自動でフォントサイズを縮小する", () => {
+      // 3列レイアウト（横）相当のカード幅 246pt
+      const card = createCard(
+        createTestItem({
+          dosages: {
+            reps: "10回",
+            sets: "３〜５セット",
+            frequency: "左右各１０回ずつ",
+          },
+        }),
+        246,
+        undefined,
+        createSettings({ layoutType: "grid3" })
+      );
+
+      const textElements = findElementsByType(card, "Text");
+      const shortSize = getStyle(
+        textElements.find((el) => el.props?.children === "10回")
+      )?.fontSize as number;
+      const mediumSize = getStyle(
+        textElements.find((el) => el.props?.children === "３〜５セット")
+      )?.fontSize as number;
+      const longSize = getStyle(
+        textElements.find((el) => el.props?.children === "左右各１０回ずつ")
+      )?.fontSize as number;
+
+      expect(shortSize).toBe(14);
+      expect(mediumSize).toBeLessThan(14);
+      expect(longSize).toBeLessThan(mediumSize);
+    });
+
+    it("4列の全幅の頻度行では幅が広いため、2列行より大きいサイズで描画できる", () => {
+      const card = createCard(
+        createTestItem({
+          dosages: {
+            reps: "左右各１０回ずつ",
+            sets: "３セット",
+            frequency: "左右各１０回ずつ",
+          },
+        }),
+        181,
+        undefined,
+        createSettings({ layoutType: "grid4" })
+      );
+
+      const matching = findElementsByType(card, "Text").filter(
+        (el) => el.props?.children === "左右各１０回ずつ"
+      );
+      expect(matching).toHaveLength(2);
+      const repsFontSize = getStyle(matching[0])?.fontSize as number;
+      const frequencyFontSize = getStyle(matching[1])?.fontSize as number;
+
+      expect(repsFontSize).toBeLessThan(14);
+      expect(frequencyFontSize).toBeGreaterThan(repsFontSize);
+    });
+
+    it("長いカスタム用量ラベルも狭い幅では自動で縮小される", () => {
+      // 3列縦向き相当の狭いカード幅 163pt × 文字サイズ「大きめ」（基準ラベル 9pt）
+      const card = createCard(
+        createTestItem({
+          dosages: { reps: "10回", sets: "3", frequency: "毎日" },
+        }),
+        163,
+        undefined,
+        createSettings({
+          layoutType: "grid3",
+          pageOrientation: "portrait",
+          textScale: "large",
+          dosageLabels: {
+            reps: "左右それぞれ",
+            sets: "セット",
+            frequency: "頻度",
+          },
+        })
+      );
+
+      const textElements = findElementsByType(card, "Text");
+      const longLabelSize = getStyle(
+        textElements.find((el) => el.props?.children === "左右それぞれ")
+      )?.fontSize as number;
+      const shortLabelSize = getStyle(
+        textElements.find((el) => el.props?.children === "頻度")
+      )?.fontSize as number;
+
+      expect(shortLabelSize).toBe(9);
+      expect(longLabelSize).toBeLessThan(9);
+    });
   });
 
   describe("注意点（precautions）", () => {

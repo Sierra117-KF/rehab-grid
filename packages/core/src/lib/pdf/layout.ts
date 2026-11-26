@@ -34,11 +34,13 @@ import { calculatePdfCardWidth } from "@rehab-grid/core/utils/pdf";
 import {
   calculatePdfHeaderHeight,
   countPdfTextLines,
+  fitPdfFontSizeToSingleLine,
   getPdfCardDescriptionText,
   getPdfCardFontSizes,
   getPdfCardImageSize,
   getPdfCardNumberBadgeSize,
   getPdfCardPrecautionText,
+  getPdfDosageItemWidth,
   type PdfCardFontSizes,
 } from "./metrics";
 
@@ -69,25 +71,37 @@ function estimateDosageItemHeight(
   itemWidth: number,
   fontSizes: PdfCardFontSizes
 ): number {
-  const valueLines = countPdfTextLines(
+  const valueFontSize = fitPdfFontSizeToSingleLine(
     value,
     itemWidth,
     fontSizes.dosageValue,
     PDF_HALF_WIDTH_CHAR_RATIO.bold
   );
-  const labelLines = countPdfTextLines(
+  const labelFontSize = fitPdfFontSizeToSingleLine(
     label,
     itemWidth,
     fontSizes.dosageLabel,
     PDF_HALF_WIDTH_CHAR_RATIO.regular
   );
+  const valueLines = countPdfTextLines(
+    value,
+    itemWidth,
+    valueFontSize,
+    PDF_HALF_WIDTH_CHAR_RATIO.bold
+  );
+  const labelLines = countPdfTextLines(
+    label,
+    itemWidth,
+    labelFontSize,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
+  );
   return (
     PDF_SPACING.dosagePaddingVertical * 2 +
-    valueLines * fontSizes.dosageValue * PDF_DEFAULT_LINE_HEIGHT +
+    valueLines * valueFontSize * PDF_DEFAULT_LINE_HEIGHT +
     PDF_SPACING.dosageLabelMarginTop +
     PDF_SPACING.dosageLabelPaddingTop +
     PDF_SPACING.dosageBorderWidth +
-    labelLines * fontSizes.dosageLabel * PDF_DEFAULT_LINE_HEIGHT
+    labelLines * labelFontSize * PDF_DEFAULT_LINE_HEIGHT
   );
 }
 
@@ -108,9 +122,7 @@ function estimateDosageRowHeight(
 ): number {
   // 4 列の頻度（横幅いっぱいの行）には行の上の余白がない（card.ts の createDosageSection）
   const marginTop = row.isFullWidth ? 0 : PDF_SPACING.dosageContainerMarginTop;
-  const itemWidth =
-    (contentWidth - PDF_SPACING.dosageGap * (row.badges.length - 1)) /
-    row.badges.length;
+  const itemWidth = getPdfDosageItemWidth(contentWidth, row.badges.length);
   const itemHeights = row.badges
     .filter((badge) => badge.hasValue)
     .map((badge) =>

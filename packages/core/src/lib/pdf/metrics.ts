@@ -160,6 +160,100 @@ const PDF_SPACE_WIDTH_RATIO = 0.23;
 /** 半角として幅を見積もる文字（ASCII の印字可能文字）。それ以外は全角（1em）とみなす */
 const HALF_WIDTH_CHAR_PATTERN = /^[ -~]$/;
 
+/** 用量テキストを 1 行に収めるために縮小するときの最小フォントサイズ（ポイント単位） */
+const PDF_DOSAGE_MIN_FONT_SIZE = 4;
+
+/**
+ * 1 行フィット計算の安全係数
+ *
+ * @remarks
+ * NotoSansJP のグリフ幅と近似値の微差やサブピクセル丸めで、
+ * 境界ギリギリで 2 行に折り返すのを防ぐための余裕
+ */
+const PDF_SINGLE_LINE_FIT_SAFETY_RATIO = 0.96;
+
+/** 近似値より幅が広い半角文字（1em 相当として見積もる） */
+const VERY_WIDE_HALF_WIDTH_CHAR_PATTERN = /^[MWmw@%&]$/;
+
+/** 近似値よりやや幅が広い半角英大文字（0.78em 相当として見積もる） */
+const UPPERCASE_HALF_WIDTH_CHAR_PATTERN = /^[A-Z]$/;
+
+/** 半角英大文字の 1 行フィット用幅比率 */
+const PDF_UPPERCASE_CHAR_RATIO = 0.78;
+
+/**
+ * 1 行フィット用にテキストの描画幅を安全側に見積もる
+ *
+ * @param text - テキスト
+ * @param fontSize - フォントサイズ（ポイント単位）
+ * @param halfWidthRatio - 半角 1 文字の基本幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @returns 安全側に見積もった幅（ポイント単位）
+ */
+function measureSingleLineTextWidth(
+  text: string,
+  fontSize: number,
+  halfWidthRatio: number
+): number {
+  return Array.from(text).reduce((sum, char) => {
+    if (char === " ") return sum + fontSize * PDF_SPACE_WIDTH_RATIO;
+    if (VERY_WIDE_HALF_WIDTH_CHAR_PATTERN.test(char)) return sum + fontSize;
+    if (UPPERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
+      return sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO);
+    }
+    return (
+      sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
+    );
+  }, 0);
+}
+
+/**
+ * 用量の 1 項目分の幅を求める
+ *
+ * @param contentWidth - カード内コンテンツの幅（ポイント単位）
+ * @param columnCount - その行に並べる用量項目の数（1〜3）
+ * @returns 1 項目分の幅（ポイント単位）
+ */
+export function getPdfDosageItemWidth(
+  contentWidth: number,
+  columnCount: number
+): number {
+  const count = Math.max(1, columnCount);
+  return (contentWidth - PDF_SPACING.dosageGap * (count - 1)) / count;
+}
+
+/**
+ * テキストが指定幅の 1 行に収まるフォントサイズを求める
+ *
+ * @remarks
+ * 基準サイズで収まる場合はそのまま返す。収まらない場合は 1 行に収まるサイズまで縮小する。
+ * 描画（card.ts）と A4 収容見積もり（layout.ts）の両方で同じ計算を使う。
+ *
+ * @param text - テキスト
+ * @param maxWidth - 1 行の最大幅（ポイント単位）
+ * @param baseFontSize - 基準のフォントサイズ（ポイント単位）
+ * @param halfWidthRatio - 半角 1 文字の幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @param minFontSize - 縮小時の下限フォントサイズ（省略時は 4pt）
+ * @returns 1 行に収まるフォントサイズ（ポイント単位）
+ */
+export function fitPdfFontSizeToSingleLine(
+  text: string,
+  maxWidth: number,
+  baseFontSize: number,
+  halfWidthRatio: number,
+  minFontSize: number = PDF_DOSAGE_MIN_FONT_SIZE
+): number {
+  if (text === "" || maxWidth <= 0) return baseFontSize;
+
+  const unitWidth = measureSingleLineTextWidth(text, 1, halfWidthRatio);
+  if (unitWidth <= 0) return baseFontSize;
+
+  const safeWidth = maxWidth * PDF_SINGLE_LINE_FIT_SAFETY_RATIO;
+  if (unitWidth * baseFontSize <= safeWidth) return baseFontSize;
+
+  const fitted = Math.floor((safeWidth / unitWidth) * 10) / 10;
+  return Math.min(baseFontSize, Math.max(minFontSize, fitted));
+}
+
 /**
  * テキストの描画幅を見積もる
  *
