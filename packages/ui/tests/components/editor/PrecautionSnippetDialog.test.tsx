@@ -4,6 +4,7 @@ import {
   CUSTOM_SNIPPET_DUPLICATE_MESSAGE,
   CUSTOM_SNIPPET_EMPTY_MESSAGE,
   CUSTOM_SNIPPET_INPUT_LABEL,
+  CUSTOM_SNIPPET_INVALID_MESSAGE,
   MAX_PRECAUTIONS_COUNT,
   PRECAUTION_SNIPPET_CATEGORIES,
   PRECAUTION_SNIPPETS,
@@ -25,12 +26,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockUseLiveQuery, mockAddCustomSnippet, mockDeleteCustomSnippet } =
-  vi.hoisted(() => ({
-    mockUseLiveQuery: vi.fn(),
-    mockAddCustomSnippet: vi.fn(),
-    mockDeleteCustomSnippet: vi.fn(),
-  }));
+const {
+  mockUseLiveQuery,
+  mockAddCustomSnippet,
+  mockDeleteCustomSnippet,
+  mockToastError,
+} = vi.hoisted(() => ({
+  mockUseLiveQuery: vi.fn(),
+  mockAddCustomSnippet: vi.fn(),
+  mockDeleteCustomSnippet: vi.fn(),
+  mockToastError: vi.fn(),
+}));
 
 vi.mock("dexie-react-hooks", () => ({
   useLiveQuery: mockUseLiveQuery,
@@ -40,6 +46,10 @@ vi.mock("@/lib/db", () => ({
   listCustomSnippets: vi.fn(),
   addCustomSnippet: mockAddCustomSnippet,
   deleteCustomSnippet: mockDeleteCustomSnippet,
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: mockToastError },
 }));
 
 /** 登録済みのマイ定型文 */
@@ -464,6 +474,109 @@ describe("PrecautionSnippetDialog", () => {
       );
 
       expect(mockDeleteCustomSnippet).toHaveBeenCalledWith(CUSTOM_SNIPPET.id);
+    });
+
+    it("HTML タグのみの入力は登録せずエラーを表示し、タグ付き重複も登録しない", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([CUSTOM_SNIPPET]);
+      setupDialog();
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+      const builtIn = getFirstSnippetByCategory("safety").value;
+
+      await user.type(input, "<b></b>{Enter}");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        CUSTOM_SNIPPET_INVALID_MESSAGE
+      );
+
+      await user.clear(input);
+      await user.type(input, `<b> ${builtIn} </b>{Enter}`);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        CUSTOM_SNIPPET_DUPLICATE_MESSAGE
+      );
+
+      expect(mockAddCustomSnippet).not.toHaveBeenCalled();
+    });
+
+    it("マイ定型文の読み込み中は登録できない", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue(undefined);
+      setupDialog();
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+
+      await user.type(input, "息を止めない");
+      expect(
+        screen.getByRole("button", { name: CUSTOM_SNIPPET_ADD_LABEL })
+      ).toBeDisabled();
+
+      await user.keyboard("{Enter}");
+      expect(mockAddCustomSnippet).not.toHaveBeenCalled();
+    });
+
+    it("マイ定型文の削除に失敗したらエラートーストを出し、選択状態を維持する", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([CUSTOM_SNIPPET]);
+      mockDeleteCustomSnippet.mockRejectedValueOnce(new Error("削除エラー"));
+      setupDialog();
+
+      await user.click(
+        screen.getByRole("button", { name: CUSTOM_SNIPPET.value })
+      );
+      expect(screen.getByText(/選択中: 1 件/)).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", {
+          name: `${CUSTOM_SNIPPET_DELETE_LABEL}: ${CUSTOM_SNIPPET.value}`,
+        })
+      );
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("削除エラー");
+      });
+      expect(screen.getByText(/選択中: 1 件/)).toBeInTheDocument();
+    });
+
+    it("選択した項目を追加して閉じると、マイ定型文の入力欄とエラーもリセットされる", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      const { rerender } = render(
+        <PrecautionSnippetDialog
+          open
+          onOpenChange={onOpenChange}
+          onSelect={vi.fn()}
+          currentCount={0}
+        />
+      );
+      const builtIn = getFirstSnippetByCategory("breathing");
+      const input = screen.getByRole("textbox", {
+        name: CUSTOM_SNIPPET_INPUT_LABEL,
+      });
+
+      // 重複エラーを出した状態で組み込み定型文を追加して閉じる
+      await user.type(input, `${builtIn.value}{Enter}`);
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: builtIn.value }));
+      await user.click(
+        screen.getByRole("button", { name: SNIPPET_ADD_BUTTON_LABEL })
+      );
+
+      rerender(
+        <PrecautionSnippetDialog
+          open
+          onOpenChange={onOpenChange}
+          onSelect={vi.fn()}
+          currentCount={0}
+        />
+      );
+
+      expect(
+        screen.getByRole("textbox", { name: CUSTOM_SNIPPET_INPUT_LABEL })
+      ).toHaveValue("");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
 });

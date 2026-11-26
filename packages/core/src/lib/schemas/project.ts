@@ -35,6 +35,20 @@ export const dosagesSchema = z.object({
 });
 
 /**
+ * マイ定型文の文字列を正規化する
+ *
+ * @remarks
+ * HTML タグを除去してから前後の空白を除き、注意点の文字数上限で切り詰める。
+ * 定型文ダイアログでの空チェック・重複判定と DB 保存で同じ基準を共有する。
+ *
+ * @param value - 入力された定型文
+ * @returns 正規化後の定型文（登録できる文字がなければ空文字）
+ */
+export function normalizeCustomSnippetValue(value: string): string {
+  return sanitizeText(value).trim().slice(0, TEXT_LIMITS.precaution);
+}
+
+/**
  * 注意点アイテムスキーマ
  *
  * インポート時に文字数制限を超えた値は自動的にカットされる

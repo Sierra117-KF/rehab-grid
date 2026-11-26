@@ -109,3 +109,7 @@ export const CUSTOM_SNIPPET_EMPTY_MESSAGE =
 
 /** 同じ文言の定型文（組み込み・登録済み）があるとき */
 export const CUSTOM_SNIPPET_DUPLICATE_MESSAGE = "同じ定型文がすでにあります";
+
+/** HTML タグの除去後に文字が残らず登録できないとき */
+export const CUSTOM_SNIPPET_INVALID_MESSAGE =
+  "登録できる文字を入力してください";

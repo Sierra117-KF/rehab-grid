@@ -479,6 +479,23 @@ describe("lib/db", () => {
       expect(await duplicateProject("missing")).toBeUndefined();
       expect(mockProjectsPut).not.toHaveBeenCalled();
     });
+
+    it("元のタイトルが空または空白のみの場合は既定のタイトルに「のコピー」を付けること", async () => {
+      mockProjectsGet.mockResolvedValue(
+        createTestRecord(
+          "project-empty",
+          "2024-01-01T00:00:00.000Z",
+          createTestProjectFile({
+            meta: { ...createTestProjectFile().meta, title: "   " },
+          })
+        )
+      );
+
+      await duplicateProject("project-empty");
+
+      const saved = mockProjectsPut.mock.calls[0]?.[0] as ProjectRecord;
+      expect(saved.title).toBe(`${DEFAULT_PROJECT_TITLE}${PROJECT_COPY_SUFFIX}`);
+    });
   });
 
   describe("collectReferencedImageIds", () => {
@@ -600,6 +617,7 @@ describe("lib/db", () => {
     it("名前が空なら既定のタイトル、長すぎる名前は切り詰めて保存すること", async () => {
       await saveUserTemplate("   ", createTestProjectFile());
       await saveUserTemplate("あ".repeat(30), createTestProjectFile());
+      await saveUserTemplate("<b> 膝の自主トレ </b>", createTestProjectFile());
 
       expect(mockUserTemplatesPut).toHaveBeenNthCalledWith(
         1,
@@ -610,6 +628,10 @@ describe("lib/db", () => {
         expect.objectContaining({
           name: "あ".repeat(TEXT_LIMITS.projectTitle),
         })
+      );
+      expect(mockUserTemplatesPut).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({ name: "膝の自主トレ" })
       );
     });
 
@@ -722,6 +744,19 @@ describe("lib/db", () => {
         createdAt: FIXED_DATE,
       });
       expect(mockCustomSnippetsPut).toHaveBeenCalledWith(record);
+    });
+
+    it("HTML タグの除去後に空白のみ・空文字になる場合は保存せずエラーにすること", async () => {
+      await expect(addCustomSnippet("<b></b>")).rejects.toThrow(
+        LIBRARY_SAVE_FAILED_MESSAGE
+      );
+      await expect(addCustomSnippet("<b>   </b>")).rejects.toThrow(
+        LIBRARY_SAVE_FAILED_MESSAGE
+      );
+      expect(mockCustomSnippetsPut).not.toHaveBeenCalled();
+
+      const record = await addCustomSnippet("<b> 息を止めない </b>");
+      expect(record.value).toBe("息を止めない");
     });
 
     it("一覧は登録した順に返し、ID を指定して削除できること", async () => {

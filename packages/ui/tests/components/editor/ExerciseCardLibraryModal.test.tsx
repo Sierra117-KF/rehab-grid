@@ -18,11 +18,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   mockUseLiveQuery,
+  mockUseCanvasImages,
   mockDeleteExerciseCard,
   mockToastSuccess,
   mockToastError,
 } = vi.hoisted(() => ({
   mockUseLiveQuery: vi.fn(),
+  mockUseCanvasImages: vi.fn(),
   mockDeleteExerciseCard: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
@@ -39,7 +41,7 @@ vi.mock("@/lib/db", () => ({
 
 // カードの画像URL（IndexedDB の読み出しはここでは確かめない）
 vi.mock("@/hooks/useCanvasImages", () => ({
-  useCanvasImages: () => new Map([["img-1", "blob:squat"]]),
+  useCanvasImages: mockUseCanvasImages,
 }));
 
 vi.mock("next/image", async () => {
@@ -101,7 +103,22 @@ function setupModal({
 describe("ExerciseCardLibraryModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseCanvasImages.mockReturnValue(new Map([["img-1", "blob:squat"]]));
     mockDeleteExerciseCard.mockResolvedValue(undefined);
+  });
+
+  it("モーダルが閉じている間は画像URL生成フックに空配列を渡す", () => {
+    mockUseLiveQuery.mockReturnValue([SQUAT, BRIDGE]);
+    render(
+      <ExerciseCardLibraryModal
+        open={false}
+        onOpenChange={vi.fn()}
+        canAdd
+        onAdd={vi.fn()}
+      />
+    );
+
+    expect(mockUseCanvasImages).toHaveBeenCalledWith([]);
   });
 
   it("保存したマイ運動を、用量（なければ説明）と画像付きで一覧表示する", () => {

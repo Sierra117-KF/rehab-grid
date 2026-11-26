@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  BUTTON_CANCEL,
   CUSTOM_SNIPPET_ADD_LABEL,
   CUSTOM_SNIPPET_DELETE_LABEL,
   CUSTOM_SNIPPET_DUPLICATE_MESSAGE,
   CUSTOM_SNIPPET_EMPTY_MESSAGE,
   CUSTOM_SNIPPET_INPUT_LABEL,
   CUSTOM_SNIPPET_INPUT_PLACEHOLDER,
+  CUSTOM_SNIPPET_INVALID_MESSAGE,
   LIBRARY_SAVE_FAILED_MESSAGE,
   MAX_PRECAUTIONS_COUNT,
   PRECAUTION_SNIPPET_CATEGORIES,
@@ -16,12 +18,14 @@ import {
   SNIPPET_DIALOG_TITLE,
   SNIPPET_MAX_EXCEEDED_MESSAGE,
   TEXT_LIMITS,
+  UNKNOWN_ERROR_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import {
   addCustomSnippet,
   deleteCustomSnippet,
   listCustomSnippets,
 } from "@rehab-grid/core/lib/db";
+import { normalizeCustomSnippetValue } from "@rehab-grid/core/lib/schemas";
 import { cn } from "@rehab-grid/core/lib/utils";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
@@ -36,6 +40,7 @@ import { Input } from "@rehab-grid/ui/components/wrapped/Input";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, FileText, Plus, X } from "lucide-react";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 /**
  * 定型文選択ダイアログの Props
@@ -196,16 +201,24 @@ export function PrecautionSnippetDialog({
    * マイ定型文を登録する
    *
    * @remarks
-   * 定型文の内容は React の key と選択状態のキーを兼ねるため、
-   * 組み込み・登録済みと同じ文言は登録しない
+   * DB 保存と同じ正規化（HTML タグ除去・前後空白除去・文字数上限）を通してから
+   * 空チェックと重複判定を行う。定型文の内容は React の key と選択状態のキーを兼ねるため、
+   * 組み込み・登録済みと同じ文言や空文字は登録しない。
    */
   const handleAddCustomSnippet = async () => {
-    const value = draft.trim();
-    if (value === "" || isAddingSnippet) return;
+    if (draft.trim() === "" || isAddingSnippet || customSnippets === undefined) {
+      return;
+    }
+
+    const value = normalizeCustomSnippetValue(draft);
+    if (value === "") {
+      setDraftError(CUSTOM_SNIPPET_INVALID_MESSAGE);
+      return;
+    }
 
     const exists =
       PRECAUTION_SNIPPETS.some((snippet) => snippet.value === value) ||
-      (customSnippets ?? []).some((snippet) => snippet.value === value);
+      customSnippets.some((snippet) => snippet.value === value);
     if (exists) {
       setDraftError(CUSTOM_SNIPPET_DUPLICATE_MESSAGE);
       return;
@@ -230,25 +243,18 @@ export function PrecautionSnippetDialog({
    */
   const handleDeleteCustomSnippet = async (snippet: SnippetOption) => {
     if (snippet.customId === undefined) return;
-    await deleteCustomSnippet(snippet.customId);
-    setSelectedValues((prev) => {
-      if (!prev.has(snippet.value)) return prev;
-      const next = new Set(prev);
-      next.delete(snippet.value);
-      return next;
-    });
-  };
-
-  /**
-   * 追加ボタンクリック時の処理
-   */
-  const handleAdd = useCallback(() => {
-    if (selectedValues.size > 0) {
-      onSelect(Array.from(selectedValues));
-      setSelectedValues(new Set());
-      onOpenChange(false);
+    try {
+      await deleteCustomSnippet(snippet.customId);
+      setSelectedValues((prev) => {
+        if (!prev.has(snippet.value)) return prev;
+        const next = new Set(prev);
+        next.delete(snippet.value);
+        return next;
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : UNKNOWN_ERROR_MESSAGE);
     }
-  }, [selectedValues, onSelect, onOpenChange]);
+  };
 
   /**
    * ダイアログを閉じる際に選択状態と入力欄をリセット
@@ -264,6 +270,16 @@ export function PrecautionSnippetDialog({
     },
     [onOpenChange]
   );
+
+  /**
+   * 追加ボタンクリック時の処理
+   */
+  const handleAdd = useCallback(() => {
+    if (selectedValues.size > 0) {
+      onSelect(Array.from(selectedValues));
+      handleOpenChange(false);
+    }
+  }, [selectedValues, onSelect, handleOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -346,7 +362,11 @@ export function PrecautionSnippetDialog({
                         size="sm"
                         className="h-8 shrink-0 gap-1 bg-white"
                         onClick={() => void handleAddCustomSnippet()}
-                        disabled={draft.trim() === "" || isAddingSnippet}
+                        disabled={
+                          draft.trim() === "" ||
+                          isAddingSnippet ||
+                          customSnippets === undefined
+                        }
                       >
                         <Plus className="size-3.5" />
                         {CUSTOM_SNIPPET_ADD_LABEL}
@@ -386,7 +406,7 @@ export function PrecautionSnippetDialog({
               onClick={() => handleOpenChange(false)}
               className="flex-1"
             >
-              キャンセル
+              {BUTTON_CANCEL}
             </Button>
             <Button
               onClick={handleAdd}
