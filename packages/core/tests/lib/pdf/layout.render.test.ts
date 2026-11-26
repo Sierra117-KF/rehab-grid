@@ -41,6 +41,7 @@ type LayoutNode = {
   props?: { wrap?: boolean };
   style?: { borderTopLeftRadius?: number };
   box?: { height: number };
+  lines?: unknown[];
   children?: LayoutNode[];
 };
 
@@ -67,13 +68,11 @@ beforeAll(() => {
   );
 });
 
-/**
- * 実際のレイアウトを計算し、ページ数と各ページの先頭のカードの位置を返す
- */
-async function layOutWithReactPdf(
+/** 実際のレイアウトツリー全体を取得する */
+async function computePdfLayoutTree(
   items: EditorItem[],
   settings: ResolvedProjectSettings
-): Promise<{ pageCount: number; firstCardIndexByPage: number[] }> {
+): Promise<{ children: LayoutNode[] }> {
   const doc = buildPdfDocument({
     meta: createTestMeta(),
     settings,
@@ -92,6 +91,17 @@ async function layOutWithReactPdf(
     })
   ).toBuffer();
   if (layout === undefined) throw new Error("レイアウトを取得できませんでした");
+  return layout;
+}
+
+/**
+ * 実際のレイアウトを計算し、ページ数と各ページの先頭のカードの位置を返す
+ */
+async function layOutWithReactPdf(
+  items: EditorItem[],
+  settings: ResolvedProjectSettings
+): Promise<{ pageCount: number; firstCardIndexByPage: number[] }> {
+  const layout = await computePdfLayoutTree(items, settings);
 
   // タイトルは「カード{番号}…」で、番号は並び順（0 始まりの位置 + 1）
   const firstCardIndices = layout.children.map((page) => {
@@ -213,6 +223,110 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
     settings: { layoutType: "grid3", checkTable: "monthly" },
   },
 ];
+
+/** 指定した文字列を含む TEXT ノードを集める */
+function collectTextNodes(node: LayoutNode, targetTexts: Set<string>): LayoutNode[] {
+  const results: LayoutNode[] = [];
+  if (node.type === "TEXT") {
+    const text = (node.children ?? [])
+      .filter((child) => child.type === "TEXT_INSTANCE")
+      .map((child) => child.value ?? "")
+      .join("");
+    if (targetTexts.has(text)) {
+      results.push(node);
+    }
+  }
+  for (const child of node.children ?? []) {
+    results.push(...collectTextNodes(child, targetTexts));
+  }
+  return results;
+}
+
+describe("用量の自動縮小（実際の PDF レンダリングで 1 行に収まること）", () => {
+  const LONG_DOSAGE_SCENARIOS: {
+    name: string;
+    settings: Partial<ProjectSettings>;
+  }[] = [
+    { name: "3列（横・標準）", settings: { layoutType: "grid3" } },
+    {
+      name: "3列（横・大きめ）",
+      settings: { layoutType: "grid3", textScale: "large" },
+    },
+    {
+      name: "3列（縦・大きめ）",
+      settings: {
+        layoutType: "grid3",
+        pageOrientation: "portrait",
+        textScale: "large",
+      },
+    },
+    { name: "4列（横・標準）", settings: { layoutType: "grid4" } },
+    {
+      name: "4列（縦・大きめ）",
+      settings: {
+        layoutType: "grid4",
+        pageOrientation: "portrait",
+        textScale: "large",
+      },
+    },
+  ];
+
+  it.each(LONG_DOSAGE_SCENARIOS)(
+    "$name で長い全角・半角の用量値とラベルがすべて 1 行に収まる",
+    { timeout: 60_000 },
+    async ({ settings }) => {
+      const dosageLabels = {
+        reps: "左右それぞれ",
+        sets: "セット回数",
+        frequency: "１日の目安",
+      };
+      const resolved = resolveProjectSettings({ ...settings, dosageLabels });
+      const items = [
+        createTestItem({
+          id: "long-1",
+          order: 0,
+          title: "カード1",
+          dosages: {
+            reps: "左右各１０回ずつ",
+            sets: "３〜５セット",
+            frequency: "毎日朝昼晩３回",
+          },
+        }),
+        createTestItem({
+          id: "long-2",
+          order: 1,
+          title: "カード2",
+          dosages: {
+            reps: "１２３４５６７８９０",
+            sets: "WWWWWWWWWW",
+            frequency: "ABCDEFGHIJ",
+          },
+        }),
+      ];
+      const layout = await computePdfLayoutTree(items, resolved);
+      const targetTexts = new Set([
+        "左右各１０回ずつ",
+        "３〜５セット",
+        "毎日朝昼晩３回",
+        "１２３４５６７８９０",
+        "WWWWWWWWWW",
+        "ABCDEFGHIJ",
+        dosageLabels.reps,
+        dosageLabels.sets,
+        dosageLabels.frequency,
+      ]);
+
+      const nodes = layout.children.flatMap((page) =>
+        collectTextNodes(page, targetTexts)
+      );
+      // 2枚 × (値3件 + ラベル3件) = 12 ノード
+      expect(nodes).toHaveLength(12);
+      for (const node of nodes) {
+        expect(node.lines?.length).toBe(1);
+      }
+    }
+  );
+});
 
 describe("estimatePdfLayout と実際の PDF の一致", () => {
   it.each(SCENARIOS)(

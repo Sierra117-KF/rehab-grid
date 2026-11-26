@@ -38,6 +38,7 @@ import {
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 
+import { AutoFitText } from "./AutoFitText";
 import { InlineEditInput } from "./InlineEditInput";
 
 /**
@@ -601,7 +602,10 @@ export function SortableCard({
                   <div
                     key={rowKey}
                     className={cn(
-                      "grid gap-4",
+                      "grid",
+                      layoutType === "grid3" || layoutType === "grid4"
+                        ? "gap-2"
+                        : "gap-4",
                       row.isFullWidth
                         ? "grid-cols-1"
                         : row.badges.length === 2
@@ -609,59 +613,63 @@ export function SortableCard({
                           : "grid-cols-3"
                     )}
                   >
-                    {row.badges.map((badge) => (
-                      <div
-                        key={badge.type}
-                        className={cn(
-                          "flex flex-col items-center",
-                          !badge.hasValue && "invisible"
-                        )}
-                      >
-                        {/* 数値（大きく強調） */}
-                        {canInlineEdit && editingField === badge.type ? (
-                          <InlineEditInput
-                            value={badge.value}
-                            maxLength={TEXT_LIMITS[badge.type]}
-                            label={createInlineDosageInputLabel(
-                              dosageLabels[badge.type]
-                            )}
-                            className={cn(
-                              textStyle.dosageValueSize,
-                              "font-bold"
-                            )}
-                            onCommit={(value) =>
-                              commitInlineEdit(badge.type, value)
-                            }
-                            onCancel={() => setEditingField(null)}
-                          />
-                        ) : (
-                          <span
-                            className={cn(
-                              textStyle.dosageValueSize,
-                              "font-bold text-dosage-value",
-                              canInlineEdit && badge.hasValue && "cursor-text"
-                            )}
-                            {...(badge.hasValue
-                              ? inlineEditTriggerProps(badge.type)
-                              : {})}
-                          >
-                            {badge.hasValue
-                              ? badge.value.slice(0, TEXT_LIMITS[badge.type])
-                              : "-"}
-                          </span>
-                        )}
-                        {/* ラベル（下線付き。線の色は Canvas がテーマカラーから上書きする CSS 変数を参照する） */}
-                        <span
+                    {row.badges.map((badge) => {
+                      const displayValue = badge.hasValue
+                        ? badge.value.slice(0, TEXT_LIMITS[badge.type])
+                        : "-";
+                      return (
+                        <div
+                          key={badge.type}
                           className={cn(
-                            textStyle.dosageLabelSize,
-                            "text-dosage-label border-t pt-1 mt-1"
+                            "flex min-w-0 flex-col items-center",
+                            !badge.hasValue && "invisible"
                           )}
-                          style={DOSAGE_DIVIDER_STYLE}
                         >
-                          {dosageLabels[badge.type]}
-                        </span>
-                      </div>
-                    ))}
+                          {/* 数値（大きく強調。幅に収まらない場合は 1 行のまま自動縮小する） */}
+                          {canInlineEdit && editingField === badge.type ? (
+                            <div className="flex w-full flex-1 items-end justify-center">
+                              <InlineEditInput
+                                value={badge.value}
+                                maxLength={TEXT_LIMITS[badge.type]}
+                                label={createInlineDosageInputLabel(
+                                  dosageLabels[badge.type]
+                                )}
+                                className={cn(
+                                  textStyle.dosageValueSize,
+                                  "font-bold"
+                                )}
+                                onCommit={(value) =>
+                                  commitInlineEdit(badge.type, value)
+                                }
+                                onCancel={() => setEditingField(null)}
+                              />
+                            </div>
+                          ) : (
+                            <AutoFitText
+                              text={displayValue}
+                              containerClassName={cn(
+                                textStyle.dosageValueSize,
+                                "flex-1 items-end"
+                              )}
+                              textClassName={cn(
+                                "font-bold text-dosage-value",
+                                canInlineEdit && badge.hasValue && "cursor-text"
+                              )}
+                              {...(badge.hasValue
+                                ? inlineEditTriggerProps(badge.type)
+                                : {})}
+                            />
+                          )}
+                          {/* ラベル（下線付き。線の色は Canvas がテーマカラーから上書きする CSS 変数を参照する） */}
+                          <AutoFitText
+                            text={dosageLabels[badge.type]}
+                            containerClassName={textStyle.dosageLabelSize}
+                            textClassName="text-dosage-label border-t pt-1 mt-1"
+                            textStyle={DOSAGE_DIVIDER_STYLE}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}

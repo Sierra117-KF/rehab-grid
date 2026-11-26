@@ -10,6 +10,7 @@ import {
   MONOCHROME_COLORS,
   PDF_COLORS,
   PDF_DOSAGE_COLORS,
+  PDF_HALF_WIDTH_CHAR_RATIO,
   PDF_SPACING,
   PDF_SUPPORTED_IMAGE_PREFIXES,
   TEXT_LIMITS,
@@ -28,12 +29,14 @@ import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import { createElement, type ReactElement } from "react";
 
 import {
+  fitPdfFontSizeToSingleLine,
   getPdfCardDescriptionText,
   getPdfCardFontSizes,
   getPdfCardImageSize,
   getPdfCardNumberBadgeSize,
   getPdfCardPrecautionText,
   getPdfCardTitleText,
+  getPdfDosageItemWidth,
   getPdfTitleWidth,
   type PdfCardFontSizes,
 } from "./metrics";
@@ -112,27 +115,44 @@ type DosageStyle = {
 /**
  * 用量の数値とラベルの Text 要素を生成する
  *
- * 数値強調型デザイン: 数値を大きく表示し、ラベルは区切り線の下に小さく配置
+ * 数値強調型デザイン: 数値を大きく表示し、ラベルは区切り線の下に小さく配置。
+ * 項目幅に収まらない長い文字列は 2 行にならないよう自動でフォントサイズを縮小する。
  *
  * @param type - 用量の種類
  * @param value - 表示値
+ * @param itemWidth - 1 項目分の幅（ポイント単位）
  * @param dosageStyle - フォントサイズ・色・ラベル
  * @returns [数値, ラベル] の Text 要素
  */
 function createDosageTexts(
   type: BadgeType,
   value: string,
+  itemWidth: number,
   { fontSizes, colors, labels }: DosageStyle
 ): ReactElement[] {
+  const displayValue = value.slice(0, TEXT_LIMITS[type]);
+  const valueFontSize = fitPdfFontSizeToSingleLine(
+    displayValue,
+    itemWidth,
+    fontSizes.dosageValue,
+    PDF_HALF_WIDTH_CHAR_RATIO.bold
+  );
+  const labelFontSize = fitPdfFontSizeToSingleLine(
+    labels[type],
+    itemWidth,
+    fontSizes.dosageLabel,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
+  );
+
   return [
     // 数値（大きく強調）
     createElement(
       Text,
       {
         key: `${type}-value`,
-        style: { ...styles.dosageValue, fontSize: fontSizes.dosageValue },
+        style: { ...styles.dosageValue, fontSize: valueFontSize },
       },
-      value.slice(0, TEXT_LIMITS[type])
+      displayValue
     ),
     // ラベル（区切り線付き）
     createElement(
@@ -141,7 +161,7 @@ function createDosageTexts(
         key: `${type}-label`,
         style: {
           ...styles.dosageLabel,
-          fontSize: fontSizes.dosageLabel,
+          fontSize: labelFontSize,
           color: colors.dosageLabel,
           borderTopColor: colors.dosageDivider,
         },
@@ -159,6 +179,7 @@ function createDosageTexts(
  * @param type - 用量の種類
  * @param value - 表示値
  * @param hasValue - 値が設定されているか
+ * @param itemWidth - 1 項目分の幅（ポイント単位）
  * @param dosageStyle - フォントサイズ・色・ラベル
  * @returns 用量要素
  */
@@ -166,6 +187,7 @@ function createDosageElement(
   type: BadgeType,
   value: string,
   hasValue: boolean,
+  itemWidth: number,
   dosageStyle: DosageStyle
 ): ReactElement {
   if (!hasValue) {
@@ -175,7 +197,7 @@ function createDosageElement(
   return createElement(
     View,
     { key: type, style: styles.dosageItem },
-    createDosageTexts(type, value, dosageStyle)
+    createDosageTexts(type, value, itemWidth, dosageStyle)
   );
 }
 
@@ -184,12 +206,14 @@ function createDosageElement(
  *
  * @param item - エディタアイテム
  * @param layoutType - レイアウトタイプ（4列時は頻度を横幅いっぱいの行に分ける）
+ * @param contentWidth - カード内コンテンツの幅（ポイント単位）
  * @param dosageStyle - フォントサイズ・色・ラベル
  * @returns 用量セクション。表示する用量がなければ null
  */
 function createDosageSection(
   item: EditorItem,
   layoutType: LayoutType,
+  contentWidth: number,
   dosageStyle: DosageStyle
 ): ReactElement | null {
   const badgeLayout = getDosageBadgeLayout(item.dosages, layoutType);
@@ -199,6 +223,7 @@ function createDosageSection(
 
   badgeLayout.forEach((row) => {
     const rowKey = row.badges.map((b) => b.type).join("-");
+    const itemWidth = getPdfDosageItemWidth(contentWidth, row.badges.length);
     if (row.isFullWidth) {
       // 横幅いっぱいの用量アイテム（4列レイアウト時の頻度）
       const badge = row.badges[0];
@@ -210,13 +235,19 @@ function createDosageSection(
             key: rowKey,
             style: { ...styles.dosageItem, flex: undefined, width: "100%" },
           },
-          createDosageTexts(badge.type, badge.value, dosageStyle)
+          createDosageTexts(badge.type, badge.value, itemWidth, dosageStyle)
         )
       );
     } else {
       // 通常の用量行
       const rowDosages = row.badges.map((badge) =>
-        createDosageElement(badge.type, badge.value, badge.hasValue, dosageStyle)
+        createDosageElement(
+          badge.type,
+          badge.value,
+          badge.hasValue,
+          itemWidth,
+          dosageStyle
+        )
       );
       dosageRows.push(
         createElement(
@@ -357,7 +388,7 @@ export function createCard(
   }
 
   // 用量（回数・セット数・頻度）
-  const dosageSection = createDosageSection(item, layoutType, {
+  const dosageSection = createDosageSection(item, layoutType, imageWidth, {
     fontSizes,
     colors,
     labels: dosageLabels,

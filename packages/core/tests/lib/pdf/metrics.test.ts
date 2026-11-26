@@ -11,9 +11,11 @@ import { describe, expect, it } from "vitest";
 import {
   countPdfTextLines,
   estimateCharsPerLine,
+  fitPdfFontSizeToSingleLine,
   fitPdfTextToLines,
   getPdfCardFontSizes,
   getPdfCardImageSize,
+  getPdfDosageItemWidth,
   getPdfTitleWidth,
   measurePdfTextWidth,
 } from "@/lib/pdf/metrics";
@@ -146,4 +148,46 @@ describe("estimateCharsPerLine", () => {
       expect(estimateCharsPerLine(width, 10, 0.6)).toBe(1);
     }
   );
+});
+
+describe("getPdfDosageItemWidth", () => {
+  it("コンテンツ幅から項目間の余白（8pt）を引いて列数で割った幅を返す", () => {
+    expect(getPdfDosageItemWidth(200, 1)).toBe(200);
+    expect(getPdfDosageItemWidth(200, 2)).toBe(96);
+    expect(getPdfDosageItemWidth(200, 3)).toBeCloseTo(61.333, 3);
+  });
+});
+
+describe("fitPdfFontSizeToSingleLine", () => {
+  it("基準サイズで 1 行に収まる短いテキストはそのままのサイズを返す", () => {
+    expect(fitPdfFontSizeToSingleLine("10回", 70, 14, 0.6)).toBe(14);
+    expect(fitPdfFontSizeToSingleLine("3セット", 70, 14, 0.6)).toBe(14);
+  });
+
+  it("幅に収まらない長い全角テキストは 1 行に収まるサイズへ縮小する", () => {
+    const fitted = fitPdfFontSizeToSingleLine("左右各１０回ずつ", 70, 14, 0.6);
+    expect(fitted).toBeLessThan(14);
+    expect(fitted).toBeGreaterThanOrEqual(4);
+    expect(measurePdfTextWidth("左右各１０回ずつ", fitted, 0.6)).toBeLessThanOrEqual(
+      70
+    );
+  });
+
+  it("幅が広い半角英字（W / 大文字）でも 1 行に収まるサイズへ縮小する", () => {
+    const wideLower = fitPdfFontSizeToSingleLine("WWWWWWWWWW", 70, 14, 0.6);
+    const digits = fitPdfFontSizeToSingleLine("1234567890", 70, 14, 0.6);
+    expect(wideLower).toBeLessThan(digits);
+    expect(wideLower).toBeLessThan(14);
+  });
+
+  it("非常に狭い幅でも最小フォントサイズ（4pt）を下回らない", () => {
+    expect(
+      fitPdfFontSizeToSingleLine("あいうえおかきくけこ", 10, 14, 0.6)
+    ).toBe(4);
+  });
+
+  it("空文字や幅 0 以下では基準サイズをそのまま返す", () => {
+    expect(fitPdfFontSizeToSingleLine("", 70, 14, 0.6)).toBe(14);
+    expect(fitPdfFontSizeToSingleLine("あいうえお", 0, 14, 0.6)).toBe(14);
+  });
 });
