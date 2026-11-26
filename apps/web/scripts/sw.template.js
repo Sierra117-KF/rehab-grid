@@ -14,14 +14,21 @@
  * activate された時点で旧ビルドのキャッシュはまとめて削除されます。
  * キャッシュ優先のアセットも、デプロイごとに 1 回だけ取り直す動きになります。
  *
+ * 更新の流れ:
+ * - 初回はインストール後そのまま有効になる
+ * - 2 回目以降（デプロイ後）は新しい Service Worker が waiting のまま待機し、
+ *   画面の「更新する」から SKIP_WAITING を受け取ったときだけ有効になる
+ *   （開いているタブの裏で入れ替わり、旧版の JS や PDF Worker が動き続けるのを防ぐ）
+ *
  * 注意:
  * - IndexedDBのデータはService Workerとは独立して永続化されます
  * - PDF 用フォントと PDF Worker のチャンクはインストール時にプリキャッシュするため、
  *   デプロイ直後にオフラインになっても PDF を生成できます
  * - サンプル画像・テンプレートはプリキャッシュしません（使わない利用者にまで配らない）。
  *   オフラインで使えるのは一度表示したものだけです
- * - これらのファイル名にはハッシュが付かないため、_headers で長期の Cache-Control を付けないこと
- *   （付けると fetch が HTTP キャッシュの古い版を拾い、デプロイ後も更新されなくなる）
+ * - ハッシュの付かないファイルは、ネットワークから取るときに HTTP キャッシュを再検証する（cache: "no-cache"）。
+ *   Cloudflare Pages は Cache-Control 未指定でも 4 時間のキャッシュを付けるため、
+ *   そのまま fetch すると旧版を拾って新しい CACHE_NAME に閉じ込め、次のデプロイまで更新されなくなる
  */
 
 const CACHE_NAME = "rehab-grid-__BUILD_ID__";
@@ -68,37 +75,57 @@ const CACHE_FIRST_PATH_PREFIXES = [
 ];
 
 /**
+ * ハッシュの付かないファイルを取得するときの fetch オプション
+ *
+ * HTTP キャッシュがあっても必ずサーバーに確かめる（変わっていなければ 304 で中身は送られない）
+ */
+const REVALIDATE = { cache: "no-cache" };
+
+/**
  * インストール時: 静的アセットをキャッシュ
+ *
+ * HTTP キャッシュの旧版を新しい CACHE_NAME に保存しないよう、再検証して取得する。
+ * 有効化は画面からの SKIP_WAITING を待つ（初回は待機する旧版がないのでそのまま有効になる）
  */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("[SW] Caching static assets");
-      return cache.addAll([...STATIC_ASSETS, ...PDF_WORKER_ASSETS]);
-    })
-  );
-  // 新しいService Workerを即座にアクティブ化
-  self.skipWaiting();
-});
-
-/**
- * アクティベーション時: 古いキャッシュを削除
- */
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => {
-            console.log("[SW] Deleting old cache:", name);
-            return caches.delete(name);
-          })
+      return cache.addAll(
+        [...STATIC_ASSETS, ...PDF_WORKER_ASSETS].map((url) => new Request(url, REVALIDATE))
       );
     })
   );
-  // 既存のクライアントを即座に制御
-  self.clients.claim();
+});
+
+/**
+ * 画面の「更新する」から呼ばれたときだけ、待機中の新しい Service Worker を有効にする
+ */
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    event.waitUntil(self.skipWaiting());
+  }
+});
+
+/**
+ * アクティベーション時: 古いキャッシュを削除し、既存のクライアントを制御下に置く
+ */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all([
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => {
+              console.log("[SW] Deleting old cache:", name);
+              return caches.delete(name);
+            })
+        );
+      }),
+      self.clients.claim(),
+    ])
+  );
 });
 
 /**
@@ -131,24 +158,30 @@ function withRequestUrlForWorker(event, response) {
 
 /**
  * キャッシュ優先: キャッシュになければネットワークから取得して保存
+ *
+ * /_next/static/ はファイル名にハッシュが付き中身が変わらないので、HTTP キャッシュをそのまま使う
  */
-async function cacheFirst(event) {
+async function cacheFirst(event, url) {
   const cachedResponse = await caches.match(event.request, {
     cacheName: CACHE_NAME,
   });
   if (cachedResponse) return withRequestUrlForWorker(event, cachedResponse);
 
-  const response = await fetch(event.request);
+  const response = url.pathname.startsWith("/_next/static/")
+    ? await fetch(event.request)
+    : await fetch(event.request, REVALIDATE);
   putInCache(event, response);
   return response;
 }
 
 /**
  * ネットワーク優先: オフライン時はキャッシュから返す
+ *
+ * HTML は再検証して取得する（HTTP キャッシュの旧版が、もう配信されていない旧ビルドのチャンクを読みに行かないように）
  */
 async function networkFirst(event) {
   try {
-    const response = await fetch(event.request);
+    const response = await fetch(event.request, REVALIDATE);
     putInCache(event, response);
     return response;
   } catch (error) {
@@ -175,7 +208,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (CACHE_FIRST_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
-    event.respondWith(cacheFirst(event));
+    event.respondWith(cacheFirst(event, url));
     return;
   }
   event.respondWith(networkFirst(event));

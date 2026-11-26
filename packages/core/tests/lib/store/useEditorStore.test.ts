@@ -6,6 +6,7 @@ import {
   MAX_ITEM_COUNT,
   PROJECT_SWITCH_FAILED_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
+import { flushRegisteredAutosave } from "@rehab-grid/core/lib/store/autosaveFlusher";
 import { stateToProjectFile, useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import {
   type EditorItem,
@@ -1683,6 +1684,95 @@ describe("useEditorStore", () => {
       expect(useEditorStore.getState().past).toBe(pastBefore);
       expect(useEditorStore.getState().past.at(-1)).toBe(pastLastBefore);
       expect(useEditorStore.getState().future).toBe(futureBefore);
+    });
+  });
+
+  describe("flushAutosave", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      mockSaveProject.mockReset();
+      mockSaveProject.mockResolvedValue(undefined);
+      useEditorStore.getState().openProject("proj-flush", createTestProjectFile());
+      mockSaveProject.mockClear();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("保留中のオートセーブを待機時間前に今すぐ保存し、以後のタイマーでは二重保存しない", async () => {
+      useEditorStore.getState().setProjectTitle("更新前タイトル");
+      expect(mockSaveProject).not.toHaveBeenCalled();
+
+      await useEditorStore.getState().flushAutosave();
+
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "proj-flush",
+        expect.objectContaining({
+          meta: expect.objectContaining({ title: "更新前タイトル" }),
+        })
+      );
+
+      vi.advanceTimersByTime(AUTOSAVE_DELAY);
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+    });
+
+    it("保存に失敗した場合は reject し、再度の flushAutosave で未保存内容をリトライできる", async () => {
+      mockSaveProject
+        .mockRejectedValueOnce(new Error("IndexedDB error"))
+        .mockResolvedValueOnce(undefined);
+
+      useEditorStore.getState().setProjectTitle("失いたくない編集");
+
+      await expect(useEditorStore.getState().flushAutosave()).rejects.toThrow(
+        "IndexedDB error"
+      );
+
+      // 2 回目の flushAutosave で失敗分が確実に再保存される
+      await expect(
+        useEditorStore.getState().flushAutosave()
+      ).resolves.toBeUndefined();
+      expect(mockSaveProject).toHaveBeenCalledTimes(2);
+      expect(mockSaveProject).toHaveBeenLastCalledWith(
+        "proj-flush",
+        expect.objectContaining({
+          meta: expect.objectContaining({ title: "失いたくない編集" }),
+        })
+      );
+
+      // 成功後は不要な保存が走らない
+      await useEditorStore.getState().flushAutosave();
+      expect(mockSaveProject).toHaveBeenCalledTimes(2);
+    });
+
+    it("保存失敗後に別プロジェクトを開いた場合は、古い失敗分を再保存しない", async () => {
+      mockSaveProject.mockRejectedValueOnce(new Error("IndexedDB error"));
+
+      useEditorStore.getState().setProjectTitle("古い編集");
+      await expect(useEditorStore.getState().flushAutosave()).rejects.toThrow(
+        "IndexedDB error"
+      );
+
+      useEditorStore.getState().openProject("proj-other", createTestProjectFile());
+      mockSaveProject.mockClear();
+
+      await useEditorStore.getState().flushAutosave();
+      expect(mockSaveProject).not.toHaveBeenCalled();
+    });
+
+    it("flushRegisteredAutosave から同じ flushAutosave を実行できる", async () => {
+      useEditorStore.getState().setProjectTitle("外部から確定");
+
+      await flushRegisteredAutosave();
+
+      expect(mockSaveProject).toHaveBeenCalledTimes(1);
+      expect(mockSaveProject).toHaveBeenCalledWith(
+        "proj-flush",
+        expect.objectContaining({
+          meta: expect.objectContaining({ title: "外部から確定" }),
+        })
+      );
     });
   });
 

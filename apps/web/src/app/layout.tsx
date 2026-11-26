@@ -5,6 +5,8 @@ import { Toaster } from "@rehab-grid/ui/components/wrapped/Toaster";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
+import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
+
 /** サイトのベースURL */
 const SITE_URL = "https://rehaguri.com";
 /** サイト名 */
@@ -117,13 +119,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="リハぐり" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="theme-color" content="#f97316" />
-        {/* Service Worker 登録（外部スクリプト） */}
-        <script src="/sw-register.js" defer />
       </head>
       <body className={`${notoSansJP.variable} antialiased`}>
         {children}
         <Toaster />
         <DisclaimerModalProvider />
+        <ServiceWorkerUpdater />
       </body>
     </html>
   );

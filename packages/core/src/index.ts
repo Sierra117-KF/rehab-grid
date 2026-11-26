@@ -10,6 +10,7 @@ export * from "./lib/db";
 export { Platform } from "./lib/platform";
 export * from "./lib/schemas";
 export * from "./lib/settings";
+export * from "./lib/store/autosaveFlusher";
 export * from "./lib/store/useEditorStore";
 export * from "./lib/store/useModalStore";
 export * from "./lib/templates";

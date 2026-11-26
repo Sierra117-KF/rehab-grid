@@ -29,9 +29,8 @@
 ```
 apps/web/
 ├── public/                         # 静的アセット
-│   ├── _headers                    # Cloudflare Pages用セキュリティヘッダー
+│   ├── _headers                    # Cloudflare Pages用ヘッダー（セキュリティ、sw.js の no-cache）
 │   ├── sw.js                       # Service Worker（自動生成・Git管理外）
-│   ├── sw-register.js              # Service Worker登録スクリプト
 │   ├── fonts/                      # 日本語フォント（自動コピー）
 │   ├── icons/                      # PWA/ロゴアイコン
 │   ├── images/
@@ -53,6 +52,9 @@ apps/web/
 │       ├── changelog/page.tsx      # /changelog - 更新履歴
 │       ├── privacy/page.tsx        # /privacy - プライバシーポリシー
 │       └── terms/page.tsx          # /terms - 利用規約
+│
+├── src/components/
+│   └── ServiceWorkerUpdater.tsx    # Service Worker の登録と更新通知（Web 版専用）
 │
 ├── tests/                          # 統合テスト（ブラウザモード）
 │   ├── setup.browser.ts            # テストセットアップ
@@ -251,7 +253,9 @@ form-action 'self';
 - **キャッシュ更新**: `CACHE_NAME` にビルドID（バージョン + ビルド日時）を含め、activate 時に旧ビルドのキャッシュを削除（キャッシュ優先のアセットもデプロイごとに 1 回取り直す）
 - **オフライン対応**: 静的ページ・PDF 用フォント・PDF Worker のチャンクをインストール時にプリキャッシュ（デプロイ直後にオフラインでも PDF を生成できる）。サンプル画像・テンプレートは一度表示したものだけキャッシュされる
 - **PDF Worker のチャンク**: ファイル名がビルドごとに変わるため、`postbuild`（`generate-sw.mjs --out`）が `out/` から探して `out/sw.js` に埋め込む（開発サーバー用の `public/sw.js` では空）。Turbopack の出力形式が変わって見つからなくなったらビルドを失敗させる。Worker はスクリプト URL のハッシュから起動設定を読むため、キャッシュから返すときは URL を持たないレスポンスに作り直している
-- **`_headers` との関係**: `/images/samples/` などはファイル名にハッシュが付かないため、長期の `Cache-Control` を付けない（SW の `fetch` が HTTP キャッシュの古い版を拾うため）
+- **HTTP キャッシュとの関係**: Cloudflare Pages は `Cache-Control` 未指定でも 4 時間のキャッシュを付ける。SW はハッシュの付かないファイル（HTML・`/fonts/`・`/templates/`・`/images/samples/` など）をネットワークから取るとき `cache: "no-cache"` で再検証し、旧版を新しい `CACHE_NAME` に閉じ込めないようにしている（変わっていなければ 304 で済む）。`/_next/static/` はハッシュ付きなので HTTP キャッシュをそのまま使う。`/sw.js` は `_headers` で `no-cache`、登録時も `updateViaCache: "none"`
+- **更新の流れ**: 初回はインストール後そのまま有効。デプロイ後の新しい SW は `waiting` で待機し、`src/components/ServiceWorkerUpdater.tsx` が「新しいバージョンがあります」トーストを出す。「更新する」で保留中のオートセーブを保存 → `SKIP_WAITING` を送信 → `controllerchange` で再読み込み。「あとで」で閉じても、次にページを開いたときに再び通知する。タブに戻ったとき（`visibilitychange`）にも更新を確認する
+- **登録**: `ServiceWorkerUpdater` がページの読み込み完了後に `/sw.js` を登録する（初回表示の通信と競合させない）
 - **編集場所**: `scripts/sw.template.js`（`public/sw.js` は `generate-sw.mjs` が生成）
 - **データ永続化**: IndexedDB（Service Workerとは独立）
 
