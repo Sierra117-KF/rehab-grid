@@ -24,6 +24,7 @@ import {
   saveProject,
 } from "@rehab-grid/core/lib/db";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
+import { registerAutosaveFlusher } from "@rehab-grid/core/lib/store/autosaveFlusher";
 import {
   type Dosages,
   type EditorItem,
@@ -171,6 +172,14 @@ type EditorActions = {
    * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
   openImportResult: (result: ImportResult, mode: ImportOpenMode) => Promise<void>;
+  /**
+   * 保留中のオートセーブを今すぐ保存し、完了を待つ
+   *
+   * @remarks
+   * ページを再読み込みする前（アプリの更新など）に呼び、直前の編集を失わないようにする。
+   * 保存に失敗した場合は reject する
+   */
+  flushAutosave: () => Promise<void>;
   /** アイテム一覧を設定 */
   setItems: (items: EditorItem[]) => void;
   /**
@@ -492,17 +501,61 @@ export function stateToProjectFile(state: EditorSnapshot): ProjectFile {
 }
 
 /**
+ * 前回の保存に失敗した未保存データ（再試行用）
+ *
+ * @remarks
+ * `debounce.flush()` は実行開始時に保留引数を消すため、保存失敗後に再度 `flushAutosave()` を
+ * 呼ぶと何も保存せず成功してしまう。失敗分をここに残し、次の `flushAutosave()` で再試行する。
+ * 新しい変更の予約・保存成功・キャンセル（別プロジェクトを開く／削除）でクリアする
+ */
+let failedSave: { projectId: string; state: EditorSnapshot } | null = null;
+
+/**
+ * オートセーブの保存処理（失敗時は再試行用に控える）
+ */
+async function performAutosave(
+  projectId: string,
+  state: EditorSnapshot
+): Promise<void> {
+  try {
+    await saveProject(projectId, stateToProjectFile(state));
+    if (failedSave?.projectId === projectId) {
+      failedSave = null;
+    }
+  } catch (error) {
+    failedSave = { projectId, state };
+    throw error;
+  }
+}
+
+/**
  * オートセーブ関数（debounce適用済み）
  *
  * @remarks
  * 保存先IDはスケジュールした時点の値を引数で受け取る。
  * 実行時にストアの projectId を読むと、切り替え直後に発火したとき切り替え先へ旧プロジェクトの内容を書き込んでしまう。
  */
-const debouncedSave = debounce(
-  async (projectId: string, state: EditorSnapshot) =>
-    saveProject(projectId, stateToProjectFile(state)),
-  AUTOSAVE_DELAY
-);
+const debouncedSave = debounce(performAutosave, AUTOSAVE_DELAY);
+
+/**
+ * 保留中・失敗済みのオートセーブを確定して完了を待つ
+ */
+async function flushPendingAutosave(): Promise<void> {
+  await debouncedSave.flush();
+  if (failedSave !== null) {
+    const retry = failedSave;
+    failedSave = null;
+    await performAutosave(retry.projectId, retry.state);
+  }
+}
+
+/**
+ * 保留中・失敗済みのオートセーブを破棄する
+ */
+function cancelPendingAutosave(): void {
+  debouncedSave.cancel();
+  failedSave = null;
+}
 
 /**
  * 起動時に開くプロジェクトを DB から探す
@@ -634,7 +687,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         set({ isLoaded: true, projectId, ...projectToState(data) });
         // 読み込んだ内容は DB と同じなので、この set を拾ったオートセーブは捨てる
         // （開いただけで更新日時が変わり、一覧の並び順が入れ替わるのを防ぐ）
-        debouncedSave.cancel();
+        cancelPendingAutosave();
         writeLocalStorage(ACTIVE_PROJECT_ID_STORAGE_KEY, projectId);
       },
 
@@ -642,7 +695,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         if (projectId === get().projectId) return;
         await runProjectTransition(async () => {
           // 編集中の内容を元のプロジェクトへ保存し終えてから切り替える
-          await debouncedSave.flush();
+          await flushPendingAutosave();
           const data = await loadProject(projectId);
           if (!data) throw new Error(PROJECT_SWITCH_FAILED_MESSAGE);
           get().openProject(projectId, data);
@@ -651,7 +704,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
       createProject: async () => {
         await runProjectTransition(async () => {
-          await debouncedSave.flush();
+          await flushPendingAutosave();
           openNewProject();
           // 保存件数が増えると、ブラウザに消されたときの損失が大きくなるため
           void requestPersistentStorage();
@@ -662,7 +715,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         runProjectTransition(async () => {
           if (projectId === get().projectId) {
             // 編集中のプロジェクトは保存前の変更も含めて複製する（未保存の新規プロジェクトも複製できる）
-            debouncedSave.cancel();
+            cancelPendingAutosave();
             await saveProject(projectId, stateToProjectFile(get()));
           }
           const newId = await duplicateProjectInDB(projectId);
@@ -674,13 +727,15 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         await runProjectTransition(async () => {
           // 新規でも上書きでも、編集中の内容はいったん元のプロジェクトへ保存しておく
           // （上書きの保存に失敗しても直前の編集を失わない。保留中の保存が上書き後に発火することも防ぐ）
-          await debouncedSave.flush();
+          await flushPendingAutosave();
           const projectId = mode === "new" ? nanoid() : get().projectId;
           await applyImportResult(result, projectId);
           get().openProject(projectId, result.project);
           if (mode === "new") void requestPersistentStorage();
         });
       },
+
+      flushAutosave: flushPendingAutosave,
 
       setItems: (items) => commit({ items }),
 
@@ -855,7 +910,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           }
 
           // 保留中の保存が削除後に発火して、消したプロジェクトを復活させないよう捨てる
-          debouncedSave.cancel();
+          cancelPendingAutosave();
           await deleteProjectFromDB(projectId);
 
           // 残りのうち最新のプロジェクトを開く（なければ新しい空のプロジェクト）
@@ -916,11 +971,15 @@ useEditorStore.subscribe(
     if (useEditorStore.getState().isLoaded) {
       // 保存先はこの時点のプロジェクトID（実行時に読むと切り替え先へ書き込む恐れがある）
       const state = useEditorStore.getState();
+      failedSave = null;
       debouncedSave(state.projectId, state);
     }
   },
   { equalityFn: shallow }
 );
+
+// アプリ更新などの外部処理から保留中のオートセーブを確定できるよう登録する
+registerAutosaveFlusher(async () => useEditorStore.getState().flushAutosave());
 
 /**
  * モジュール読み込み時にDBからプロジェクトを初期化

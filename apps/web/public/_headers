@@ -6,3 +6,7 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
 
+# Service Worker 本体は毎回サーバーに確かめる（未指定だと Cloudflare Pages が 4 時間のキャッシュを付ける）
+/sw.js
+  Cache-Control: no-cache
+

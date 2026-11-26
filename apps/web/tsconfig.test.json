@@ -10,7 +10,10 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/tests/*": ["./tests/*"],
-      "@/components/*": ["../../packages/ui/src/components/*"],
+      "@/components/*": [
+        "./src/components/*",
+        "../../packages/ui/src/components/*"
+      ],
       "@/lib/*": ["../../packages/core/src/lib/*"],
       "@/utils/*": ["../../packages/core/src/utils/*"],
       "@/hooks/*": ["../../packages/core/src/hooks/*"],
