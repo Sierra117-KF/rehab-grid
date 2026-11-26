@@ -14,7 +14,7 @@ export const APP_NAME_EN = "REHAB_GRID";
 export const APP_ICON = "📋";
 
 /** アプリのバージョン（プロジェクトメタデータ用） */
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.3.1";
 
 /**
  * 旧バージョン（単一プロジェクト保存）で使っていたプロジェクトID

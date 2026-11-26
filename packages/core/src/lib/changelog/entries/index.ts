@@ -13,6 +13,7 @@ import { entryV100 } from "./v1.0.0";
 import { entryV110 } from "./v1.1.0";
 import { entryV120 } from "./v1.2.0";
 import { entryV130 } from "./v1.3.0";
+import { entryV131 } from "./v1.3.1";
 
 /**
  * すべての更新エントリ（古い順）
@@ -28,4 +29,5 @@ export const entries: ChangelogEntry[] = [
   entryV110,
   entryV120,
   entryV130,
+  entryV131,
 ];
