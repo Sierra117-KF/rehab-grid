@@ -480,6 +480,17 @@ describe("ImageLibraryPanel", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("一覧には元画像ではなく軽量サムネイルを読み込む", () => {
+      setupImageLibraryPanel({}, { images: [] });
+
+      // 先頭は SAMPLE_IMAGES の先頭（lying_01）
+      const [firstImage] = screen.getAllByRole("img");
+      expect(firstImage).toHaveAttribute(
+        "src",
+        "/images/samples/thumbs/lying_01_hip-up.webp"
+      );
+    });
+
     it("取り込み画像には削除ボタンが表示される", () => {
       const testImage = createTestImage({ id: "img-1", fileName: "test_image" });
       setupImageLibraryPanel({}, { images: [testImage] });

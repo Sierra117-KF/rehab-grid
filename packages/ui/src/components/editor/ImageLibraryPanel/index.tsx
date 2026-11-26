@@ -15,6 +15,7 @@ import {
   createImageDeleteSuccessMessage,
   DEFAULT_IMAGE_FILTER,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
+  getSampleThumbnailPath,
   IMAGE_ACCEPT_TYPES,
   IMAGE_DRAG_TYPE,
   IMAGE_FILTER_CATEGORIES,
@@ -116,11 +117,11 @@ export function ImageLibraryPanel({
   // 画像のサムネイルURLを生成（メモリリーク防止フック使用）
   const thumbnailUrls = useObjectUrls(images);
 
-  // サンプル画像のURLマップを生成
+  // サンプル画像のURLマップを生成（一覧は転送量を抑えるため軽量サムネイルを使う）
   const sampleImageUrls = useMemo(() => {
     const map = new Map<string, string>();
     for (const img of SAMPLE_IMAGES) {
-      map.set(img.id, img.path);
+      map.set(img.id, getSampleThumbnailPath(img.path));
     }
     return map;
   }, []);

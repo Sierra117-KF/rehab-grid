@@ -100,6 +100,9 @@ export function ThumbnailGrid({
       return images.map((image, i) => {
         const isSelected = selectedImageIds.has(image.id);
         const thumbnailUrl = thumbnailUrls.get(image.id);
+        // ホバー拡大はセルより大きく表示するため、サンプル画像は軽量サムネイルではなく元画像を使う
+        const previewUrl =
+          image.isSample && image.path !== undefined ? image.path : thumbnailUrl;
         const displayName = getDisplayFileName(image.fileName);
 
         // サムネイルカード
@@ -137,10 +140,10 @@ export function ThumbnailGrid({
               className="pointer-events-none w-44 p-2"
             >
               <div className="space-y-2">
-                {thumbnailUrl !== undefined ? (
+                {previewUrl !== undefined ? (
                   <div className="relative size-40">
                     <Image
-                      src={thumbnailUrl}
+                      src={previewUrl}
                       alt={displayName}
                       fill
                       sizes="160px"

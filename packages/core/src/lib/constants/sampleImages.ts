@@ -290,6 +290,27 @@ export function getSampleImagePath(imageId: string): string | undefined {
 }
 
 /**
+ * サンプル画像の静的ファイルパスから一覧用サムネイルのパスを求める
+ *
+ * @remarks
+ * サムネイルは `scripts/generate-sample-thumbnails.mjs` が元画像と同じファイル名で
+ * `thumbs/` に書き出す。画像ライブラリの一覧表示専用で、カード・PDF・ZIP は元画像を使う
+ *
+ * @param path - サンプル画像の静的ファイルパス（`SampleImage.path`）
+ * @returns サムネイルの静的ファイルパス
+ *
+ * @example
+ * ```ts
+ * getSampleThumbnailPath("/images/samples/standing_05_squat.webp")
+ * // "/images/samples/thumbs/standing_05_squat.webp"
+ * ```
+ */
+export function getSampleThumbnailPath(path: string): string {
+  const slashIndex = path.lastIndexOf("/");
+  return `${path.slice(0, slashIndex + 1)}thumbs/${path.slice(slashIndex + 1)}`;
+}
+
+/**
  * サンプル画像IDからファイル名を取得
  *
  * @param imageId - サンプル画像ID
