@@ -237,7 +237,7 @@ export default function HomePage() {
 
                 {/* 右側: ダウンロードボタン */}
                 <a
-                  href="https://github.com/Sierra117-KF/rehab-grid/releases/download/v1.3.0/rehab-grid_1.3.0_x64-setup.exe"
+                  href="https://github.com/Sierra117-KF/rehab-grid/releases/download/v1.3.1/rehab-grid_1.3.1_x64-setup.exe"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0"
