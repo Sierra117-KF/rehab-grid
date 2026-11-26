@@ -2,9 +2,6 @@ import type { ChangelogEntry } from "@rehab-grid/core/types";
 
 /**
  * v1.3.0 マイ指導箋ライブラリ
- *
- * @remarks
- * Phase 3 のリリースに向けて項目を追記していく。日付はリリース時に実際の公開日へ更新する
  */
 export const entryV130: ChangelogEntry = {
   version: "v1.3.0",

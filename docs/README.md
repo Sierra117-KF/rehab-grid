@@ -29,6 +29,19 @@
 
 ---
 
+## リリース運用
+
+### [release-guide.md](./release-guide.md)
+
+**リリースガイド** - 新バージョンのリリース手順と GitHub Releases 説明文の定型フォーマット。
+
+- リリース全体の流れとバージョン更新対象ファイル一覧
+- 注釈付きタグ作成と Desktop ビルドの監視手順
+- GitHub Releases ページの説明文テンプレートと記述方針
+- 公開後の Web トップページリンク更新とブランチ整理
+
+---
+
 ## 技術ノート
 
 ### [react-pdf-renderer-hyphenation.md](./react-pdf-renderer-hyphenation.md)
