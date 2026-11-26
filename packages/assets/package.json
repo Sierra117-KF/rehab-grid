@@ -1,6 +1,6 @@
 {
   "name": "@rehab-grid/assets",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "private": true,
   "description": "共有静的アセット（fonts, images, templates）"
 }
