@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-26
+
+### Fixed
+
+- PDF 出力用のサブセットフォント（`NotoSansJP-Regular.woff` / `NotoSansJP-Bold.woff`）に `○` や一部の記号・医療漢字が含まれていなかったため、自主トレ実施チェック表の案内文「実施した日に○をつけましょう」が「実施した日にËをつけましょう」と文字化け・文字重なりを起こす問題を修正。あわせて、公式テンプレートや注意点定型文・指導箋本文で使われる `〇`・`々`・`×`・`°`・`•`・`〜`・`嚥`・`箋` などの記号・全角英字・医療／リハビリ関連漢字をフォントサブセットへ拡充し、固定ラベル・定型文・全公式テンプレートの文字収録を検証する自動テストを追加した
+
 ## [1.3.1] - 2026-11-26
 
 ### Fixed
@@ -118,7 +124,8 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.1.0...v1.2.0

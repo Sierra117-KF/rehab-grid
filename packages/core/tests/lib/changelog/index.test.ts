@@ -14,14 +14,17 @@ describe("lib/changelog", () => {
       const sorted = getSortedEntries();
       const versions = sorted.map((entry) => entry.version);
 
-      // v1.2.0・v1.3.0・v1.3.1 は同日（2026-11-26）でもセマンティックバージョンの降順になる
+      // v1.2.0・v1.3.0・v1.3.1・v1.3.2 は同日（2026-11-26）でもセマンティックバージョンの降順になる
+      expect(versions.indexOf("v1.3.2")).toBeLessThan(
+        versions.indexOf("v1.3.1")
+      );
       expect(versions.indexOf("v1.3.1")).toBeLessThan(
         versions.indexOf("v1.3.0")
       );
       expect(versions.indexOf("v1.3.0")).toBeLessThan(
         versions.indexOf("v1.2.0")
       );
-      expect(versions[0]).toBe("v1.3.1");
+      expect(versions[0]).toBe("v1.3.2");
 
       // 全体として日付の降順が保たれている
       for (let i = 1; i < sorted.length; i += 1) {
@@ -39,7 +42,7 @@ describe("lib/changelog", () => {
       const sorted = getSortedEntries();
 
       expect(getLatestVersion()).toBe(sorted[0]?.version);
-      expect(getLatestVersion()).toBe("v1.3.1");
+      expect(getLatestVersion()).toBe("v1.3.2");
     });
   });
 
@@ -48,8 +51,8 @@ describe("lib/changelog", () => {
       const recent = getRecentEntries(2);
 
       expect(recent).toHaveLength(2);
-      expect(recent[0]?.version).toBe("v1.3.1");
-      expect(recent[1]?.version).toBe("v1.3.0");
+      expect(recent[0]?.version).toBe("v1.3.2");
+      expect(recent[1]?.version).toBe("v1.3.1");
     });
   });
 
