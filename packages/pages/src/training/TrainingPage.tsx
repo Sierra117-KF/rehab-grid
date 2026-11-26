@@ -18,11 +18,15 @@ import { useEditorShortcuts } from "@rehab-grid/core/hooks/useEditorShortcuts";
 import { useIsMobile } from "@rehab-grid/core/hooks/useMediaQuery";
 import { usePasteImage } from "@rehab-grid/core/hooks/usePasteImage";
 import {
+  EXERCISE_CARD_SAVE_SUCCESS_MESSAGE,
   IMAGE_EDIT_FAILED_MESSAGE,
   IMAGE_EDIT_LOAD_FAILED_MESSAGE,
   IMAGE_EDIT_STALE_MESSAGE,
+  LIBRARY_SAVE_FAILED_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
+import { saveExerciseCard } from "@rehab-grid/core/lib/db";
 import { estimatePdfLayout } from "@rehab-grid/core/lib/pdf/layout";
+import { type EditorItem } from "@rehab-grid/core/types";
 import {
   createEditedImageBlob,
   flipAndSaveImage,
@@ -32,6 +36,7 @@ import {
 } from "@rehab-grid/core/utils/imageEdit";
 import {
   Canvas,
+  ExerciseCardLibraryModal,
   ImageEditModal,
   type ImageEditResult,
   ImageLibraryPanel,
@@ -124,6 +129,7 @@ export function TrainingPage() {
   const settings = useEditorStore((state) => state.settings);
   const selectedItemId = useEditorStore((state) => state.selectedItemId);
   const addNewItem = useEditorStore((state) => state.addNewItem);
+  const addItem = useEditorStore((state) => state.addItem);
   const updateItem = useEditorStore((state) => state.updateItem);
   const deleteItem = useEditorStore((state) => state.deleteItem);
   const duplicateItem = useEditorStore((state) => state.duplicateItem);
@@ -135,6 +141,12 @@ export function TrainingPage() {
   const setSelectedItemId = useEditorStore((state) => state.setSelectedItemId);
   const setDesignSettingsOpen = useModalStore(
     (state) => state.setDesignSettingsOpen
+  );
+  const isExerciseCardLibraryOpen = useModalStore(
+    (state) => state.isExerciseCardLibraryOpen
+  );
+  const setExerciseCardLibraryOpen = useModalStore(
+    (state) => state.setExerciseCardLibraryOpen
   );
 
   // モバイルUI用ステート
@@ -231,6 +243,39 @@ export function TrainingPage() {
   const handleSheetSettingsClick = useCallback(() => {
     setDesignSettingsOpen(true, "sheet");
   }, [setDesignSettingsOpen]);
+
+  /**
+   * カードをマイ運動に保存
+   */
+  const handleSaveAsExerciseCard = useCallback(async (item: EditorItem) => {
+    try {
+      await saveExerciseCard(item);
+      toast.success(EXERCISE_CARD_SAVE_SUCCESS_MESSAGE);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : LIBRARY_SAVE_FAILED_MESSAGE
+      );
+    }
+  }, []);
+
+  /**
+   * マイ運動モーダルを開く（左サイドバーのボタン）
+   */
+  const handleOpenExerciseCards = useCallback(() => {
+    setExerciseCardLibraryOpen(true);
+  }, [setExerciseCardLibraryOpen]);
+
+  /**
+   * マイ運動のカードを末尾に追加（1 件の履歴になる）
+   */
+  const handleAddExerciseCard = useCallback(
+    (item: EditorItem) => {
+      if (addItem(item) === null) {
+        toast.info(createMaxItemCountReachedMessage(MAX_ITEM_COUNT));
+      }
+    },
+    [addItem]
+  );
 
   const handleItemsChange = reorderItems;
   const handleItemSelect = setSelectedItemId;
@@ -389,6 +434,9 @@ export function TrainingPage() {
   const handleImageEditClick = (itemId: string) => {
     void handleImageEditOpen(itemId);
   };
+  const handleSaveAsExerciseCardClick = (item: EditorItem) => {
+    void handleSaveAsExerciseCard(item);
+  };
 
   // 反映先となる他のカードがあるときだけ「全カードに反映」を出す
   const canApplyToAll = items.length > 1;
@@ -453,6 +501,7 @@ export function TrainingPage() {
           <ImageLibraryPanel
             onAddCard={handleAddCard}
             canAddCard={canAddCard}
+            onOpenExerciseCards={handleOpenExerciseCards}
           />
         </div>
       </aside>
@@ -496,6 +545,7 @@ export function TrainingPage() {
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
           onItemDuplicate={handleItemDuplicate}
+          onSaveAsExerciseCard={handleSaveAsExerciseCardClick}
           onApplyDosagesToAll={
             canApplyToAll ? handleApplyDosagesToAll : undefined
           }
@@ -538,6 +588,7 @@ export function TrainingPage() {
           onItemChange={handleItemChange}
           onItemDelete={handleItemDelete}
           onItemDuplicate={handleItemDuplicate}
+          onSaveAsExerciseCard={handleSaveAsExerciseCardClick}
           onApplyDosagesToAll={
             canApplyToAll ? handleApplyDosagesToAll : undefined
           }
@@ -550,6 +601,14 @@ export function TrainingPage() {
           dosageLabels={settings.dosageLabels}
         />
       </MobileSidebar>
+
+      {/* マイ運動モーダル（左サイドバー・モバイルのメニューから開く） */}
+      <ExerciseCardLibraryModal
+        open={isExerciseCardLibraryOpen}
+        onOpenChange={setExerciseCardLibraryOpen}
+        canAdd={canAddCard}
+        onAdd={handleAddExerciseCard}
+      />
 
       {/* 画像編集モーダル（開いている間だけ描画し、閉じると編集状態を破棄する） */}
       {imageEditTarget !== null ? (

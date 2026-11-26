@@ -14,6 +14,8 @@ import {
   createDisplayedImagesDeleteMessage,
   createImageDeleteSuccessMessage,
   DEFAULT_IMAGE_FILTER,
+  EXERCISE_CARD_ADD_BUTTON_LABEL,
+  getSampleThumbnailPath,
   IMAGE_ACCEPT_TYPES,
   IMAGE_DRAG_TYPE,
   IMAGE_FILTER_CATEGORIES,
@@ -27,7 +29,7 @@ import {
   IMPORTED_IMAGE_FILTER,
   SAMPLE_IMAGES,
 } from "@rehab-grid/core/lib/constants";
-import { db } from "@rehab-grid/core/lib/db";
+import { collectReferencedImageIds, db } from "@rehab-grid/core/lib/db";
 import { useEditorStore } from "@rehab-grid/core/lib/store/useEditorStore";
 import type { UnifiedImageRecord } from "@rehab-grid/core/types";
 import {
@@ -37,7 +39,7 @@ import {
 import { matchesSearchQuery } from "@rehab-grid/core/utils/search";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertCircle, AlertTriangle, Plus } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bookmark, Plus } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -56,6 +58,8 @@ type ImageLibraryPanelProps = {
   onAddCard?: () => void;
   /** カード追加が可能かどうか（最大数チェック用） */
   canAddCard?: boolean;
+  /** 「マイ運動から追加」ボタンが押されたときのコールバック（デスクトップのみ。未指定ならボタンを出さない） */
+  onOpenExerciseCards?: () => void;
   /** 画像選択時のコールバック（モバイル用） */
   onImageSelect?: (imageId: string) => void;
   /** モバイルモードかどうか */
@@ -68,6 +72,7 @@ type ImageLibraryPanelProps = {
 export function ImageLibraryPanel({
   onAddCard,
   canAddCard = true,
+  onOpenExerciseCards,
   onImageSelect,
   isMobile = false,
 }: ImageLibraryPanelProps) {
@@ -98,14 +103,25 @@ export function ImageLibraryPanel({
     []
   );
 
+  // 他の指導箋（編集中以外のプロジェクト）が参照している画像ID（削除確認で警告を出すため）
+  const projectId = useEditorStore((state) => state.projectId);
+  const otherProjectImageIdList = useLiveQuery(
+    async () => [...(await collectReferencedImageIds(projectId))],
+    [projectId]
+  );
+  const otherProjectImageIds = useMemo(
+    () => new Set(otherProjectImageIdList ?? []),
+    [otherProjectImageIdList]
+  );
+
   // 画像のサムネイルURLを生成（メモリリーク防止フック使用）
   const thumbnailUrls = useObjectUrls(images);
 
-  // サンプル画像のURLマップを生成
+  // サンプル画像のURLマップを生成（一覧は転送量を抑えるため軽量サムネイルを使う）
   const sampleImageUrls = useMemo(() => {
     const map = new Map<string, string>();
     for (const img of SAMPLE_IMAGES) {
-      map.set(img.id, img.path);
+      map.set(img.id, getSampleThumbnailPath(img.path));
     }
     return map;
   }, []);
@@ -170,6 +186,12 @@ export function ImageLibraryPanel({
     filterValue !== DEFAULT_IMAGE_FILTER || searchQuery.trim() !== "";
   const imageCount = filteredImages?.length ?? 0;
   const importedImageCount = images?.length ?? 0;
+  const selectedUsedElsewhereCount = [...selectedImageIds].filter((id) =>
+    otherProjectImageIds.has(id)
+  ).length;
+  const displayedUsedElsewhereCount = (filteredImages ?? []).filter(
+    (img) => !img.isSample && otherProjectImageIds.has(img.id)
+  ).length;
 
   // ========== Event Handlers ==========
 
@@ -450,15 +472,27 @@ export function ImageLibraryPanel({
       <div className="shrink-0 space-y-4">
         {/* カード追加ボタン（デスクトップのみ表示） */}
         {!isMobile && (
-          <Button
-            variant="outline"
-            className="w-full gap-2 bg-white"
-            onClick={handleAddCardClick}
-            disabled={!canAddCard}
-          >
-            <Plus className="size-4" />
-            {BUTTON_ADD_CARD}
-          </Button>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="w-full gap-2 bg-white"
+              onClick={handleAddCardClick}
+              disabled={!canAddCard}
+            >
+              <Plus className="size-4" />
+              {BUTTON_ADD_CARD}
+            </Button>
+            {onOpenExerciseCards ? (
+              <Button
+                variant="outline"
+                className="w-full gap-2 bg-white"
+                onClick={onOpenExerciseCards}
+              >
+                <Bookmark className="size-4 text-teal-600" />
+                {EXERCISE_CARD_ADD_BUTTON_LABEL}
+              </Button>
+            ) : null}
+          </div>
         )}
 
         {/* 非表示のファイル選択input */}
@@ -539,6 +573,7 @@ export function ImageLibraryPanel({
         thumbnailUrls={allThumbnailUrls}
         isBulkDeleteMode={isBulkDeleteMode}
         selectedImageIds={selectedImageIds}
+        otherProjectImageIds={otherProjectImageIds}
         isMobile={isMobile}
         draggingImageId={draggingImageId}
         isFiltered={isFiltered}
@@ -553,7 +588,9 @@ export function ImageLibraryPanel({
       <BulkDeleteControls
         isBulkDeleteMode={isBulkDeleteMode}
         selectedCount={selectedImageIds.size}
+        selectedUsedElsewhereCount={selectedUsedElsewhereCount}
         imageCount={imageCount}
+        displayedUsedElsewhereCount={displayedUsedElsewhereCount}
         importedImageCount={importedImageCount}
         isFiltered={isFiltered}
         onToggleBulkDeleteMode={handleToggleBulkDeleteMode}

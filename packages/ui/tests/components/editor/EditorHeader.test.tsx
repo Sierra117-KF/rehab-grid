@@ -1,7 +1,6 @@
 import {
   BUTTON_BACKUP,
   BUTTON_CANCEL,
-  BUTTON_CONTINUE,
   BUTTON_DELETE,
   DEFAULT_PROJECT_TITLE,
   DESIGN_SETTINGS_LABEL,
@@ -11,6 +10,8 @@ import {
   IMPORT_CONFIRM_DESCRIPTION,
   IMPORT_CONFIRM_TITLE,
   IMPORT_OPEN_LABEL,
+  OPEN_AS_NEW_PROJECT_LABEL,
+  OVERWRITE_CURRENT_PROJECT_LABEL,
   PDF_DOWNLOAD_LABEL,
   PDF_GENERATING_SHORT,
   PDF_MENU_LABEL,
@@ -19,9 +20,11 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  PROJECT_LIST_LABEL,
   REDO_TOOLTIP,
   TEMPLATE_BUTTON_LABEL,
   UNDO_TOOLTIP,
+  USER_TEMPLATE_SAVE_SUCCESS_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import type { EditorItem, LayoutType, ProjectMeta } from "@rehab-grid/core/types";
@@ -50,7 +53,7 @@ const {
   mockToastSuccess,
   mockToastError,
   mockToastInfo,
-  mockInitializeFromDB,
+  mockOpenImportResult,
   mockDeleteProject,
   mockUpdateSettings,
   mockSetProjectTitle,
@@ -60,13 +63,18 @@ const {
   mockDownloadProjectAsJSON,
   mockDownloadProjectAsZIP,
   mockImportProject,
-  mockApplyImportResult,
   mockLoadTemplate,
+  mockLoadUserTemplate,
+  mockSaveUserTemplate,
 } = vi.hoisted(() => ({
+  mockLoadUserTemplate: vi
+    .fn()
+    .mockResolvedValue({ meta: {}, items: [], settings: {} }),
+  mockSaveUserTemplate: vi.fn().mockResolvedValue("user-template-1"),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
-  mockInitializeFromDB: vi.fn(),
+  mockOpenImportResult: vi.fn().mockResolvedValue(undefined),
   mockDeleteProject: vi.fn().mockResolvedValue(undefined),
   mockUpdateSettings: vi.fn(),
   mockSetProjectTitle: vi.fn(),
@@ -80,7 +88,6 @@ const {
   mockImportProject: vi
     .fn()
     .mockResolvedValue({ meta: {}, items: [], settings: {} }),
-  mockApplyImportResult: vi.fn().mockResolvedValue(undefined),
   mockLoadTemplate: vi
     .fn()
     .mockResolvedValue({ meta: {}, items: [], settings: {} }),
@@ -143,7 +150,7 @@ vi.mock("@/lib/store/useEditorStore", () => ({
   useEditorStore: (
     selector: (
       state: typeof mockStoreState & {
-        initializeFromDB: typeof mockInitializeFromDB;
+        openImportResult: typeof mockOpenImportResult;
         deleteProject: typeof mockDeleteProject;
         updateSettings: typeof mockUpdateSettings;
         setProjectTitle: typeof mockSetProjectTitle;
@@ -154,7 +161,7 @@ vi.mock("@/lib/store/useEditorStore", () => ({
   ) => {
     const fullState = {
       ...mockStoreState,
-      initializeFromDB: mockInitializeFromDB,
+      openImportResult: mockOpenImportResult,
       deleteProject: mockDeleteProject,
       updateSettings: mockUpdateSettings,
       setProjectTitle: mockSetProjectTitle,
@@ -190,17 +197,11 @@ vi.mock("@/utils/export", () => ({
 }));
 
 /**
- * プロジェクト関連ユーティリティのモック
- */
-vi.mock("@/utils/project", () => ({
-  applyImportResult: mockApplyImportResult,
-}));
-
-/**
  * テンプレート関連ユーティリティのモック
  */
 vi.mock("@/utils/template", () => ({
   loadTemplate: mockLoadTemplate,
+  loadUserTemplate: mockLoadUserTemplate,
 }));
 
 /**
@@ -278,17 +279,50 @@ vi.mock("@/components/editor/TemplateSelectModal", () => ({
   TemplateSelectModal: ({
     open,
     onSelect,
+    onSaveCurrent,
   }: {
     open: boolean;
-    onSelect: (id: string) => void;
+    onSelect: (
+      id: string,
+      mode: "new" | "overwrite",
+      source: "official" | "user"
+    ) => void;
+    onSaveCurrent: (name: string) => void;
   }) =>
     open ? (
       <div data-testid="template-select-modal">
-        <button type="button" onClick={() => onSelect("template-1")}>
+        <button
+          type="button"
+          onClick={() => onSelect("template-1", "new", "official")}
+        >
           テンプレート選択
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("user-template-1", "overwrite", "user")}
+        >
+          マイテンプレート選択
+        </button>
+        <button type="button" onClick={() => onSaveCurrent("膝の自主トレ")}>
+          マイテンプレートとして保存
         </button>
       </div>
     ) : null,
+}));
+
+/**
+ * マイテンプレートの保存（IndexedDB）のモック
+ */
+vi.mock("@/lib/db", () => ({
+  saveUserTemplate: mockSaveUserTemplate,
+}));
+
+/**
+ * ProjectListModal のモック（一覧の中身は ProjectListModal.test.tsx で確認する）
+ */
+vi.mock("@/components/editor/ProjectListModal", () => ({
+  ProjectListModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="project-list-modal">マイ指導箋一覧</div> : null,
 }));
 
 /**
@@ -539,13 +573,27 @@ describe("ImportConfirmDialog", () => {
     expect(screen.getByText(IMPORT_CONFIRM_DESCRIPTION)).toBeInTheDocument();
   });
 
-  it("「続行」クリックで onConfirm が呼ばれる", async () => {
+  it("「新しい指導箋で開く」クリックで onConfirm が new で呼ばれる", async () => {
     const user = userEvent.setup();
     const props = setupImportConfirmDialog({ open: true });
 
-    await user.click(screen.getByRole("button", { name: BUTTON_CONTINUE }));
+    await user.click(
+      screen.getByRole("button", { name: OPEN_AS_NEW_PROJECT_LABEL })
+    );
 
     expect(props.onConfirm).toHaveBeenCalledTimes(1);
+    expect(props.onConfirm).toHaveBeenCalledWith("new");
+  });
+
+  it("「現在の指導箋に上書き」クリックで onConfirm が overwrite で呼ばれる", async () => {
+    const user = userEvent.setup();
+    const props = setupImportConfirmDialog({ open: true });
+
+    await user.click(
+      screen.getByRole("button", { name: OVERWRITE_CURRENT_PROJECT_LABEL })
+    );
+
+    expect(props.onConfirm).toHaveBeenCalledWith("overwrite");
   });
 
   it("「キャンセル」クリックで onCancel が呼ばれる", async () => {
@@ -864,6 +912,149 @@ describe("EditorHeader", () => {
       );
 
       expect(screen.getByTestId("template-select-modal")).toBeInTheDocument();
+    });
+
+    it("選んだ開き方でテンプレートを開く", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(screen.getByRole("button", { name: "テンプレート選択" }));
+
+      await waitFor(() => {
+        expect(mockOpenImportResult).toHaveBeenCalledWith(
+          { meta: {}, items: [], settings: {} },
+          "new"
+        );
+      });
+      expect(mockLoadTemplate).toHaveBeenCalledWith("template-1");
+    });
+
+    it("マイテンプレートは IndexedDB から読み込んで開く", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレート選択" })
+      );
+
+      await waitFor(() => {
+        expect(mockOpenImportResult).toHaveBeenCalledWith(
+          { meta: {}, items: [], settings: {} },
+          "overwrite"
+        );
+      });
+      expect(mockLoadUserTemplate).toHaveBeenCalledWith("user-template-1");
+      expect(mockLoadTemplate).not.toHaveBeenCalled();
+    });
+
+    it("編集中の指導箋をマイテンプレートとして保存し、完了を通知する", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレートとして保存" })
+      );
+
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith(
+          USER_TEMPLATE_SAVE_SUCCESS_MESSAGE
+        );
+      });
+      expect(mockSaveUserTemplate).toHaveBeenCalledWith("膝の自主トレ", {
+        meta: mockStoreState.meta,
+        settings: mockStoreState.settings,
+        items: mockStoreState.items,
+      });
+    });
+
+    it("マイテンプレートの保存に失敗したらエラーを通知する", async () => {
+      const user = userEvent.setup();
+      mockSaveUserTemplate.mockRejectedValueOnce(new Error("保存エラー"));
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEMPLATE_BUTTON_LABEL) })
+      );
+      await user.click(
+        screen.getByRole("button", { name: "マイテンプレートとして保存" })
+      );
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("保存エラー");
+      });
+    });
+  });
+
+  describe("インポート（指導箋を開く）", () => {
+    /** 隠しファイル入力にファイルを選ばせる */
+    const selectFile = async (user: ReturnType<typeof userEvent.setup>) => {
+      const file = new File(["{}"], "project.json", {
+        type: "application/json",
+      });
+      await user.upload(
+        screen.getByLabelText("プロジェクトファイルを選択"),
+        file
+      );
+      return file;
+    };
+
+    it("カードがなければ確認せずに現在の指導箋へ上書きで開く", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      const file = await selectFile(user);
+
+      await waitFor(() => {
+        expect(mockOpenImportResult).toHaveBeenCalledWith(
+          { meta: {}, items: [], settings: {} },
+          "overwrite"
+        );
+      });
+      expect(mockImportProject).toHaveBeenCalledWith(file);
+      expect(screen.queryByText(IMPORT_CONFIRM_TITLE)).not.toBeInTheDocument();
+    });
+
+    it("カードがあれば開き方を選ばせ、選んだ開き方で開く", async () => {
+      mockStoreState.items = [createTestItem()];
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await selectFile(user);
+      expect(screen.getByText(IMPORT_CONFIRM_TITLE)).toBeInTheDocument();
+      expect(mockOpenImportResult).not.toHaveBeenCalled();
+
+      await user.click(
+        screen.getByRole("button", { name: OPEN_AS_NEW_PROJECT_LABEL })
+      );
+
+      await waitFor(() => {
+        expect(mockOpenImportResult).toHaveBeenCalledWith(
+          { meta: {}, items: [], settings: {} },
+          "new"
+        );
+      });
+    });
+  });
+
+  describe("マイ指導箋", () => {
+    it("マイ指導箋ボタンをクリックすると指導箋一覧が表示される", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: PROJECT_LIST_LABEL })
+      );
+
+      expect(screen.getByTestId("project-list-modal")).toBeInTheDocument();
     });
   });
 

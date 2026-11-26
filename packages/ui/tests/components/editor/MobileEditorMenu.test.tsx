@@ -1,5 +1,7 @@
 import {
   DESIGN_SETTINGS_LABEL,
+  EXERCISE_CARD_ADD_BUTTON_LABEL,
+  PROJECT_LIST_LABEL,
   REDO_LABEL,
   UNDO_LABEL,
 } from "@rehab-grid/core/lib/constants";
@@ -33,9 +35,11 @@ function setupMenu({ canUndo = false, canRedo = false } = {}) {
     canRedo,
     onUndo: vi.fn(),
     onRedo: vi.fn(),
+    onProjectListClick: vi.fn(),
     layoutType: "grid2" as const,
     onDesignSettingsClick: vi.fn(),
     onTemplateClick: vi.fn(),
+    onExerciseCardsClick: vi.fn(),
     onOpenClick: vi.fn(),
     isImporting: false,
     onExportJSON: vi.fn(),
@@ -75,6 +79,34 @@ describe("MobileEditorMenu", () => {
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
       expect(props.onRedo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("マイ指導箋", () => {
+    it("押すとメニューを閉じて指導箋一覧を開く", async () => {
+      const user = userEvent.setup();
+      const props = setupMenu();
+
+      await user.click(
+        screen.getByRole("button", { name: PROJECT_LIST_LABEL })
+      );
+
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onProjectListClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("マイ運動から追加", () => {
+    it("押すとメニューを閉じてマイ運動を開く", async () => {
+      const user = userEvent.setup();
+      const props = setupMenu();
+
+      await user.click(
+        screen.getByRole("button", { name: EXERCISE_CARD_ADD_BUTTON_LABEL })
+      );
+
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onExerciseCardsClick).toHaveBeenCalledTimes(1);
     });
   });
 

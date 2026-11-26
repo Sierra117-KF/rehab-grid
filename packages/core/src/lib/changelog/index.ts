@@ -25,18 +25,48 @@ export function formatDate(isoDate: string): string {
 }
 
 /**
+ * バージョン文字列（例: "v1.3.0"）を数値配列に分解する
+ *
+ * @param version - バージョン文字列
+ * @returns パースできた場合は数値配列、形式外なら null
+ */
+function parseVersion(version: string): number[] | null {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(version.trim());
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+/**
+ * 2 つのバージョンを降順（新しい方が先）で比較する
+ */
+function compareVersionDesc(a: string, b: string): number {
+  const parsedA = parseVersion(a);
+  const parsedB = parseVersion(b);
+  if (parsedA === null || parsedB === null) return 0;
+
+  for (let i = 0; i < parsedA.length; i += 1) {
+    const diff = (parsedB[i] ?? 0) - (parsedA[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/**
  * 日付でソートした全エントリを取得（新しい順）
  *
  * @remarks
- * entries配列の順序に依存せず、常に日付でソートして返す。
+ * entries配列の順序に依存せず、常に日付の新しい順でソートして返す。
+ * 同じ日付に複数のバージョンがある場合はセマンティックバージョンの降順で並べる。
  * 更新履歴ページなど、全エントリを表示する場合に使用する。
  *
  * @returns 全エントリ配列（新しい順）
  */
 export function getSortedEntries(): ChangelogEntry[] {
-  return [...entries].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  return [...entries].sort((a, b) => {
+    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    return compareVersionDesc(a.version, b.version);
+  });
 }
 
 /**

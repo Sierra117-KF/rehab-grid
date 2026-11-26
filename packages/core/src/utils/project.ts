@@ -2,29 +2,27 @@
  * プロジェクト関連のユーティリティ関数
  */
 
-import { CURRENT_PROJECT_ID } from "@rehab-grid/core/lib/constants";
-import { db } from "@rehab-grid/core/lib/db";
-import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
+import { createProjectRecord, db } from "@rehab-grid/core/lib/db";
+import { type ImportResult } from "@rehab-grid/core/types";
 
 /**
- * インポート結果をアプリに適用する
+ * インポート結果を IndexedDB に保存する
  *
- * 画像をIndexedDBに保存し、プロジェクトを保存・ストアに反映する。
- * インポートとテンプレート適用の共通処理を抽出したもの。
+ * 画像とプロジェクトを 1 つのトランザクションで保存する。
+ * インポートとテンプレート適用の共通処理。ストアへの反映は呼び出し側（ストアの openImportResult）が行う。
  *
  * @param result - インポート結果（プロジェクトデータと画像のマップ）
- * @param initializeFromDB - ストア初期化関数
+ * @param projectId - 保存先のプロジェクトID（新しい指導箋として開く場合は新しいID）
  *
  * @example
  * ```typescript
  * const result = await importProject(file);
- * await applyImportResult(result, initializeFromDB);
- * toast.success("インポートしました");
+ * await applyImportResult(result, projectId);
  * ```
  */
 export async function applyImportResult(
   result: ImportResult,
-  initializeFromDB: (project: ProjectFile) => void
+  projectId: string
 ): Promise<void> {
   const { project, images } = result;
   const now = new Date();
@@ -42,22 +40,6 @@ export async function applyImportResult(
     }
 
     // プロジェクトをIndexedDBに保存
-    const updatedProject: ProjectFile = {
-      ...project,
-      meta: {
-        ...project.meta,
-        updatedAt: now.toISOString(),
-      },
-    };
-
-    await db.projects.put({
-      id: CURRENT_PROJECT_ID,
-      title: updatedProject.meta.title,
-      data: updatedProject,
-      updatedAt: now,
-    });
+    await db.projects.put(createProjectRecord(projectId, project));
   });
-
-  // ストアを更新（トランザクション成功後のみ実行される）
-  initializeFromDB(project);
 }

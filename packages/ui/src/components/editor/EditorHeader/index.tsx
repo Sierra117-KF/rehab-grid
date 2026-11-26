@@ -12,6 +12,7 @@ import {
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
   IMPORT_SUCCESS_MESSAGE,
+  LIBRARY_SAVE_FAILED_MESSAGE,
   PDF_DOWNLOAD_SUCCESS,
   PDF_GENERATE_FAILED,
   PDF_GENERATING_MESSAGE,
@@ -21,18 +22,26 @@ import {
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
   PROJECT_DELETE_TOOLTIP,
+  PROJECT_LIST_LABEL,
+  PROJECT_LIST_TOOLTIP,
   REDO_TOOLTIP,
   TEMPLATE_APPLY_SUCCESS,
   TEMPLATE_BUTTON_LABEL,
   TEMPLATE_LOAD_ERROR,
   UNDO_TOOLTIP,
   UNKNOWN_ERROR_MESSAGE,
+  USER_TEMPLATE_SAVE_SUCCESS_MESSAGE,
 } from "@rehab-grid/core/lib/constants";
+import { saveUserTemplate } from "@rehab-grid/core/lib/db";
 import {
   stateToProjectFile,
   useEditorStore,
 } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
+import {
+  type ImportOpenMode,
+  type TemplateSource,
+} from "@rehab-grid/core/types";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
@@ -43,10 +52,13 @@ import {
   generatePdfFilename,
   preparePdfGenerationData,
 } from "@rehab-grid/core/utils/pdf";
-import { applyImportResult } from "@rehab-grid/core/utils/project";
-import { loadTemplate } from "@rehab-grid/core/utils/template";
+import {
+  loadTemplate,
+  loadUserTemplate,
+} from "@rehab-grid/core/utils/template";
 import { DesignSettingsDialog } from "@rehab-grid/ui/components/editor/DesignSettingsDialog";
 import { PdfPreviewModal } from "@rehab-grid/ui/components/editor/PdfPreviewModal";
+import { ProjectListModal } from "@rehab-grid/ui/components/editor/ProjectListModal";
 import { TemplateSelectModal } from "@rehab-grid/ui/components/editor/TemplateSelectModal";
 import { MobileDropdownMenu } from "@rehab-grid/ui/components/layout/MobileDropdownMenu";
 import { MobileFloatingHeader } from "@rehab-grid/ui/components/layout/MobileFloatingHeader";
@@ -62,6 +74,7 @@ import {
 } from "@rehab-grid/ui/components/wrapped/AlertDialog";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
+  Files,
   FolderOpen,
   LayoutTemplate,
   Loader2,
@@ -112,7 +125,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const meta = useEditorStore((state) => state.meta);
   const items = useEditorStore((state) => state.items);
   const settings = useEditorStore((state) => state.settings);
-  const initializeFromDB = useEditorStore((state) => state.initializeFromDB);
+  const openImportResult = useEditorStore((state) => state.openImportResult);
   const deleteProject = useEditorStore((state) => state.deleteProject);
   const updateSettings = useEditorStore((state) => state.updateSettings);
   const undo = useEditorStore((state) => state.undo);
@@ -134,6 +147,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   // テンプレート関連の状態
   const [showTemplateModal, setShowTemplateModal] = useState(false);
 
+  // 指導箋一覧（マイ指導箋）の開閉
+  const [showProjectList, setShowProjectList] = useState(false);
+
   // プロジェクト削除関連の状態
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
 
@@ -146,6 +162,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   );
   const designSettingsSection = useModalStore(
     (state) => state.designSettingsSection
+  );
+  const setExerciseCardLibraryOpen = useModalStore(
+    (state) => state.setExerciseCardLibraryOpen
   );
 
   // モバイルメニュー関連の状態
@@ -258,13 +277,15 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   /**
    * インポートを実行
+   *
+   * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
   const executeImport = useCallback(
-    async (file: File) => {
+    async (file: File, mode: ImportOpenMode) => {
       setIsImporting(true);
       try {
         const result = await importProject(file);
-        await applyImportResult(result, initializeFromDB);
+        await openImportResult(result, mode);
         toast.success(IMPORT_SUCCESS_MESSAGE);
       } catch (error) {
         const message =
@@ -275,7 +296,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         setPendingFile(null);
       }
     },
-    [initializeFromDB],
+    [openImportResult],
   );
 
   /**
@@ -289,26 +310,30 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       // input をリセット（同じファイルを再選択できるように）
       event.target.value = "";
 
-      // 既存データがあれば確認ダイアログを表示
+      // 編集中のカードがあれば、新しい指導箋として開くか上書きするかを選ばせる
+      // （空の指導箋はそのまま上書きする。空の指導箋を一覧に残さないため）
       if (items.length > 0) {
         setPendingFile(file);
         setShowConfirmDialog(true);
       } else {
-        void executeImport(file);
+        void executeImport(file, "overwrite");
       }
     },
     [items.length, executeImport],
   );
 
   /**
-   * 確認ダイアログでの続行
+   * 確認ダイアログで開き方を選んだとき
    */
-  const handleConfirmImport = useCallback(() => {
-    setShowConfirmDialog(false);
-    if (pendingFile) {
-      void executeImport(pendingFile);
-    }
-  }, [pendingFile, executeImport]);
+  const handleConfirmImport = useCallback(
+    (mode: ImportOpenMode) => {
+      setShowConfirmDialog(false);
+      if (pendingFile) {
+        void executeImport(pendingFile, mode);
+      }
+    },
+    [pendingFile, executeImport],
+  );
 
   /**
    * 確認ダイアログでのキャンセル
@@ -343,13 +368,16 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, []);
 
   /**
-   * テンプレート選択時の処理
+   * テンプレート選択時の処理（公式テンプレート・マイテンプレート）
    */
   const handleTemplateSelect = useCallback(
-    async (templateId: string) => {
+    async (templateId: string, mode: ImportOpenMode, source: TemplateSource) => {
       try {
-        const result = await loadTemplate(templateId);
-        await applyImportResult(result, initializeFromDB);
+        const result =
+          source === "user"
+            ? await loadUserTemplate(templateId)
+            : await loadTemplate(templateId);
+        await openImportResult(result, mode);
         toast.success(TEMPLATE_APPLY_SUCCESS);
       } catch (error) {
         const message =
@@ -357,8 +385,42 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         toast.error(message);
       }
     },
-    [initializeFromDB],
+    [openImportResult],
   );
+
+  /**
+   * 編集中の指導箋をマイテンプレートとして保存する
+   */
+  const handleSaveAsUserTemplate = useCallback(
+    async (name: string) => {
+      try {
+        await saveUserTemplate(
+          name,
+          stateToProjectFile({ meta, settings, items }),
+        );
+        toast.success(USER_TEMPLATE_SAVE_SUCCESS_MESSAGE);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : LIBRARY_SAVE_FAILED_MESSAGE;
+        toast.error(message);
+      }
+    },
+    [meta, settings, items],
+  );
+
+  /**
+   * マイ運動モーダルを開く（モバイルのメニューから）
+   */
+  const handleOpenExerciseCards = useCallback(() => {
+    setExerciseCardLibraryOpen(true);
+  }, [setExerciseCardLibraryOpen]);
+
+  /**
+   * 指導箋一覧を開く
+   */
+  const handleOpenProjectList = useCallback(() => {
+    setShowProjectList(true);
+  }, []);
 
   /**
    * プロジェクト削除ダイアログを開く
@@ -371,8 +433,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * プロジェクト削除確認時の処理
    *
    * @remarks
-   * ストアの deleteProject アクションを使用して、IndexedDB削除と
-   * ストア状態のリセットを一括で実行する。
+   * ストアの deleteProject アクションで編集中のプロジェクトを IndexedDB から削除し、
+   * 残りのうち最新の指導箋（なければ新しい空の指導箋）を開く。
    */
   const handleConfirmDeleteProject = useCallback(async () => {
     try {
@@ -492,9 +554,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               canRedo={canRedo}
               onUndo={undo}
               onRedo={redo}
+              onProjectListClick={handleOpenProjectList}
               layoutType={settings.layoutType}
               onDesignSettingsClick={handleOpenDesignSettings}
               onTemplateClick={handleTemplateButtonClick}
+              onExerciseCardsClick={handleOpenExerciseCards}
               onOpenClick={handleOpenClick}
               isImporting={isImporting}
               onExportJSON={handleExportJSON}
@@ -507,12 +571,12 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       ) : (
         /* デスクトップ版ヘッダー */
         <header className="h-14 border-b border-border/40 bg-white">
-          <div className="relative flex h-full items-center px-8">
-            {/* 左側: ロゴ + アプリ名 */}
-            <div className="relative z-10 flex items-center">
+          <div className="relative flex h-full items-center gap-4 px-4 xl:px-8">
+            {/* 左側: ロゴ + アプリ名（右側のボタンに押されて縦に折り返さないよう縮めない） */}
+            <div className="relative z-10 flex shrink-0 items-center">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-lg font-bold tracking-tight transition-colors hover:text-primary"
+                className="flex items-center gap-2 whitespace-nowrap text-lg font-bold tracking-tight transition-colors hover:text-primary"
                 title={HOME_LINK_TOOLTIP}
               >
                 <Image
@@ -552,7 +616,22 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 <Redo2 className="size-4" />
               </Button>
 
-              {/* プロジェクト名 + 削除ボタン */}
+              {/* 指導箋一覧 + プロジェクト名 + 削除ボタン */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-foreground"
+                onClick={handleOpenProjectList}
+                title={PROJECT_LIST_TOOLTIP}
+                aria-label={PROJECT_LIST_LABEL}
+              >
+                <Files className="size-4 text-orange-500" />
+                {/* ヘッダーに余裕のない幅（2xl 未満）ではアイコンのみ（ツールチップで補う）。
+                    xl で出すと、長いタイトルのときに 1280px 前後で収まらない */}
+                <span className="hidden 2xl:inline">
+                  {PROJECT_LIST_LABEL}
+                </span>
+              </Button>
               <ProjectInfo />
               <Button
                 variant="ghost"
@@ -567,15 +646,18 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
               {/* セパレーター */}
               <div className="mx-1 h-6 w-px bg-border" />
+              {/* ヘッダーに余裕のない幅（xl 未満）ではアイコンのみ（ツールチップで補う） */}
               {/* デザイン設定ボタン */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenDesignSettings}
+                title={DESIGN_SETTINGS_LABEL}
+                aria-label={DESIGN_SETTINGS_LABEL}
               >
                 <Palette className="size-4 text-sky-500" />
-                <span>{DESIGN_SETTINGS_LABEL}</span>
+                <span className="hidden xl:inline">{DESIGN_SETTINGS_LABEL}</span>
               </Button>
 
               {/* テンプレートボタン */}
@@ -584,9 +666,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleTemplateButtonClick}
+                title={TEMPLATE_BUTTON_LABEL}
+                aria-label={TEMPLATE_BUTTON_LABEL}
               >
                 <LayoutTemplate className="size-4 text-violet-500" />
-                <span>{TEMPLATE_BUTTON_LABEL}</span>
+                <span className="hidden xl:inline">{TEMPLATE_BUTTON_LABEL}</span>
               </Button>
 
               {/* 開くボタン */}
@@ -596,13 +680,17 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenClick}
                 disabled={isImporting}
+                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+                aria-label={
+                  isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL
+                }
               >
                 {isImporting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <FolderOpen className="size-4 text-emerald-500" />
                 )}
-                <span>
+                <span className="hidden xl:inline">
                   {isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
                 </span>
               </Button>
@@ -628,12 +716,18 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         </header>
       )}
 
-      {/* 上書き確認ダイアログ */}
+      {/* インポートの開き方（新規 / 上書き）の確認ダイアログ */}
       <ImportConfirmDialog
         open={showConfirmDialog}
         onOpenChange={handleDialogOpenChange}
         onConfirm={handleConfirmImport}
         onCancel={handleCancelImport}
+      />
+
+      {/* 指導箋一覧（マイ指導箋） */}
+      <ProjectListModal
+        open={showProjectList}
+        onOpenChange={setShowProjectList}
       />
 
       {/* PDFプレビューモーダル */}
@@ -650,6 +744,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         onOpenChange={handleTemplateModalOpenChange}
         onSelect={handleTemplateSelect}
         requireConfirmation={items.length > 0}
+        currentTitle={meta.title}
+        canSaveCurrent={items.length > 0}
+        onSaveCurrent={handleSaveAsUserTemplate}
       />
 
       {/* デザイン設定ダイアログ */}

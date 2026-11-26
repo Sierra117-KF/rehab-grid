@@ -11,6 +11,7 @@ import {
   BUTTON_DELETE,
   IMAGE_DELETE_DESCRIPTION,
   IMAGE_DELETE_TITLE,
+  IMAGE_USED_IN_OTHER_PROJECTS_WARNING,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { UnifiedImageRecord } from "@rehab-grid/core/types";
@@ -28,6 +29,8 @@ import {
 import { CheckCircle, ImagePlus, Trash2 } from "lucide-react";
 import Image from "next/image";
 
+import { UsedInOtherProjectsWarning } from "./UsedInOtherProjectsWarning";
+
 /**
  * サムネイルカードの Props
  */
@@ -40,6 +43,8 @@ type ThumbnailCardProps = {
   isBulkDeleteMode: boolean;
   /** 選択状態かどうか */
   isSelected: boolean;
+  /** 他の指導箋でも使われているか（削除確認で警告を出す） */
+  isUsedInOtherProjects: boolean;
   /** モバイルモードかどうか */
   isMobile: boolean;
   /** ドラッグ中の画像ID */
@@ -64,6 +69,7 @@ export function ThumbnailCard({
   thumbnailUrl,
   isBulkDeleteMode,
   isSelected,
+  isUsedInOtherProjects,
   isMobile,
   draggingImageId,
   animationIndex,
@@ -183,6 +189,11 @@ export function ThumbnailCard({
               <AlertDialogDescription>
                 {IMAGE_DELETE_DESCRIPTION}
               </AlertDialogDescription>
+              {isUsedInOtherProjects ? (
+                <UsedInOtherProjectsWarning>
+                  {IMAGE_USED_IN_OTHER_PROJECTS_WARNING}
+                </UsedInOtherProjectsWarning>
+              ) : null}
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>{BUTTON_CANCEL}</AlertDialogCancel>

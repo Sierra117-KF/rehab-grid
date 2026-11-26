@@ -5,6 +5,7 @@ import {
   DELETE_CONFIRM_DESCRIPTION,
   DELETE_CONFIRM_TITLE,
   DUPLICATE_BUTTON_LABEL,
+  EXERCISE_CARD_SAVE_LABEL,
   IMAGE_EDIT_LABEL,
   IMAGE_FLIP_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
@@ -515,6 +516,32 @@ describe("PropertyPanel", () => {
 
       expect(
         screen.queryByRole("button", { name: DUPLICATE_BUTTON_LABEL })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("マイ運動に保存", () => {
+    it("onSaveAsExerciseCard が渡された場合、保存ボタンで選択中のカードが渡される", async () => {
+      const user = userEvent.setup();
+      const mockOnSave = vi.fn();
+      const item = createTestItem({
+        id: "save-me",
+        dosages: { reps: "10回", sets: "", frequency: "" },
+      });
+      setupPropertyPanel({ selectedItem: item, onSaveAsExerciseCard: mockOnSave });
+
+      await user.click(
+        screen.getByRole("button", { name: EXERCISE_CARD_SAVE_LABEL })
+      );
+
+      expect(mockOnSave).toHaveBeenCalledWith(item);
+    });
+
+    it("onSaveAsExerciseCard が渡されない場合、保存ボタンが表示されない", () => {
+      setupPropertyPanel({ selectedItem: createTestItem() });
+
+      expect(
+        screen.queryByRole("button", { name: EXERCISE_CARD_SAVE_LABEL })
       ).not.toBeInTheDocument();
     });
   });

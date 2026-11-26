@@ -35,6 +35,8 @@ type ThumbnailGridProps = {
   isBulkDeleteMode: boolean;
   /** 選択された画像IDのセット */
   selectedImageIds: Set<string>;
+  /** 他の指導箋で使われている画像IDのセット（削除確認で警告を出す） */
+  otherProjectImageIds: Set<string>;
   /** モバイルモードかどうか */
   isMobile: boolean;
   /** ドラッグ中の画像ID */
@@ -61,6 +63,7 @@ export function ThumbnailGrid({
   thumbnailUrls,
   isBulkDeleteMode,
   selectedImageIds,
+  otherProjectImageIds,
   isMobile,
   draggingImageId,
   isFiltered,
@@ -97,6 +100,9 @@ export function ThumbnailGrid({
       return images.map((image, i) => {
         const isSelected = selectedImageIds.has(image.id);
         const thumbnailUrl = thumbnailUrls.get(image.id);
+        // ホバー拡大はセルより大きく表示するため、サンプル画像は軽量サムネイルではなく元画像を使う
+        const previewUrl =
+          image.isSample && image.path !== undefined ? image.path : thumbnailUrl;
         const displayName = getDisplayFileName(image.fileName);
 
         // サムネイルカード
@@ -106,6 +112,7 @@ export function ThumbnailGrid({
             thumbnailUrl={thumbnailUrl}
             isBulkDeleteMode={isBulkDeleteMode}
             isSelected={isSelected}
+            isUsedInOtherProjects={otherProjectImageIds.has(image.id)}
             isMobile={isMobile}
             draggingImageId={draggingImageId}
             animationIndex={i}
@@ -133,10 +140,10 @@ export function ThumbnailGrid({
               className="pointer-events-none w-44 p-2"
             >
               <div className="space-y-2">
-                {thumbnailUrl !== undefined ? (
+                {previewUrl !== undefined ? (
                   <div className="relative size-40">
                     <Image
-                      src={thumbnailUrl}
+                      src={previewUrl}
                       alt={displayName}
                       fill
                       sizes="160px"

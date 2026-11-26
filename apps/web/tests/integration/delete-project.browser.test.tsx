@@ -76,6 +76,11 @@ vi.mock("@/lib/db", () => ({
     items: [],
   }),
   deleteProject: mockDeleteProject,
+  deleteImage: vi.fn().mockResolvedValue(undefined),
+  listProjects: vi.fn().mockResolvedValue([]),
+  duplicateProject: vi.fn().mockResolvedValue(undefined),
+  createProjectRecord: vi.fn((id: string, data: unknown) => ({ id, data })),
+  getUserTemplate: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ========== テスト用コンポーネント ==========

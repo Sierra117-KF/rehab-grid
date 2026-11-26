@@ -14,6 +14,11 @@ export type {
   UnifiedImageRecord,
 } from "./editor";
 export type { NavLink } from "./layout";
+export type {
+  CustomSnippetRecord,
+  ExerciseCardRecord,
+  UserTemplateRecord,
+} from "./library";
 export type { DesignSettingsSection, ModalState } from "./modal";
 export type {
   PdfGenerationData,
@@ -25,6 +30,7 @@ export type {
   CheckTableType,
   DosageLabels,
   ImageRecord,
+  ImportOpenMode,
   ImportResult,
   PageOrientation,
   PrintColorMode,
@@ -32,9 +38,10 @@ export type {
   ProjectMeta,
   ProjectRecord,
   ProjectSettings,
+  ProjectSummary,
   ResolvedProjectSettings,
   SheetDateMode,
   SheetHeaderSettings,
   TextScale,
 } from "./project";
-export type { TemplateMetadata } from "./template";
+export type { TemplateMetadata, TemplateSource } from "./template";

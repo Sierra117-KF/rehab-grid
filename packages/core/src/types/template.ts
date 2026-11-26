@@ -21,3 +21,11 @@ export type TemplateMetadata = {
   /** public/templates/ からの相対パス */
   path: string;
 };
+
+/**
+ * テンプレートの出どころ
+ *
+ * @remarks
+ * official: アプリ同梱の公式テンプレート / user: ユーザーが保存したマイテンプレート（IndexedDB）
+ */
+export type TemplateSource = "official" | "user";

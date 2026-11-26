@@ -109,32 +109,18 @@ audit ────────┘    test-browser ─┴──→ build
 
 #### 生成される成果物
 
-| 形式        | ファイル                       | 用途                           |
-| ----------- | ------------------------------ | ------------------------------ |
-| NSIS (.exe) | `リハぐり_x.x.x_x64-setup.exe` | 一般ユーザー向けインストーラー |
+| 形式        | ファイル                         | 用途                           |
+| ----------- | -------------------------------- | ------------------------------ |
+| NSIS (.exe) | `rehab-grid_x.x.x_x64-setup.exe` | 一般ユーザー向けインストーラー |
 
-#### リリース手順
+#### リリース手順・リリースノートの定型フォーマット
 
-1. **バージョン更新**
+バージョン更新対象ファイル一覧、注釈付きタグの作成・ビルド監視、GitHub Releases の説明文テンプレート、公開後のトップページリンク更新までの標準手順は [docs/release-guide.md](../docs/release-guide.md) にまとめています。
 
-   ```bash
-   # apps/desktop/src-tauri/tauri.conf.json の version を更新
-   # 例: "1.0.0" → "1.1.0"
-   ```
-
-2. **コミット・タグ作成**
-
-   ```bash
-   git add .
-   git commit -m "chore: bump version to v1.1.0"
-   git tag v1.1.0
-   git push origin main --tags
-   ```
-
-3. **リリース確認**
-   - GitHub Actions が自動でビルドを開始
-   - 完了後、リポジトリの Releases ページにドラフトが作成される
-   - リリースノートを確認・編集し、「Publish release」をクリック
+1. リリース準備 PR で各パッケージ・Tauri 設定・`APP_VERSION`・`CHANGELOG.md`・アプリ内更新履歴を次バージョンへ更新
+2. `main` へマージ後、注釈付きタグ（`vX.Y.Z`）を push して `Release Desktop` ワークフローを起動
+3. 自動生成されたドラフト Release（「`リハぐり vX.Y.Z`」）の説明文を定型テンプレートに沿って編集し、Latest として公開
+4. 公開後に `apps/web/src/app/page.tsx` の Windows 版ダウンロードリンクを新バージョンへ更新
 
 #### 必要なシークレット
 

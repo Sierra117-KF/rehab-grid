@@ -65,6 +65,17 @@ export type ModalState = {
     open: boolean,
     section?: DesignSettingsSection
   ) => void;
+  /** マイ運動（保存したカードの一覧）モーダルの開閉状態 */
+  isExerciseCardLibraryOpen: boolean;
+  /**
+   * マイ運動モーダルの開閉を設定
+   *
+   * @remarks
+   * 左サイドバー（デスクトップ）とヘッダーのメニュー（モバイル）の両方から開くため、ストアで持つ
+   *
+   * @param open - 開くなら true
+   */
+  setExerciseCardLibraryOpen: (open: boolean) => void;
 };
 
 /**

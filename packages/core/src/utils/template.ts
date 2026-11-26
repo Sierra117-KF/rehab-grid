@@ -13,10 +13,76 @@ import {
   TEMPLATE_LOAD_ERROR,
   TEMPLATE_NOT_FOUND_ERROR,
 } from "@rehab-grid/core/lib/constants";
+import { getUserTemplate } from "@rehab-grid/core/lib/db";
 import { projectFileSchema } from "@rehab-grid/core/lib/schemas";
 import { getTemplateById } from "@rehab-grid/core/lib/templates";
-import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
+import {
+  type EditorItem,
+  type ImportResult,
+  type ProjectFile,
+} from "@rehab-grid/core/types";
 import { nanoid } from "nanoid";
+
+/**
+ * カードの ID と注意点の ID を振り直したコピーを作る
+ *
+ * @remarks
+ * テンプレート・マイテンプレート・マイ運動の呼び出しやカードの複製で、
+ * 元のカードと ID（React の key・選択状態・履歴のマージキーに使う）が重ならないようにする。
+ * 用量・注意点のオブジェクトも元と参照を共有しない。
+ *
+ * @param item - 元のカード
+ * @returns ID を振り直したカード
+ */
+export function cloneItemWithNewIds(item: EditorItem): EditorItem {
+  return {
+    ...item,
+    id: nanoid(),
+    ...(item.dosages && { dosages: { ...item.dosages } }),
+    ...(item.precautions && {
+      precautions: item.precautions.map((precaution) => ({
+        ...precaution,
+        id: nanoid(),
+      })),
+    }),
+  };
+}
+
+/**
+ * マイテンプレートを読み込む
+ *
+ * @remarks
+ * カード・注意点の ID を振り直し、作成日時・更新日時を現在時刻にする。
+ * 指導箋のタイトルは公式テンプレートと同じく、テンプレート名にする。
+ * 取り込み画像は画像ライブラリの ID をそのまま参照するため、images は空で返す。
+ *
+ * @param templateId - マイテンプレートのID
+ * @returns インポート結果（既存のインポートフローで処理できる形式）
+ * @throws マイテンプレートが見つからないとき
+ */
+export async function loadUserTemplate(
+  templateId: string
+): Promise<ImportResult> {
+  const record = await getUserTemplate(templateId);
+  if (!record) {
+    throw new Error(TEMPLATE_NOT_FOUND_ERROR);
+  }
+
+  const now = new Date().toISOString();
+  const project: ProjectFile = {
+    ...record.data,
+    meta: {
+      ...record.data.meta,
+      title: record.name,
+      version: APP_VERSION,
+      createdAt: now,
+      updatedAt: now,
+    },
+    items: record.data.items.map(cloneItemWithNewIds),
+  };
+
+  return { project, images: new Map() };
+}
 
 /**
  * テンプレートを読み込む
@@ -109,10 +175,8 @@ export async function loadTemplate(templateId: string): Promise<ImportResult> {
       updatedAt: new Date().toISOString(),
     },
     items: validatedData.items.map((item) => ({
-      ...item,
-      id: nanoid(),
+      ...cloneItemWithNewIds(item),
       imageSource: pathToNewId.get(item.imageSource) ?? "",
-      precautions: item.precautions?.map((p) => ({ ...p, id: nanoid() })),
     })),
   };
 

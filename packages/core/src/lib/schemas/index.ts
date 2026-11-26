@@ -6,6 +6,7 @@ export {
   dosagesSchema,
   editorItemSchema,
   layoutTypeSchema,
+  normalizeCustomSnippetValue,
   precautionSchema,
   projectFileSchema,
   projectMetaSchema,

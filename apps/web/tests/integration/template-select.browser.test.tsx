@@ -14,8 +14,8 @@
 
 import {
   BUTTON_CANCEL,
+  OPEN_AS_NEW_PROJECT_LABEL,
   TEMPLATE_BUTTON_LABEL,
-  TEMPLATE_CONFIRM_BUTTON,
   TEMPLATE_CONFIRM_DESCRIPTION,
   TEMPLATE_CONFIRM_TITLE,
   TEMPLATE_MODAL_TITLE,
@@ -62,7 +62,9 @@ const { mockLoadTemplate } = vi.hoisted(() => ({
 }));
 
 // テンプレート読み込みをモック（fetch等に依存しない）
-vi.mock("@/utils/template", () => ({
+vi.mock("@/utils/template", async (importOriginal) => ({
+  // ストアが使う cloneItemWithNewIds などは本物のまま、読み込みだけ差し替える
+  ...(await importOriginal<Record<string, unknown>>()),
   loadTemplate: mockLoadTemplate,
 }));
 
@@ -173,6 +175,20 @@ vi.mock("@/lib/db", () => ({
   getImage: vi.fn().mockResolvedValue(undefined),
   getImages: vi.fn().mockResolvedValue(new Map()),
   getImageRecord: vi.fn().mockResolvedValue(undefined),
+  listProjects: vi.fn().mockResolvedValue([]),
+  duplicateProject: vi.fn().mockResolvedValue(undefined),
+  collectReferencedImageIds: vi.fn().mockResolvedValue(new Set()),
+  saveUserTemplate: vi.fn().mockResolvedValue("user-template-id"),
+  listUserTemplates: vi.fn().mockResolvedValue([]),
+  getUserTemplate: vi.fn().mockResolvedValue(undefined),
+  deleteUserTemplate: vi.fn().mockResolvedValue(undefined),
+  saveExerciseCard: vi.fn().mockResolvedValue("exercise-card-id"),
+  listExerciseCards: vi.fn().mockResolvedValue([]),
+  deleteExerciseCard: vi.fn().mockResolvedValue(undefined),
+  addCustomSnippet: vi.fn().mockResolvedValue(undefined),
+  listCustomSnippets: vi.fn().mockResolvedValue([]),
+  deleteCustomSnippet: vi.fn().mockResolvedValue(undefined),
+  createProjectRecord: vi.fn((id: string, data: unknown) => ({ id, data })),
 }));
 
 // ========== テスト用データ ==========
@@ -345,7 +361,7 @@ describe("テンプレート選択機能（browser）", () => {
     await expect.element(page.getByText("既存カード")).toBeInTheDocument();
   });
 
-  it("既存データがある場合、確認ビューで適用するとストアが置換されCanvasに反映される", async () => {
+  it("既存データがある場合、確認ビューで新しい指導箋として開くとストアが置換されCanvasに反映される", async () => {
     useEditorStore.setState(
       getInitialEditorState({
         items: [
@@ -359,7 +375,7 @@ describe("テンプレート選択機能（browser）", () => {
     await userEvent.click(getTemplateCardButton());
 
     await userEvent.click(
-      page.getByRole("button", { name: TEMPLATE_CONFIRM_BUTTON })
+      page.getByRole("button", { name: OPEN_AS_NEW_PROJECT_LABEL })
     );
 
     // ストアがテンプレートの4件に置換されるのを待つ

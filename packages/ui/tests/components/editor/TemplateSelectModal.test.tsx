@@ -1,20 +1,75 @@
 import {
   BUTTON_CANCEL,
+  BUTTON_DELETE,
+  OPEN_AS_NEW_PROJECT_LABEL,
+  OVERWRITE_CURRENT_PROJECT_LABEL,
   TEMPLATE_CARD_COUNT_LABEL,
-  TEMPLATE_CONFIRM_BUTTON,
   TEMPLATE_CONFIRM_DESCRIPTION,
   TEMPLATE_CONFIRM_TITLE,
   TEMPLATE_LOADING_LABEL,
   TEMPLATE_MODAL_DESCRIPTION,
   TEMPLATE_MODAL_TITLE,
+  TEMPLATE_TAB_USER_LABEL,
+  USER_TEMPLATE_DELETE_SUCCESS_MESSAGE,
+  USER_TEMPLATE_EMPTY_MESSAGE,
+  USER_TEMPLATE_NAME_LABEL,
+  USER_TEMPLATE_SAVE_EMPTY_HINT,
+  USER_TEMPLATE_SAVE_LABEL,
 } from "@rehab-grid/core/lib/constants";
+import type { UserTemplateRecord } from "@rehab-grid/core/types";
 import {
   TemplateSelectModal,
   type TemplateSelectModalProps,
 } from "@rehab-grid/ui/components/editor/TemplateSelectModal";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  mockUseLiveQuery,
+  mockDeleteUserTemplate,
+  mockToastSuccess,
+  mockToastError,
+} = vi.hoisted(() => ({
+  mockUseLiveQuery: vi.fn(),
+  mockDeleteUserTemplate: vi.fn(),
+  mockToastSuccess: vi.fn(),
+  mockToastError: vi.fn(),
+}));
+
+vi.mock("dexie-react-hooks", () => ({
+  useLiveQuery: mockUseLiveQuery,
+}));
+
+vi.mock("@/lib/db", () => ({
+  listUserTemplates: vi.fn(),
+  deleteUserTemplate: mockDeleteUserTemplate,
+}));
+
+vi.mock("sonner", () => ({
+  toast: { success: mockToastSuccess, error: mockToastError },
+}));
+
+/** テスト用のマイテンプレート */
+const USER_TEMPLATE: UserTemplateRecord = {
+  id: "user-template-1",
+  name: "膝の自主トレ",
+  updatedAt: new Date(2026, 10, 26),
+  data: {
+    meta: {
+      version: "1.3.0",
+      createdAt: "2026-11-26T00:00:00.000Z",
+      updatedAt: "2026-11-26T00:00:00.000Z",
+      title: "膝の自主トレ",
+      projectType: "training",
+    },
+    settings: { layoutType: "grid2", themeColor: "#3b82f6" },
+    items: [
+      { id: "a", order: 0, title: "スクワット", imageSource: "", description: "" },
+      { id: "b", order: 1, title: "足上げ", imageSource: "", description: "" },
+    ],
+  },
+};
 
 // ==============================================================================
 // テスト用モックデータ
@@ -70,6 +125,9 @@ function createDefaultProps(): TemplateSelectModalProps {
     onOpenChange: vi.fn(),
     onSelect: vi.fn().mockResolvedValue(undefined),
     requireConfirmation: false,
+    currentTitle: "腰痛体操",
+    canSaveCurrent: true,
+    onSaveCurrent: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -103,6 +161,13 @@ function getAllTemplateCardButtons(): HTMLElement[] {
 // ==============================================================================
 
 describe("TemplateSelectModal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // 既定ではマイテンプレートなし
+    mockUseLiveQuery.mockReturnValue([]);
+    mockDeleteUserTemplate.mockResolvedValue(undefined);
+  });
+
   describe("モーダル表示", () => {
     it("open=true でモーダルが表示される", () => {
       setupModal();
@@ -141,7 +206,7 @@ describe("TemplateSelectModal", () => {
   });
 
   describe("テンプレート選択（確認不要: requireConfirmation=false）", () => {
-    it("テンプレートカードクリックで onSelect が呼ばれる", async () => {
+    it("テンプレートカードクリックで onSelect が上書き（現在の空の指導箋へ適用）で呼ばれる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: false });
 
@@ -150,7 +215,11 @@ describe("TemplateSelectModal", () => {
       });
       await user.click(templateCard);
 
-      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id);
+      expect(props.onSelect).toHaveBeenCalledWith(
+        TEST_TEMPLATE.id,
+        "overwrite",
+        "official",
+      );
     });
 
     it("選択後にモーダルが閉じる", async () => {
@@ -203,7 +272,7 @@ describe("TemplateSelectModal", () => {
       ).toBeInTheDocument();
     });
 
-    it("「適用する」ボタンクリックで onSelect が呼ばれる", async () => {
+    it("「新しい指導箋で開く」クリックで onSelect が new で呼ばれる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: true });
 
@@ -213,14 +282,36 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
-      expect(props.onSelect).toHaveBeenCalledWith(TEST_TEMPLATE.id);
+      expect(props.onSelect).toHaveBeenCalledWith(
+        TEST_TEMPLATE.id,
+        "new",
+        "official",
+      );
     });
 
-    it("「適用する」ボタンクリック後にモーダルが閉じる", async () => {
+    it("「現在の指導箋に上書き」クリックで onSelect が overwrite で呼ばれる", async () => {
+      const user = userEvent.setup();
+      const props = setupModal({ requireConfirmation: true });
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(TEST_TEMPLATE.name) }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: OVERWRITE_CURRENT_PROJECT_LABEL }),
+      );
+
+      expect(props.onSelect).toHaveBeenCalledWith(
+        TEST_TEMPLATE.id,
+        "overwrite",
+        "official",
+      );
+    });
+
+    it("「新しい指導箋で開く」クリック後にモーダルが閉じる", async () => {
       const user = userEvent.setup();
       const props = setupModal({ requireConfirmation: true });
 
@@ -230,7 +321,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
@@ -301,7 +392,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
@@ -314,6 +405,9 @@ describe("TemplateSelectModal", () => {
         ).toBeDisabled();
         expect(
           screen.getByRole("button", { name: BUTTON_CANCEL }),
+        ).toBeDisabled();
+        expect(
+          screen.getByRole("button", { name: OVERWRITE_CURRENT_PROJECT_LABEL }),
         ).toBeDisabled();
       });
     });
@@ -332,7 +426,7 @@ describe("TemplateSelectModal", () => {
       await user.click(templateCard);
 
       const confirmButton = screen.getByRole("button", {
-        name: TEMPLATE_CONFIRM_BUTTON,
+        name: OPEN_AS_NEW_PROJECT_LABEL,
       });
       await user.click(confirmButton);
 
@@ -345,16 +439,9 @@ describe("TemplateSelectModal", () => {
   describe("状態リセット", () => {
     it("モーダルクローズ時に内部状態がリセットされる", async () => {
       const user = userEvent.setup();
-      const onOpenChange = vi.fn();
-      const onSelect = vi.fn().mockResolvedValue(undefined);
-      const { rerender } = render(
-        <TemplateSelectModal
-          open
-          onOpenChange={onOpenChange}
-          onSelect={onSelect}
-          requireConfirmation
-        />,
-      );
+      const props = { ...createDefaultProps(), requireConfirmation: true };
+      const { onOpenChange } = props;
+      const { rerender } = render(<TemplateSelectModal {...props} />);
 
       // 確認画面に遷移
       const templateCard = screen.getByRole("button", {
@@ -372,30 +459,109 @@ describe("TemplateSelectModal", () => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
 
       // モーダルを閉じた状態に更新
-      rerender(
-        <TemplateSelectModal
-          open={false}
-          onOpenChange={onOpenChange}
-          onSelect={onSelect}
-          requireConfirmation
-        />,
-      );
+      rerender(<TemplateSelectModal {...props} open={false} />);
 
       // 再度モーダルを開く
-      rerender(
-        <TemplateSelectModal
-          open
-          onOpenChange={onOpenChange}
-          onSelect={onSelect}
-          requireConfirmation
-        />,
-      );
+      rerender(<TemplateSelectModal {...props} open />);
 
       // テンプレート一覧が表示される（確認画面ではない）
       expect(screen.getByText(TEMPLATE_MODAL_TITLE)).toBeInTheDocument();
       expect(
         screen.queryByText(TEMPLATE_CONFIRM_TITLE),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("マイテンプレート", () => {
+    /** マイテンプレートのタブを開く */
+    async function openUserTab(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole("tab", { name: TEMPLATE_TAB_USER_LABEL }));
+    }
+
+    it("保存したテンプレートがなければ案内を表示する", async () => {
+      const user = userEvent.setup();
+      setupModal();
+
+      await openUserTab(user);
+
+      expect(screen.getByRole("tab", { name: TEMPLATE_TAB_USER_LABEL })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(screen.getByText(USER_TEMPLATE_EMPTY_MESSAGE)).toBeInTheDocument();
+    });
+
+    it("名前の初期値は編集中の指導箋のタイトルで、変更した名前で保存できる", async () => {
+      const user = userEvent.setup();
+      const props = setupModal({ currentTitle: "腰痛体操" });
+      await openUserTab(user);
+
+      const nameInput = screen.getByRole("textbox", {
+        name: USER_TEMPLATE_NAME_LABEL,
+      });
+      expect(nameInput).toHaveValue("腰痛体操");
+
+      await user.clear(nameInput);
+      await user.type(nameInput, "腰痛セット");
+      await user.click(
+        screen.getByRole("button", { name: USER_TEMPLATE_SAVE_LABEL }),
+      );
+
+      expect(props.onSaveCurrent).toHaveBeenCalledWith("腰痛セット");
+      // 保存後は名前の入力を編集中のタイトルに戻す
+      await waitFor(() => {
+        expect(nameInput).toHaveValue("腰痛体操");
+      });
+    });
+
+    it("カードがない指導箋は保存できず、案内を表示する", async () => {
+      const user = userEvent.setup();
+      setupModal({ canSaveCurrent: false });
+      await openUserTab(user);
+
+      expect(
+        screen.getByRole("button", { name: USER_TEMPLATE_SAVE_LABEL }),
+      ).toBeDisabled();
+      expect(screen.getByText(USER_TEMPLATE_SAVE_EMPTY_HINT)).toBeInTheDocument();
+    });
+
+    it("マイテンプレートを選ぶと出どころ user で onSelect が呼ばれる", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([USER_TEMPLATE]);
+      const props = setupModal({ requireConfirmation: false });
+      await openUserTab(user);
+
+      // カード枚数はテンプレートの中身から数える
+      expect(screen.getByText(`2${TEMPLATE_CARD_COUNT_LABEL}`)).toBeInTheDocument();
+      await user.click(
+        // 削除ボタンと区別するため、カード枚数まで含めた名前で探す
+        screen.getByRole("button", { name: /膝の自主トレ.*カード/ }),
+      );
+
+      expect(props.onSelect).toHaveBeenCalledWith(
+        USER_TEMPLATE.id,
+        "overwrite",
+        "user",
+      );
+    });
+
+    it("確認ダイアログを経てマイテンプレートを削除できる", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue([USER_TEMPLATE]);
+      setupModal();
+      await openUserTab(user);
+
+      await user.click(
+        screen.getByRole("button", { name: `${USER_TEMPLATE.name}を削除` }),
+      );
+      await user.click(screen.getByRole("button", { name: BUTTON_DELETE }));
+
+      expect(mockDeleteUserTemplate).toHaveBeenCalledWith(USER_TEMPLATE.id);
+      await waitFor(() => {
+        expect(mockToastSuccess).toHaveBeenCalledWith(
+          USER_TEMPLATE_DELETE_SUCCESS_MESSAGE,
+        );
+      });
     });
   });
 });

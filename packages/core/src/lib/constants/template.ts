@@ -21,10 +21,65 @@ export const TEMPLATE_MODAL_TITLE = "テンプレートを選択";
 
 /** テンプレート選択モーダルの説明 */
 export const TEMPLATE_MODAL_DESCRIPTION =
-  "テンプレートを選択すると、現在の編集内容は置き換えられます。";
+  "テンプレートを選ぶと、その内容で指導箋を作れます。";
 
 /** カード枚数の表示形式 */
 export const TEMPLATE_CARD_COUNT_LABEL = "カード";
+
+/** 公式テンプレートのタブ名 */
+export const TEMPLATE_TAB_OFFICIAL_LABEL = "公式テンプレート";
+
+/** マイテンプレートのタブ名 */
+export const TEMPLATE_TAB_USER_LABEL = "マイテンプレート";
+
+// =============================================================================
+// マイテンプレート
+// =============================================================================
+
+/** マイテンプレート保存欄の見出し */
+export const USER_TEMPLATE_SAVE_HEADING =
+  "現在の指導箋をマイテンプレートとして保存";
+
+/** マイテンプレート名の入力欄のラベル */
+export const USER_TEMPLATE_NAME_LABEL = "テンプレート名";
+
+/** マイテンプレート保存ボタンのラベル */
+export const USER_TEMPLATE_SAVE_LABEL = "保存";
+
+/** カードがないため保存できないときの案内 */
+export const USER_TEMPLATE_SAVE_EMPTY_HINT =
+  "カードを追加すると、マイテンプレートとして保存できます。";
+
+/** マイテンプレートが 1 件もないときの案内 */
+export const USER_TEMPLATE_EMPTY_MESSAGE =
+  "保存したマイテンプレートはまだありません。";
+
+/** マイテンプレート保存成功 */
+export const USER_TEMPLATE_SAVE_SUCCESS_MESSAGE =
+  "マイテンプレートに保存しました";
+
+/** マイテンプレートの削除ボタンのラベル */
+export const USER_TEMPLATE_DELETE_LABEL = "削除";
+
+/** マイテンプレート削除確認のタイトル */
+export const USER_TEMPLATE_DELETE_CONFIRM_TITLE =
+  "マイテンプレートを削除しますか？";
+
+/**
+ * マイテンプレート削除確認の説明文を生成
+ *
+ * @param name - テンプレート名
+ * @returns 説明文
+ */
+export function createUserTemplateDeleteConfirmDescription(
+  name: string
+): string {
+  return `「${name}」を削除します。このテンプレートから作った指導箋は残ります。`;
+}
+
+/** マイテンプレート削除成功 */
+export const USER_TEMPLATE_DELETE_SUCCESS_MESSAGE =
+  "マイテンプレートを削除しました";
 
 // =============================================================================
 // 確認ダイアログ
@@ -35,10 +90,7 @@ export const TEMPLATE_CONFIRM_TITLE = "テンプレートを適用しますか�
 
 /** テンプレート適用確認ダイアログの説明 */
 export const TEMPLATE_CONFIRM_DESCRIPTION =
-  "現在の編集内容はすべて失われます。この操作は取り消せません。";
-
-/** テンプレート適用ボタンのラベル */
-export const TEMPLATE_CONFIRM_BUTTON = "適用する";
+  "新しい指導箋として開くと、現在の指導箋はそのまま「マイ指導箋」に残ります。上書きすると現在の編集内容は失われます。";
 
 // =============================================================================
 // エラーメッセージ

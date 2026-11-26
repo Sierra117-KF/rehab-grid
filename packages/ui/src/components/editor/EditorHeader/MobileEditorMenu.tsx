@@ -3,6 +3,7 @@
 import {
   BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
+  EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
   HOME_LINK_TOOLTIP,
@@ -10,6 +11,7 @@ import {
   IMPORT_OPEN_LABEL,
   LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
+  PROJECT_LIST_LABEL,
   REDO_LABEL,
   TEMPLATE_BUTTON_LABEL,
   UNDO_LABEL,
@@ -18,10 +20,12 @@ import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
+  Bookmark,
   ChevronDown,
   ChevronRight,
   Download,
   FileJson,
+  Files,
   FolderArchive,
   FolderOpen,
   Home,
@@ -47,12 +51,16 @@ type MobileEditorMenuProps = {
   onUndo: () => void;
   /** 取り消した操作をやり直す */
   onRedo: () => void;
+  /** 指導箋一覧（マイ指導箋）を開く */
+  onProjectListClick: () => void;
   /** 現在のレイアウトタイプ */
   layoutType: LayoutType;
   /** デザイン設定ダイアログを開く */
   onDesignSettingsClick: () => void;
   /** テンプレートモーダルを開く */
   onTemplateClick: () => void;
+  /** マイ運動モーダルを開く */
+  onExerciseCardsClick: () => void;
   /** ファイルを開くダイアログを開く */
   onOpenClick: () => void;
   /** インポート中かどうか */
@@ -137,9 +145,11 @@ export function MobileEditorMenu({
   canRedo,
   onUndo,
   onRedo,
+  onProjectListClick,
   layoutType,
   onDesignSettingsClick,
   onTemplateClick,
+  onExerciseCardsClick,
   onOpenClick,
   isImporting,
   onExportJSON,
@@ -167,6 +177,14 @@ export function MobileEditorMenu({
   }, [onClose, onRedo]);
 
   /**
+   * 指導箋一覧クリックハンドラ
+   */
+  const handleProjectListClick = useCallback(() => {
+    onClose();
+    onProjectListClick();
+  }, [onClose, onProjectListClick]);
+
+  /**
    * デザイン設定クリックハンドラ
    */
   const handleDesignSettingsClick = useCallback(() => {
@@ -181,6 +199,14 @@ export function MobileEditorMenu({
     onClose();
     onTemplateClick();
   }, [onClose, onTemplateClick]);
+
+  /**
+   * マイ運動クリックハンドラ
+   */
+  const handleExerciseCardsClick = useCallback(() => {
+    onClose();
+    onExerciseCardsClick();
+  }, [onClose, onExerciseCardsClick]);
 
   /**
    * ファイルを開くクリックハンドラ
@@ -240,6 +266,14 @@ export function MobileEditorMenu({
       {/* 区切り線 */}
       <div className="my-2 h-px bg-border/40" aria-hidden="true" />
 
+      {/* 指導箋一覧（マイ指導箋） */}
+      <MenuItem
+        icon={Files}
+        label={PROJECT_LIST_LABEL}
+        onClick={handleProjectListClick}
+        iconColor="text-orange-500"
+      />
+
       {/* デザイン設定（列数バッジ付き） */}
       <MenuItem
         icon={Palette}
@@ -262,6 +296,14 @@ export function MobileEditorMenu({
         label={TEMPLATE_BUTTON_LABEL}
         onClick={handleTemplateClick}
         iconColor="text-violet-500"
+      />
+
+      {/* マイ運動から追加 */}
+      <MenuItem
+        icon={Bookmark}
+        label={EXERCISE_CARD_ADD_BUTTON_LABEL}
+        onClick={handleExerciseCardsClick}
+        iconColor="text-teal-600"
       />
 
       {/* ファイルを開く */}
