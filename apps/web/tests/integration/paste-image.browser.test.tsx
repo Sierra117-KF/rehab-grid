@@ -117,6 +117,7 @@ vi.mock("@rehab-grid/core/utils/image", () => ({
   convertBlobToPdfSupportedDataUrl: vi.fn(async () => Promise.resolve("")),
   partitionImageIds: vi.fn(() => ({ userImageIds: [], sampleImageIds: [] })),
   fetchSampleImageBlobs: vi.fn(async () => Promise.resolve(new Map())),
+  detectImageMimeType: vi.fn(async () => Promise.resolve("image/png")),
   isValidImageBlob: vi.fn(async () => Promise.resolve(true)),
   MAX_WIDTH_OR_HEIGHT: 1200,
   supportsWebP: vi.fn(() => true),

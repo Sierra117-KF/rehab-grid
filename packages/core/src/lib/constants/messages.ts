@@ -274,7 +274,7 @@ export const PROJECT_LIST_DELETE_LABEL = "削除";
 
 /** 指導箋一覧に置くバックアップの案内 */
 export const PROJECT_LIST_BACKUP_NOTICE =
-  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切な指導箋は「バックアップ」から画像付き（ZIP）で保存してください。";
+  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切なデータは「バックアップ」の「まとめてバックアップ（ZIP）」で保存してください。";
 
 /** 新しい指導箋を作ったときのメッセージ */
 export const PROJECT_CREATE_SUCCESS_MESSAGE = "新しい指導箋を作成しました";
@@ -869,3 +869,220 @@ export const CTA_BUTTON_LABEL_RESUME = "続きから再開";
 
 /** 使ってみるボタンのラベル（初回ユーザー向け） */
 export const CTA_BUTTON_LABEL_TRY = "使ってみる";
+
+// 一括バックアップ・復元関連メッセージ
+/** バックアップメニューの見出し（現在の指導箋） */
+export const BACKUP_MENU_CURRENT_SECTION = "この指導箋";
+
+/** バックアップメニューの見出し（端末の全データ・マイライブラリ） */
+export const BACKUP_MENU_ALL_SECTION = "全データ・マイライブラリ";
+
+/** まとめてバックアップメニュー項目のラベル */
+export const BACKUP_EXPORT_ALL_LABEL = "まとめてバックアップ（ZIP）";
+
+/** バックアップから復元メニュー項目のラベル */
+export const BACKUP_RESTORE_LABEL = "バックアップから復元";
+
+/** まとめてバックアップダイアログのタイトル */
+export const BACKUP_EXPORT_DIALOG_TITLE = "まとめてバックアップ";
+
+/** まとめてバックアップダイアログの説明 */
+export const BACKUP_EXPORT_DIALOG_DESCRIPTION =
+  "この端末に保存されているデータを1つのZIPファイルにまとめます。別のPCへの移行や、同僚へのマイ運動・テンプレート配布にも使えます。";
+
+/** バックアップに含める画像の補足案内 */
+export const BACKUP_INCLUDED_IMAGES_NOTE =
+  "選択した指導箋・マイテンプレート・マイ運動で使われている取り込み画像は自動で含まれます。";
+
+/** バックアップ時の個人情報に関する注意書き */
+export const BACKUP_EXPORT_PRIVACY_NOTE =
+  "バックアップファイルには患者様の氏名・顔写真などの個人情報は含めないでください。";
+
+/** バックアップ実行ボタンのラベル */
+export const BACKUP_EXPORT_BUTTON_LABEL = "バックアップを作成";
+
+/** バックアップ作成中のラベル */
+export const BACKUP_EXPORT_LOADING_LABEL = "作成中...";
+
+/** バックアップできるデータが0件のときの案内 */
+export const BACKUP_EXPORT_EMPTY_MESSAGE =
+  "バックアップできるデータがありません";
+
+/** バックアップ対象が1つも選ばれていないときの案内 */
+export const BACKUP_EXPORT_SELECT_REQUIRED =
+  "バックアップする項目を1つ以上選んでください";
+
+/** まとめてバックアップ成功メッセージ */
+export const BACKUP_EXPORT_SUCCESS_MESSAGE =
+  "まとめてバックアップをダウンロードしました";
+
+/** まとめてバックアップ失敗メッセージ */
+export const BACKUP_EXPORT_FAILED_MESSAGE =
+  "バックアップの作成に失敗しました";
+
+/** バックアップカテゴリ名：マイ指導箋 */
+export const BACKUP_CATEGORY_PROJECTS_LABEL = "マイ指導箋";
+
+/** バックアップカテゴリ名：マイテンプレート */
+export const BACKUP_CATEGORY_TEMPLATES_LABEL = "マイテンプレート";
+
+/** バックアップカテゴリ名：マイ運動 */
+export const BACKUP_CATEGORY_EXERCISE_CARDS_LABEL = "マイ運動";
+
+/** バックアップカテゴリ名：マイ定型文 */
+export const BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL = "マイ定型文";
+
+/** バックアップカテゴリ名：未使用の取り込み画像 */
+export const BACKUP_CATEGORY_UNUSED_IMAGES_LABEL = "未使用の取り込み画像";
+
+/** バックアップ復元ダイアログのタイトル */
+export const BACKUP_RESTORE_DIALOG_TITLE = "バックアップから復元";
+
+/** バックアップ復元ダイアログの説明 */
+export const BACKUP_RESTORE_DIALOG_DESCRIPTION =
+  "復元するデータと復元方法を選んでください。";
+
+/** 復元対象カテゴリの見出し */
+export const BACKUP_RESTORE_CATEGORIES_HEADING = "復元するデータ";
+
+/** 復元方法の見出し */
+export const BACKUP_RESTORE_MODE_HEADING = "復元方法";
+
+/** 復元方法：追加（マージ）のラベル */
+export const BACKUP_RESTORE_MODE_MERGE_LABEL = "現在のデータに追加する（推奨）";
+
+/** 復元方法：追加（マージ）の説明 */
+export const BACKUP_RESTORE_MODE_MERGE_DESCRIPTION =
+  "この端末のデータは残したまま、選択した項目を追加します。同じ文言のマイ定型文は重複登録されません。";
+
+/** 復元方法：すべて置き換えのラベル */
+export const BACKUP_RESTORE_MODE_REPLACE_LABEL =
+  "端末のデータをすべて置き換える";
+
+/** 復元方法：すべて置き換えの説明 */
+export const BACKUP_RESTORE_MODE_REPLACE_DESCRIPTION =
+  "この端末のすべてのデータを削除し、バックアップの内容に入れ替えます。PC移行や完全復元に使います。";
+
+/** 復元実行ボタンのラベル（追加） */
+export const BACKUP_RESTORE_BUTTON_LABEL = "復元する";
+
+/** 復元実行ボタンのラベル（置き換え） */
+export const BACKUP_RESTORE_REPLACE_BUTTON_LABEL = "すべて置き換えて復元";
+
+/** 復元中のラベル */
+export const BACKUP_RESTORE_LOADING_LABEL = "復元中...";
+
+/** 復元対象が1つも選ばれていないときの案内 */
+export const BACKUP_RESTORE_SELECT_REQUIRED =
+  "復元する項目を1つ以上選んでください";
+
+/** バックアップ内に復元できるデータが0件のときの案内 */
+export const BACKUP_RESTORE_EMPTY_BACKUP_MESSAGE =
+  "このバックアップには復元できるデータが含まれていません";
+
+/** 復元失敗メッセージ */
+export const BACKUP_RESTORE_FAILED_MESSAGE =
+  "バックアップの復元に失敗しました";
+
+/** ZIP に backup.json が含まれないエラー */
+export const BACKUP_ERROR_NO_BACKUP =
+  "ZIPファイルにバックアップデータがありません";
+
+/** サポート対象外のバックアップバージョンエラー */
+export const BACKUP_ERROR_UNSUPPORTED_VERSION =
+  "このバージョンでは読み込めないバックアップ形式です";
+
+/**
+ * 「すべて置き換える」選択時の警告メッセージを生成
+ *
+ * @param currentCounts - 現在の端末に保存されている件数サマリー
+ * @returns 警告メッセージ
+ */
+export function createBackupReplaceWarning(currentCounts: {
+  projects: number;
+  userTemplates: number;
+  exerciseCards: number;
+  customSnippets: number;
+  totalImages: number;
+}): string {
+  const parts: string[] = [];
+  if (currentCounts.projects > 0) {
+    parts.push(`${BACKUP_CATEGORY_PROJECTS_LABEL} ${String(currentCounts.projects)}件`);
+  }
+  if (currentCounts.userTemplates > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_TEMPLATES_LABEL} ${String(currentCounts.userTemplates)}件`
+    );
+  }
+  if (currentCounts.exerciseCards > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_EXERCISE_CARDS_LABEL} ${String(currentCounts.exerciseCards)}件`
+    );
+  }
+  if (currentCounts.customSnippets > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL} ${String(currentCounts.customSnippets)}件`
+    );
+  }
+  if (currentCounts.totalImages > 0) {
+    parts.push(`取り込み画像 ${String(currentCounts.totalImages)}枚`);
+  }
+
+  if (parts.length === 0) {
+    return "端末のデータをバックアップの内容に入れ替えます。この操作は元に戻せません。";
+  }
+
+  return `現在の端末にあるデータ（${parts.join("・")}）はすべて削除されます。この操作は元に戻せません。`;
+}
+
+/**
+ * 復元完了トーストのメッセージを生成
+ *
+ * @param summary - 復元された各カテゴリの件数
+ * @param mode - 復元方法
+ * @returns 完了メッセージ
+ */
+export function createBackupRestoreSuccessMessage(
+  summary: {
+    projects: number;
+    userTemplates: number;
+    exerciseCards: number;
+    customSnippets: number;
+    skippedSnippets: number;
+    images: number;
+  },
+  mode: "merge" | "replace"
+): string {
+  const parts: string[] = [];
+  if (summary.projects > 0) {
+    parts.push(`${BACKUP_CATEGORY_PROJECTS_LABEL}${String(summary.projects)}件`);
+  }
+  if (summary.userTemplates > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_TEMPLATES_LABEL}${String(summary.userTemplates)}件`
+    );
+  }
+  if (summary.exerciseCards > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_EXERCISE_CARDS_LABEL}${String(summary.exerciseCards)}件`
+    );
+  }
+  if (summary.customSnippets > 0) {
+    parts.push(
+      `${BACKUP_CATEGORY_CUSTOM_SNIPPETS_LABEL}${String(summary.customSnippets)}件`
+    );
+  }
+  if (summary.images > 0) {
+    parts.push(`画像${String(summary.images)}枚`);
+  }
+
+  const actionLabel =
+    mode === "replace" ? "データを置き換えて復元しました" : "データを復元しました";
+  const detail = parts.length > 0 ? `（${parts.join("・")}）` : "";
+  const skippedNote =
+    summary.skippedSnippets > 0
+      ? ` ※重複する定型文${String(summary.skippedSnippets)}件はスキップ`
+      : "";
+
+  return `${actionLabel}${detail}${skippedNote}`;
+}

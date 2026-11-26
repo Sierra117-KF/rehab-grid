@@ -61,6 +61,7 @@ const {
   mockDuplicateProject,
   mockDeleteImage,
   mockApplyImportResult,
+  mockApplyBackupToDB,
 } = vi.hoisted(() => ({
   mockSaveProject: vi.fn(),
   // loadProject / listProjects はモジュール読み込み時に呼び出されるため、
@@ -71,6 +72,7 @@ const {
   mockDuplicateProject: vi.fn(),
   mockDeleteImage: vi.fn(),
   mockApplyImportResult: vi.fn(),
+  mockApplyBackupToDB: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -100,6 +102,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/utils/project", () => ({
   applyImportResult: mockApplyImportResult,
+  applyBackupToDB: mockApplyBackupToDB,
 }));
 
 /**
@@ -1820,6 +1823,111 @@ describe("useEditorStore", () => {
       expect(projectFile).not.toHaveProperty("mobilePropertyPanelOpen");
       expect(projectFile).not.toHaveProperty("mobileImageLibraryTargetItemId");
       expect(projectFile).not.toHaveProperty("isLoaded");
+    });
+  });
+
+  describe("restoreBackup", () => {
+    const dummyBackup = {
+      manifest: {
+        format: "rehab-grid-backup" as const,
+        schemaVersion: 1 as const,
+        appVersion: "1.3.3",
+        exportedAt: "2026-11-26T00:00:00.000Z",
+        projects: [],
+        userTemplates: [],
+        exerciseCards: [],
+        customSnippets: [],
+        images: [],
+      },
+      images: new Map(),
+      unusedImagePaths: new Set<string>(),
+      counts: {
+        projects: 1,
+        userTemplates: 0,
+        exerciseCards: 0,
+        customSnippets: 0,
+        unusedImages: 0,
+        totalImages: 0,
+      },
+    };
+    const selection = {
+      projects: true,
+      userTemplates: false,
+      exerciseCards: false,
+      customSnippets: false,
+      unusedImages: false,
+    };
+
+    it("merge モードでは編集中プロジェクトを維持したまま DB へマージする", async () => {
+      const summary = {
+        projects: 1,
+        userTemplates: 0,
+        exerciseCards: 0,
+        customSnippets: 0,
+        skippedSnippets: 0,
+        images: 0,
+      };
+      mockApplyBackupToDB.mockResolvedValueOnce({
+        summary,
+        latestProjectId: "restored-1",
+      });
+
+      const result = await useEditorStore
+        .getState()
+        .restoreBackup(dummyBackup, selection, "merge");
+
+      expect(result).toEqual(summary);
+      expect(mockApplyBackupToDB).toHaveBeenCalledWith(
+        dummyBackup,
+        selection,
+        "merge"
+      );
+      expect(useEditorStore.getState().projectId).toBe("project-a");
+    });
+
+    it("replace モードでは復元後の最新プロジェクトを開き、0件なら空の新規プロジェクトを開く", async () => {
+      const restoredProject = createTestProjectFile({
+        meta: createTestMeta({ title: "復元した最新指導箋" }),
+      });
+      mockApplyBackupToDB.mockResolvedValueOnce({
+        summary: {
+          projects: 1,
+          userTemplates: 0,
+          exerciseCards: 0,
+          customSnippets: 0,
+          skippedSnippets: 0,
+          images: 0,
+        },
+        latestProjectId: "restored-latest",
+      });
+      mockLoadProject.mockResolvedValueOnce(restoredProject);
+
+      await useEditorStore
+        .getState()
+        .restoreBackup(dummyBackup, selection, "replace");
+
+      expect(useEditorStore.getState().projectId).toBe("restored-latest");
+      expect(useEditorStore.getState().meta.title).toBe("復元した最新指導箋");
+
+      // 復元プロジェクトが 0 件なら新しい空プロジェクトを開く
+      mockApplyBackupToDB.mockResolvedValueOnce({
+        summary: {
+          projects: 0,
+          userTemplates: 1,
+          exerciseCards: 0,
+          customSnippets: 0,
+          skippedSnippets: 0,
+          images: 0,
+        },
+        latestProjectId: undefined,
+      });
+
+      await useEditorStore
+        .getState()
+        .restoreBackup(dummyBackup, selection, "replace");
+
+      expect(useEditorStore.getState().projectId).not.toBe("restored-latest");
+      expect(useEditorStore.getState().items).toHaveLength(0);
     });
   });
 });

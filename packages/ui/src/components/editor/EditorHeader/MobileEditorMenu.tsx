@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  BACKUP_EXPORT_ALL_LABEL,
+  BACKUP_RESTORE_LABEL,
   BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
@@ -20,6 +22,7 @@ import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
+  ArchiveRestore,
   Bookmark,
   ChevronDown,
   ChevronRight,
@@ -31,6 +34,7 @@ import {
   Home,
   LayoutTemplate,
   Loader2,
+  Package,
   Palette,
   Redo2,
   Trash2,
@@ -69,6 +73,10 @@ type MobileEditorMenuProps = {
   onExportJSON: () => void;
   /** ZIPエクスポート */
   onExportZIP: () => void;
+  /** 全データまとめてバックアップダイアログを開く */
+  onExportBackup: () => void;
+  /** バックアップから復元ファイル選択を開く */
+  onRestoreBackup: () => void;
   /** プロジェクト削除ダイアログを開く */
   onDeleteProject: () => void;
   /** メニューを閉じる */
@@ -154,6 +162,8 @@ export function MobileEditorMenu({
   isImporting,
   onExportJSON,
   onExportZIP,
+  onExportBackup,
+  onRestoreBackup,
   onDeleteProject,
   onClose,
 }: MobileEditorMenuProps) {
@@ -231,6 +241,22 @@ export function MobileEditorMenu({
     onClose();
     onExportZIP();
   }, [onClose, onExportZIP]);
+
+  /**
+   * まとめてバックアップクリックハンドラ
+   */
+  const handleExportBackup = useCallback(() => {
+    onClose();
+    onExportBackup();
+  }, [onClose, onExportBackup]);
+
+  /**
+   * バックアップから復元クリックハンドラ
+   */
+  const handleRestoreBackup = useCallback(() => {
+    onClose();
+    onRestoreBackup();
+  }, [onClose, onRestoreBackup]);
 
   /**
    * プロジェクト削除クリックハンドラ
@@ -352,6 +378,27 @@ export function MobileEditorMenu({
           >
             <FolderArchive className="size-4 text-teal-500" />
             <span>{EXPORT_ZIP_LABEL}</span>
+          </button>
+          <div className="my-1 h-px bg-border/40" aria-hidden="true" />
+          <button
+            type="button"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            onClick={handleExportBackup}
+          >
+            <Package className="size-4 text-amber-600" />
+            <span>{BACKUP_EXPORT_ALL_LABEL}</span>
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent",
+              isImporting && "pointer-events-none opacity-50"
+            )}
+            onClick={handleRestoreBackup}
+            disabled={isImporting}
+          >
+            <ArchiveRestore className="size-4 text-emerald-600" />
+            <span>{BACKUP_RESTORE_LABEL}</span>
           </button>
         </div>
       ) : null}

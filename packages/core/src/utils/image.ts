@@ -7,6 +7,7 @@
 
 import {
   ALLOWED_IMAGE_TYPES,
+  type AllowedImageType,
   getSampleImagePath,
   IMAGE_DISPLAY_NAME_NUMBER_PATTERN,
   IMAGE_DISPLAY_NAME_PREFIXES,
@@ -444,6 +445,68 @@ export async function fetchSampleImageBlobs(
 // ============================================================================
 
 /**
+ * マジックバイトから画像の MIME タイプを判別する
+ *
+ * ファイル拡張子ではなく実際の先頭バイト列を確認することで、
+ * 拡張子偽装を防ぎつつ正確な MIME タイプを取得する
+ *
+ * @param blob - 検証対象の Blob
+ * @returns 許可された画像形式の MIME タイプ、該当しない場合は null
+ */
+export async function detectImageMimeType(
+  blob: Blob
+): Promise<AllowedImageType | null> {
+  // 先頭12バイトを読み取り（WebPの検証に必要な最大長）
+  const header = await blob.slice(0, 12).arrayBuffer();
+  const bytes = new Uint8Array(header);
+
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+
+  // GIF: 47 49 46 38 (GIF8)
+  if (
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  ) {
+    return "image/gif";
+  }
+
+  // WebP: RIFF....WEBP (52 49 46 46 ?? ?? ?? ?? 57 45 42 50)
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+
+  return null;
+}
+
+/**
  * Blobが有効な画像形式かをマジックバイトで検証
  *
  * ファイル拡張子ではなく、実際のファイル内容（マジックバイト）を確認することで、
@@ -461,52 +524,5 @@ export async function fetchSampleImageBlobs(
  * ```
  */
 export async function isValidImageBlob(blob: Blob): Promise<boolean> {
-  // 先頭12バイトを読み取り（WebPの検証に必要な最大長）
-  const header = await blob.slice(0, 12).arrayBuffer();
-  const bytes = new Uint8Array(header);
-
-  // JPEG: FF D8 FF
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return true;
-  }
-
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  ) {
-    return true;
-  }
-
-  // GIF: 47 49 46 38 (GIF8)
-  if (
-    bytes[0] === 0x47 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x38
-  ) {
-    return true;
-  }
-
-  // WebP: RIFF....WEBP (52 49 46 46 ?? ?? ?? ?? 57 45 42 50)
-  if (
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return true;
-  }
-
-  return false;
+  return (await detectImageMimeType(blob)) !== null;
 }

@@ -19,6 +19,21 @@ export const MAX_ZIP_IMAGE_COUNT = 15;
 /** ZIPファイル展開後の合計最大サイズ（100MB、ZIP爆弾対策） */
 export const MAX_ZIP_EXTRACTED_SIZE = 100 * 1024 * 1024;
 
+/** 一括バックアップZIPファイルの最大サイズ（200MB） */
+export const MAX_BACKUP_ZIP_SIZE = 200 * 1024 * 1024;
+
+/** 一括バックアップZIPファイル展開後の合計最大サイズ（250MB、ZIP爆弾対策） */
+export const MAX_BACKUP_EXTRACTED_SIZE = 250 * 1024 * 1024;
+
+/** 一括バックアップ内 backup.json の最大サイズ（20MB） */
+export const MAX_BACKUP_JSON_SIZE = 20 * 1024 * 1024;
+
+/** 一括バックアップZIPファイル内の画像の最大数（ZIP爆弾対策） */
+export const MAX_BACKUP_IMAGE_COUNT = 300;
+
+/** 一括バックアップ内の各カテゴリの最大レコード数（DoS対策） */
+export const MAX_BACKUP_RECORD_COUNT = 500;
+
 /** 許可される画像形式 */
 export const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",

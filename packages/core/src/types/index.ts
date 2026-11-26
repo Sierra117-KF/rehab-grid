@@ -1,6 +1,21 @@
 /**
  * 型定義のバレルエクスポート
  */
+export type {
+  BackupCategorySelection,
+  BackupCustomSnippetEntry,
+  BackupExerciseCardEntry,
+  BackupImageEntry,
+  BackupManifest,
+  BackupProjectEntry,
+  BackupRestoreMode,
+  BackupRestoreSummary,
+  BackupSummaryCounts,
+  BackupUserTemplateEntry,
+  ImportedFileResult,
+  ParsedBackup,
+  ParsedBackupImage,
+} from "./backup";
 export type { ChangelogCategory, ChangelogEntry } from "./changelog";
 export type {
   BadgeInfo,

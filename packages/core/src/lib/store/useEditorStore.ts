@@ -26,17 +26,24 @@ import {
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { registerAutosaveFlusher } from "@rehab-grid/core/lib/store/autosaveFlusher";
 import {
+  type BackupCategorySelection,
+  type BackupRestoreMode,
+  type BackupRestoreSummary,
   type Dosages,
   type EditorItem,
   type ImportOpenMode,
   type ImportResult,
+  type ParsedBackup,
   type Precaution,
   type ProjectFile,
   type ProjectMeta,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { debounce } from "@rehab-grid/core/utils/debounce";
-import { applyImportResult } from "@rehab-grid/core/utils/project";
+import {
+  applyBackupToDB,
+  applyImportResult,
+} from "@rehab-grid/core/utils/project";
 import {
   readLocalStorage,
   requestPersistentStorage,
@@ -172,6 +179,23 @@ type EditorActions = {
    * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
   openImportResult: (result: ImportResult, mode: ImportOpenMode) => Promise<void>;
+  /**
+   * 一括バックアップを IndexedDB へ復元する
+   *
+   * @remarks
+   * replace 時は保留中のオートセーブを破棄してから全テーブルを入れ替え、復元後の最新指導箋を開く。
+   * merge 時は保留中のオートセーブを確定してから追加し、現在開いている指導箋を維持する。
+   *
+   * @param backup - 検証済みの一括バックアップ
+   * @param selection - 復元対象とするカテゴリの選択状態
+   * @param mode - 復元方法（merge: 追加 / replace: 全置換）
+   * @returns 復元件数サマリー（他処理の実行中でスキップされた場合は undefined）
+   */
+  restoreBackup: (
+    backup: ParsedBackup,
+    selection: BackupCategorySelection,
+    mode: BackupRestoreMode
+  ) => Promise<BackupRestoreSummary | undefined>;
   /**
    * 保留中のオートセーブを今すぐ保存し、完了を待つ
    *
@@ -734,6 +758,35 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           if (mode === "new") void requestPersistentStorage();
         });
       },
+
+      restoreBackup: async (backup, selection, mode) =>
+        runProjectTransition(async () => {
+          if (mode === "replace") {
+            // 保留中の保存が置換後に発火して旧プロジェクトを復活させないよう破棄する
+            cancelPendingAutosave();
+            const { summary, latestProjectId } = await applyBackupToDB(
+              backup,
+              selection,
+              "replace"
+            );
+            const data =
+              latestProjectId !== undefined
+                ? await loadProject(latestProjectId)
+                : undefined;
+            if (latestProjectId !== undefined && data !== undefined) {
+              get().openProject(latestProjectId, data);
+            } else {
+              openNewProject();
+            }
+            void requestPersistentStorage();
+            return summary;
+          }
+
+          await flushPendingAutosave();
+          const { summary } = await applyBackupToDB(backup, selection, "merge");
+          void requestPersistentStorage();
+          return summary;
+        }),
 
       flushAutosave: flushPendingAutosave,
 

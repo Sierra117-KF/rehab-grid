@@ -17,6 +17,7 @@ export * from "./lib/templates";
 export { cn } from "./lib/utils";
 
 // utils
+export * from "./utils/backup";
 export * from "./utils/color";
 export * from "./utils/debounce";
 export * from "./utils/download";
