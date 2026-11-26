@@ -10,6 +10,7 @@ packages/assets/
 ├── icons/            # アプリケーションアイコン
 ├── images/           # サンプル画像
 │   └── samples/      # デモ用サンプル自主トレ画像
+│       └── thumbs/   # 画像ライブラリ一覧用の軽量サムネイル（生成物）
 └── templates/        # プリセットテンプレート
     └── {template-id}/
         ├── project.json
@@ -119,7 +120,19 @@ export const SAMPLE_IMAGES: readonly SampleImage[] = [
 ];
 ```
 
+5. **一覧用サムネイルを生成**
+
+   ```bash
+   node scripts/generate-sample-thumbnails.mjs
+   ```
+
+   `images/samples/thumbs/` に同じファイル名の軽量サムネイル（長辺 240px）が書き出されます。生成物もコミットしてください（サムネイルがないとテストが失敗します）。
+
 > **重要**: `id` は `sample_` プレフィックスで始まる必要があります。このプレフィックスでサンプル画像とユーザーアップロード画像を区別しています。
+
+### `thumbs/` - 一覧用サムネイル
+
+画像ライブラリの一覧（約 64px のセル）は、印刷用の元画像（合計 約 1.06MB）の代わりにこのサムネイル（合計 約 97KB）を読み込みます。パスは `getSampleThumbnailPath(path)`（`sampleImages.ts`）で求めます。ホバー拡大・カード・PDF・ZIP は元画像を使います。直接編集せず、スクリプトで再生成してください。
 
 ---
 

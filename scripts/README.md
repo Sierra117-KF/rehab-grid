@@ -10,6 +10,7 @@
 2. **テンプレート画像マッピング**: テンプレート内の重複画像をサンプル画像への参照に置き換えるためのマッピング生成
 3. **PWAアイコン生成**: ロゴ画像から各種サイズのPWAアイコンを自動生成
 4. **OGP画像変換**: SNS共有用のOGP画像を最適なサイズ・形式に変換
+5. **サンプル画像サムネイル生成**: 画像ライブラリの一覧用に、サンプル画像の軽量サムネイルを生成
 
 ## ディレクトリ構造
 
@@ -22,6 +23,7 @@ scripts/
 ├── create-template-image-mapping.mjs   # テンプレート画像マッピング生成
 ├── generate-pwa-icons.mjs              # PWAアイコン生成
 ├── convert-ogp-image.mjs               # OGP画像変換
+├── generate-sample-thumbnails.mjs      # サンプル画像の一覧用サムネイル生成
 └── output/
     └── template-image-mapping.json     # 生成されたマッピングファイル
 ```
@@ -231,7 +233,44 @@ node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-imag
 
 ---
 
-### 6. `chars.txt`
+### 6. `generate-sample-thumbnails.mjs`
+
+**目的**: 画像ライブラリの一覧（約 64px のセル）に印刷用の元画像をそのまま読み込まないよう、サンプル画像の軽量サムネイルを生成します。
+
+**処理内容**:
+
+1. `packages/assets/images/samples/thumbs/` を削除して作り直す（削除・改名したサンプルのサムネイルを残さない）
+2. `packages/assets/images/samples/*.webp` を長辺 240px（拡大はしない）に縮小
+3. WebP（品質 70）で、元画像と同じファイル名で書き出す
+
+**前提条件**:
+
+- Node.js
+- `sharp` パッケージ（ルートの devDependencies）
+
+**使用方法**:
+
+```bash
+node scripts/generate-sample-thumbnails.mjs
+```
+
+**入力**:
+
+- `packages/assets/images/samples/*.webp`
+
+**出力（Git管理対象）**:
+
+- `packages/assets/images/samples/thumbs/*.webp`（42 枚で合計 約 97KB。元画像は合計 約 1.06MB）
+
+**注意事項**:
+
+- 生成物はリポジトリにコミットします（ビルドや CI で `sharp` のネイティブバイナリを不要にするため）
+- サンプル画像を追加・差し替えたら必ず再実行してください。全サンプル画像にサムネイルがあることは `packages/core/tests/lib/constants/sampleImages.test.ts` で確認しています
+- 一覧以外（ホバー拡大・カード・PDF・ZIP）は元画像を使います
+
+---
+
+### 7. `chars.txt`
 
 **目的**: フォントサブセット化に使用する文字リストファイルです。
 
@@ -294,6 +333,11 @@ node scripts/convert-ogp-image.mjs ogp_source.png apps/web/public/images/og-imag
 
 1. `packages/assets/icons/logo.png` を新しいロゴに置き換え
 2. `node scripts/generate-pwa-icons.mjs` を実行
+
+### サンプル画像の追加・差し替え
+
+1. `packages/assets/images/samples/` に画像を配置し、`SAMPLE_IMAGES`（`packages/core/src/lib/constants/sampleImages.ts`）を更新
+2. `node scripts/generate-sample-thumbnails.mjs` を実行し、`thumbs/` の生成物もコミット
 
 ### テンプレート画像マッピングの更新
 

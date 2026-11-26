@@ -299,6 +299,7 @@ export type { SampleImage } from "./sampleImages";
 export {
   getSampleImageFileName,
   getSampleImagePath,
+  getSampleThumbnailPath,
   isSampleImage,
   SAMPLE_IMAGE_ID_PREFIX,
   SAMPLE_IMAGES,

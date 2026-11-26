@@ -61,7 +61,7 @@ apps/web/
 │
 ├── scripts/
 │   ├── copy-assets.mjs             # 共有アセット自動コピースクリプト
-│   ├── generate-sw.mjs             # sw.js 生成スクリプト（CACHE_NAME にビルドIDを埋め込む）
+│   ├── generate-sw.mjs             # sw.js 生成スクリプト（CACHE_NAME にビルドID、ビルド後は PDF Worker のチャンクを埋め込む）
 │   └── sw.template.js              # Service Worker の原本
 │
 ├── package.json
@@ -194,8 +194,10 @@ pnpm build
   ├─ prebuild: アセット自動コピー + Service Worker 生成
   │   ├─ packages/assets/ → public/
   │   └─ scripts/sw.template.js → public/sw.js
-  └─ next build
-      └─ out/ に静的ファイル生成
+  ├─ next build
+  │   └─ out/ に静的ファイル生成
+  └─ postbuild: Service Worker を再生成
+      └─ scripts/sw.template.js → out/sw.js（PDF Worker のチャンクをプリキャッシュ一覧に埋め込む）
 ```
 
 ### デプロイ先
@@ -242,9 +244,11 @@ form-action 'self';
 ### Service Worker
 
 - **対象**: 同一オリジンの GET リクエストのみ（それ以外はブラウザに任せる）
-- **キャッシュ戦略**: `/_next/static/`（ハッシュ付き・不変）はキャッシュ優先、それ以外はネットワーク優先
-- **キャッシュ更新**: `CACHE_NAME` にビルドID（バージョン + ビルド日時）を含め、activate 時に旧ビルドのキャッシュを削除
-- **オフライン対応**: 静的ページとアセットをキャッシュ
+- **キャッシュ戦略**: `/_next/static/`（ハッシュ付き・不変）と `/images/samples/`・`/fonts/`・`/templates/`（大きく、ビルド間でほぼ変わらない）はキャッシュ優先、それ以外はネットワーク優先
+- **キャッシュ更新**: `CACHE_NAME` にビルドID（バージョン + ビルド日時）を含め、activate 時に旧ビルドのキャッシュを削除（キャッシュ優先のアセットもデプロイごとに 1 回取り直す）
+- **オフライン対応**: 静的ページ・PDF 用フォント・PDF Worker のチャンクをインストール時にプリキャッシュ（デプロイ直後にオフラインでも PDF を生成できる）。サンプル画像・テンプレートは一度表示したものだけキャッシュされる
+- **PDF Worker のチャンク**: ファイル名がビルドごとに変わるため、`postbuild`（`generate-sw.mjs --out`）が `out/` から探して `out/sw.js` に埋め込む（開発サーバー用の `public/sw.js` では空）。Turbopack の出力形式が変わって見つからなくなったらビルドを失敗させる。Worker はスクリプト URL のハッシュから起動設定を読むため、キャッシュから返すときは URL を持たないレスポンスに作り直している
+- **`_headers` との関係**: `/images/samples/` などはファイル名にハッシュが付かないため、長期の `Cache-Control` を付けない（SW の `fetch` が HTTP キャッシュの古い版を拾うため）
 - **編集場所**: `scripts/sw.template.js`（`public/sw.js` は `generate-sw.mjs` が生成）
 - **データ永続化**: IndexedDB（Service Workerとは独立）
 
@@ -255,7 +259,7 @@ form-action 'self';
 | コピー元                          | コピー先                 |
 | --------------------------------- | ------------------------ |
 | `packages/assets/fonts/`          | `public/fonts/`          |
-| `packages/assets/images/samples/` | `public/images/samples/` |
+| `packages/assets/images/samples/` | `public/images/samples/`（一覧用サムネイル `thumbs/` を含む） |
 | `packages/assets/templates/`      | `public/templates/`      |
 | `packages/assets/icons/logo.png`  | `public/icons/logo.png`  |
 

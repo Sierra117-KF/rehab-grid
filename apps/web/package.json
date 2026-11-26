@@ -9,6 +9,7 @@
     "dev": "next dev",
     "dev:fast": "next dev --turbopack",
     "build": "next build",
+    "postbuild": "node scripts/generate-sw.mjs --out",
     "preview": "pnpm dlx serve out",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",

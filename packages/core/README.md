@@ -315,7 +315,7 @@ const safeText = sanitizeText(userInput);
 | `editor.ts` | `DEFAULT_PROJECT_TITLE`, `MAX_ITEM_COUNT`, `LAYOUT_OPTIONS` |
 | `messages.ts` | UI メッセージ（140 以上） |
 | `image.ts` | `MAX_FILE_SIZE`, `IMAGE_ACCEPT_TYPES`, `MAX_IMPORT_ZIP_SIZE` |
-| `sampleImages.ts` | `SAMPLE_IMAGES`, `getSampleImagePath()`, `isSampleImage()` |
+| `sampleImages.ts` | `SAMPLE_IMAGES`, `getSampleImagePath()`, `getSampleThumbnailPath()`（一覧用サムネイル）, `isSampleImage()` |
 | `pdf.ts` | `PDF_PAGE_SIZE`, `PDF_MARGINS`, `PDF_FONT_FAMILY`, `PDF_COLORS` |
 | `precautions.ts` | `PRECAUTION_SNIPPETS`, `PRECAUTION_SNIPPET_CATEGORIES` |
 | `externalLinks.ts` | `GITHUB_REPO_URL`, `FEEDBACK_FORM_URL` |
