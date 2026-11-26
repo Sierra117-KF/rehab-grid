@@ -1,4 +1,9 @@
 import {
+  BACKUP_EXPORT_ALL_LABEL,
+  BACKUP_MENU_ALL_SECTION,
+  BACKUP_MENU_CURRENT_SECTION,
+  BACKUP_RESTORE_LABEL,
+  BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
   PROJECT_LIST_LABEL,
@@ -44,6 +49,8 @@ function setupMenu({ canUndo = false, canRedo = false } = {}) {
     isImporting: false,
     onExportJSON: vi.fn(),
     onExportZIP: vi.fn(),
+    onExportBackup: vi.fn(),
+    onRestoreBackup: vi.fn(),
     onDeleteProject: vi.fn(),
     onClose: vi.fn(),
   };
@@ -123,6 +130,44 @@ describe("MobileEditorMenu", () => {
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
       expect(props.onDesignSettingsClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("まとめてバックアップ・復元", () => {
+    it("バックアップを展開すると「この指導箋」と「全データ」の見出しを表示する", async () => {
+      const user = userEvent.setup();
+      setupMenu();
+
+      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+
+      expect(screen.getByText(BACKUP_MENU_CURRENT_SECTION)).toBeInTheDocument();
+      expect(screen.getByText(BACKUP_MENU_ALL_SECTION)).toBeInTheDocument();
+    });
+
+    it("バックアップを展開して「まとめてバックアップ（ZIP）」を押すと onExportBackup を呼ぶ", async () => {
+      const user = userEvent.setup();
+      const props = setupMenu();
+
+      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+      await user.click(
+        screen.getByRole("button", { name: BACKUP_EXPORT_ALL_LABEL })
+      );
+
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onExportBackup).toHaveBeenCalledTimes(1);
+    });
+
+    it("バックアップを展開して「バックアップから復元」を押すと onRestoreBackup を呼ぶ", async () => {
+      const user = userEvent.setup();
+      const props = setupMenu();
+
+      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+      await user.click(
+        screen.getByRole("button", { name: BACKUP_RESTORE_LABEL })
+      );
+
+      expect(props.onClose).toHaveBeenCalledTimes(1);
+      expect(props.onRestoreBackup).toHaveBeenCalledTimes(1);
     });
   });
 });

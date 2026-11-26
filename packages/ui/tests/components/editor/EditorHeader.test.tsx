@@ -1,4 +1,7 @@
 import {
+  BACKUP_EXPORT_ALL_LABEL,
+  BACKUP_EXPORT_SUCCESS_MESSAGE,
+  BACKUP_RESTORE_LABEL,
   BUTTON_BACKUP,
   BUTTON_CANCEL,
   BUTTON_DELETE,
@@ -54,6 +57,7 @@ const {
   mockToastError,
   mockToastInfo,
   mockOpenImportResult,
+  mockRestoreBackup,
   mockDeleteProject,
   mockUpdateSettings,
   mockSetProjectTitle,
@@ -62,7 +66,9 @@ const {
   mockGeneratePdf,
   mockDownloadProjectAsJSON,
   mockDownloadProjectAsZIP,
-  mockImportProject,
+  mockCollectCurrentBackupCounts,
+  mockExportBackupAsZIP,
+  mockInspectImportFile,
   mockLoadTemplate,
   mockLoadUserTemplate,
   mockSaveUserTemplate,
@@ -75,6 +81,14 @@ const {
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
   mockOpenImportResult: vi.fn().mockResolvedValue(undefined),
+  mockRestoreBackup: vi.fn().mockResolvedValue({
+    projects: 1,
+    userTemplates: 0,
+    exerciseCards: 0,
+    customSnippets: 0,
+    skippedSnippets: 0,
+    images: 0,
+  }),
   mockDeleteProject: vi.fn().mockResolvedValue(undefined),
   mockUpdateSettings: vi.fn(),
   mockSetProjectTitle: vi.fn(),
@@ -85,9 +99,19 @@ const {
     .mockResolvedValue(new Blob(["pdf"], { type: "application/pdf" })),
   mockDownloadProjectAsJSON: vi.fn(),
   mockDownloadProjectAsZIP: vi.fn().mockResolvedValue(undefined),
-  mockImportProject: vi
-    .fn()
-    .mockResolvedValue({ meta: {}, items: [], settings: {} }),
+  mockCollectCurrentBackupCounts: vi.fn().mockResolvedValue({
+    projects: 2,
+    userTemplates: 1,
+    exerciseCards: 3,
+    customSnippets: 1,
+    unusedImages: 1,
+    totalImages: 2,
+  }),
+  mockExportBackupAsZIP: vi.fn().mockResolvedValue(undefined),
+  mockInspectImportFile: vi.fn().mockResolvedValue({
+    kind: "project",
+    result: { meta: {}, items: [], settings: {} },
+  }),
   mockLoadTemplate: vi
     .fn()
     .mockResolvedValue({ meta: {}, items: [], settings: {} }),
@@ -151,6 +175,7 @@ vi.mock("@/lib/store/useEditorStore", () => ({
     selector: (
       state: typeof mockStoreState & {
         openImportResult: typeof mockOpenImportResult;
+        restoreBackup: typeof mockRestoreBackup;
         deleteProject: typeof mockDeleteProject;
         updateSettings: typeof mockUpdateSettings;
         setProjectTitle: typeof mockSetProjectTitle;
@@ -162,6 +187,7 @@ vi.mock("@/lib/store/useEditorStore", () => ({
     const fullState = {
       ...mockStoreState,
       openImportResult: mockOpenImportResult,
+      restoreBackup: mockRestoreBackup,
       deleteProject: mockDeleteProject,
       updateSettings: mockUpdateSettings,
       setProjectTitle: mockSetProjectTitle,
@@ -193,7 +219,15 @@ vi.mock("@/hooks/usePdfWorker", () => ({
 vi.mock("@/utils/export", () => ({
   downloadProjectAsJSON: mockDownloadProjectAsJSON,
   downloadProjectAsZIP: mockDownloadProjectAsZIP,
-  importProject: mockImportProject,
+}));
+
+/**
+ * 一括バックアップ関連ユーティリティのモック
+ */
+vi.mock("@/utils/backup", () => ({
+  collectCurrentBackupCounts: mockCollectCurrentBackupCounts,
+  exportBackupAsZIP: mockExportBackupAsZIP,
+  inspectImportFile: mockInspectImportFile,
 }));
 
 /**
@@ -326,6 +360,75 @@ vi.mock("@/components/editor/ProjectListModal", () => ({
 }));
 
 /**
+ * BackupExportDialog / BackupRestoreDialog のモック
+ */
+vi.mock("@/components/editor/BackupExportDialog", () => ({
+  BackupExportDialog: ({
+    open,
+    onExport,
+  }: {
+    open: boolean;
+    onExport: (selection: Record<string, boolean>) => Promise<void>;
+  }) =>
+    open ? (
+      <div data-testid="backup-export-dialog">
+        <button
+          type="button"
+          onClick={() =>
+            void onExport({
+              projects: true,
+              userTemplates: true,
+              exerciseCards: true,
+              customSnippets: true,
+              unusedImages: true,
+            })
+          }
+        >
+          一括バックアップ実行
+        </button>
+      </div>
+    ) : null,
+}));
+
+vi.mock("@/components/editor/BackupRestoreDialog", () => ({
+  BackupRestoreDialog: ({
+    open,
+    backup,
+    onRestore,
+  }: {
+    open: boolean;
+    backup: unknown;
+    onRestore: (
+      backup: unknown,
+      selection: Record<string, boolean>,
+      mode: "merge" | "replace"
+    ) => Promise<void>;
+  }) =>
+    open ? (
+      <div data-testid="backup-restore-dialog">
+        <button
+          type="button"
+          onClick={() =>
+            void onRestore(
+              backup,
+              {
+                projects: true,
+                userTemplates: false,
+                exerciseCards: false,
+                customSnippets: false,
+                unusedImages: false,
+              },
+              "merge"
+            )
+          }
+        >
+          一括復元実行
+        </button>
+      </div>
+    ) : null,
+}));
+
+/**
  * デフォルトのモックストア状態を生成
  */
 function createDefaultMockStoreState(): typeof mockStoreState {
@@ -378,6 +481,8 @@ describe("ExportMenu", () => {
     return {
       onExportJSON: vi.fn(),
       onExportZIP: vi.fn(),
+      onExportBackup: vi.fn(),
+      onRestoreBackup: vi.fn(),
     };
   }
 
@@ -437,6 +542,30 @@ describe("ExportMenu", () => {
     await user.click(screen.getByText(EXPORT_ZIP_LABEL));
 
     expect(props.onExportZIP).toHaveBeenCalledTimes(1);
+  });
+
+  it("「まとめてバックアップ（ZIP）」クリックで onExportBackup が呼ばれる", async () => {
+    const user = userEvent.setup();
+    const props = setupExportMenu();
+
+    await user.click(
+      screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+    );
+    await user.click(screen.getByText(BACKUP_EXPORT_ALL_LABEL));
+
+    expect(props.onExportBackup).toHaveBeenCalledTimes(1);
+  });
+
+  it("「バックアップから復元」クリックで onRestoreBackup が呼ばれる", async () => {
+    const user = userEvent.setup();
+    const props = setupExportMenu();
+
+    await user.click(
+      screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+    );
+    await user.click(screen.getByText(BACKUP_RESTORE_LABEL));
+
+    expect(props.onRestoreBackup).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1019,7 +1148,7 @@ describe("EditorHeader", () => {
           "overwrite"
         );
       });
-      expect(mockImportProject).toHaveBeenCalledWith(file);
+      expect(mockInspectImportFile).toHaveBeenCalledWith(file);
       expect(screen.queryByText(IMPORT_CONFIRM_TITLE)).not.toBeInTheDocument();
     });
 
@@ -1029,7 +1158,9 @@ describe("EditorHeader", () => {
       render(<EditorHeader />);
 
       await selectFile(user);
-      expect(screen.getByText(IMPORT_CONFIRM_TITLE)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(IMPORT_CONFIRM_TITLE)).toBeInTheDocument();
+      });
       expect(mockOpenImportResult).not.toHaveBeenCalled();
 
       await user.click(
@@ -1042,6 +1173,57 @@ describe("EditorHeader", () => {
           "new"
         );
       });
+    });
+
+    it("一括バックアップZIPを開いたときは自動的に復元ダイアログへ誘導する", async () => {
+      const dummyBackup = { manifest: {}, images: new Map(), counts: {} };
+      mockInspectImportFile.mockResolvedValueOnce({
+        kind: "backup",
+        backup: dummyBackup,
+      });
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await selectFile(user);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("backup-restore-dialog")).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: "一括復元実行" }));
+
+      await waitFor(() => {
+        expect(mockRestoreBackup).toHaveBeenCalledWith(
+          dummyBackup,
+          expect.any(Object),
+          "merge"
+        );
+      });
+    });
+  });
+
+  describe("まとめてバックアップ", () => {
+    it("メニューからダイアログを開き、実行すると exportBackupAsZIP が呼ばれる", async () => {
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+      );
+      await user.click(screen.getByText(BACKUP_EXPORT_ALL_LABEL));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("backup-export-dialog")).toBeInTheDocument();
+      });
+      await user.click(
+        screen.getByRole("button", { name: "一括バックアップ実行" })
+      );
+
+      await waitFor(() => {
+        expect(mockExportBackupAsZIP).toHaveBeenCalledTimes(1);
+      });
+      expect(mockToastSuccess).toHaveBeenCalledWith(
+        BACKUP_EXPORT_SUCCESS_MESSAGE
+      );
     });
   });
 

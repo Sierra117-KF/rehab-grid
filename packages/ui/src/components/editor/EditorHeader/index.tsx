@@ -4,8 +4,12 @@ import { useIsMobile } from "@rehab-grid/core/hooks/useMediaQuery";
 import { usePdfWorker } from "@rehab-grid/core/hooks/usePdfWorker";
 import {
   APP_NAME,
+  BACKUP_EXPORT_FAILED_MESSAGE,
+  BACKUP_EXPORT_SUCCESS_MESSAGE,
+  BACKUP_RESTORE_FAILED_MESSAGE,
   BUTTON_CANCEL,
   BUTTON_DELETE,
+  createBackupRestoreSuccessMessage,
   DESIGN_SETTINGS_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_FAILED_MESSAGE,
@@ -39,14 +43,23 @@ import {
 } from "@rehab-grid/core/lib/store/useEditorStore";
 import { useModalStore } from "@rehab-grid/core/lib/store/useModalStore";
 import {
+  type BackupCategorySelection,
+  type BackupRestoreMode,
+  type BackupSummaryCounts,
   type ImportOpenMode,
+  type ImportResult,
+  type ParsedBackup,
   type TemplateSource,
 } from "@rehab-grid/core/types";
+import {
+  collectCurrentBackupCounts,
+  exportBackupAsZIP,
+  inspectImportFile,
+} from "@rehab-grid/core/utils/backup";
 import { downloadBlob } from "@rehab-grid/core/utils/download";
 import {
   downloadProjectAsJSON,
   downloadProjectAsZIP,
-  importProject,
 } from "@rehab-grid/core/utils/export";
 import {
   generatePdfFilename,
@@ -56,6 +69,8 @@ import {
   loadTemplate,
   loadUserTemplate,
 } from "@rehab-grid/core/utils/template";
+import { BackupExportDialog } from "@rehab-grid/ui/components/editor/BackupExportDialog";
+import { BackupRestoreDialog } from "@rehab-grid/ui/components/editor/BackupRestoreDialog";
 import { DesignSettingsDialog } from "@rehab-grid/ui/components/editor/DesignSettingsDialog";
 import { PdfPreviewModal } from "@rehab-grid/ui/components/editor/PdfPreviewModal";
 import { ProjectListModal } from "@rehab-grid/ui/components/editor/ProjectListModal";
@@ -126,6 +141,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const items = useEditorStore((state) => state.items);
   const settings = useEditorStore((state) => state.settings);
   const openImportResult = useEditorStore((state) => state.openImportResult);
+  const restoreBackup = useEditorStore((state) => state.restoreBackup);
   const deleteProject = useEditorStore((state) => state.deleteProject);
   const updateSettings = useEditorStore((state) => state.updateSettings);
   const undo = useEditorStore((state) => state.undo);
@@ -136,9 +152,19 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   // インポート関連の状態
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingImportResult, setPendingImportResult] =
+    useState<ImportResult | null>(null);
+
+  // 一括バックアップ・復元関連の状態
+  const [showBackupExportDialog, setShowBackupExportDialog] = useState(false);
+  const [showBackupRestoreDialog, setShowBackupRestoreDialog] = useState(false);
+  const [backupCounts, setBackupCounts] = useState<BackupSummaryCounts | null>(
+    null
+  );
+  const [pendingBackup, setPendingBackup] = useState<ParsedBackup | null>(null);
 
   // PDFプレビュー関連の状態
   const [showPreview, setShowPreview] = useState(false);
@@ -269,6 +295,83 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, []);
 
   /**
+   * まとめてバックアップダイアログを開く
+   */
+  const handleOpenBackupExport = useCallback(async () => {
+    try {
+      const counts = await collectCurrentBackupCounts();
+      setBackupCounts(counts);
+      setShowBackupExportDialog(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : BACKUP_EXPORT_FAILED_MESSAGE;
+      toast.error(message);
+    }
+  }, []);
+
+  /**
+   * まとめてバックアップを実行してダウンロード
+   */
+  const handleExecuteBackupExport = useCallback(
+    async (selection: BackupCategorySelection) => {
+      try {
+        await exportBackupAsZIP(selection);
+        setShowBackupExportDialog(false);
+        toast.success(BACKUP_EXPORT_SUCCESS_MESSAGE);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : BACKUP_EXPORT_FAILED_MESSAGE;
+        toast.error(message);
+      }
+    },
+    []
+  );
+
+  /**
+   * バックアップから復元ファイル選択ダイアログを開く
+   */
+  const handleRestoreBackupClick = useCallback(() => {
+    backupFileInputRef.current?.click();
+  }, []);
+
+  /**
+   * バックアップ復元を実行
+   */
+  const handleExecuteBackupRestore = useCallback(
+    async (
+      backup: ParsedBackup,
+      selection: BackupCategorySelection,
+      mode: BackupRestoreMode
+    ) => {
+      try {
+        const summary = await restoreBackup(backup, selection, mode);
+        if (summary !== undefined) {
+          setShowBackupRestoreDialog(false);
+          setPendingBackup(null);
+          toast.success(createBackupRestoreSuccessMessage(summary, mode));
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : BACKUP_RESTORE_FAILED_MESSAGE;
+        toast.error(message);
+      }
+    },
+    [restoreBackup]
+  );
+
+  /**
+   * バックアップ復元ダイアログの開閉状態変更
+   */
+  const handleBackupRestoreDialogOpenChange = useCallback((open: boolean) => {
+    setShowBackupRestoreDialog(open);
+    if (!open) {
+      setPendingBackup(null);
+    }
+  }, []);
+
+  /**
    * ファイル選択ダイアログを開く
    */
   const handleOpenClick = useCallback(() => {
@@ -276,15 +379,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   }, []);
 
   /**
-   * インポートを実行
+   * 単一指導箋のインポート結果をストアへ反映する
    *
    * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
-  const executeImport = useCallback(
-    async (file: File, mode: ImportOpenMode) => {
+  const applySingleImportResult = useCallback(
+    async (result: ImportResult, mode: ImportOpenMode) => {
       setIsImporting(true);
       try {
-        const result = await importProject(file);
         await openImportResult(result, mode);
         toast.success(IMPORT_SUCCESS_MESSAGE);
       } catch (error) {
@@ -293,33 +395,53 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         toast.error(message);
       } finally {
         setIsImporting(false);
-        setPendingFile(null);
+        setPendingImportResult(null);
       }
     },
-    [openImportResult],
+    [openImportResult]
   );
 
   /**
-   * ファイル選択時の処理
+   * ファイル選択時の処理（単一指導箋と一括バックアップを中身で自動判別する）
    */
   const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
 
       // input をリセット（同じファイルを再選択できるように）
       event.target.value = "";
 
-      // 編集中のカードがあれば、新しい指導箋として開くか上書きするかを選ばせる
-      // （空の指導箋はそのまま上書きする。空の指導箋を一覧に残さないため）
-      if (items.length > 0) {
-        setPendingFile(file);
-        setShowConfirmDialog(true);
-      } else {
-        void executeImport(file, "overwrite");
+      setIsImporting(true);
+      try {
+        const inspected = await inspectImportFile(file);
+
+        if (inspected.kind === "backup") {
+          const counts = await collectCurrentBackupCounts();
+          setPendingBackup(inspected.backup);
+          setBackupCounts(counts);
+          setShowBackupRestoreDialog(true);
+          return;
+        }
+
+        // 単一指導箋：編集中のカードがあれば開き方を選ばせる
+        // （空の指導箋はそのまま上書きする。空の指導箋を一覧に残さないため）
+        if (items.length > 0) {
+          setPendingImportResult(inspected.result);
+          setShowConfirmDialog(true);
+        } else {
+          await openImportResult(inspected.result, "overwrite");
+          toast.success(IMPORT_SUCCESS_MESSAGE);
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE;
+        toast.error(message);
+      } finally {
+        setIsImporting(false);
       }
     },
-    [items.length, executeImport],
+    [items.length, openImportResult]
   );
 
   /**
@@ -328,11 +450,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const handleConfirmImport = useCallback(
     (mode: ImportOpenMode) => {
       setShowConfirmDialog(false);
-      if (pendingFile) {
-        void executeImport(pendingFile, mode);
+      if (pendingImportResult) {
+        void applySingleImportResult(pendingImportResult, mode);
       }
     },
-    [pendingFile, executeImport],
+    [pendingImportResult, applySingleImportResult]
   );
 
   /**
@@ -340,7 +462,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    */
   const handleCancelImport = useCallback(() => {
     setShowConfirmDialog(false);
-    setPendingFile(null);
+    setPendingImportResult(null);
   }, []);
 
   /**
@@ -349,7 +471,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const handleDialogOpenChange = useCallback((open: boolean) => {
     setShowConfirmDialog(open);
     if (!open) {
-      setPendingFile(null);
+      setPendingImportResult(null);
     }
   }, []);
 
@@ -511,9 +633,17 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         ref={fileInputRef}
         type="file"
         accept=".json,.zip"
-        onChange={handleFileSelect}
+        onChange={(event) => void handleFileSelect(event)}
         className="hidden"
         aria-label="プロジェクトファイルを選択"
+      />
+      <input
+        ref={backupFileInputRef}
+        type="file"
+        accept=".zip"
+        onChange={(event) => void handleFileSelect(event)}
+        className="hidden"
+        aria-label="バックアップファイルを選択"
       />
 
       {/* モバイル/デスクトップ版ヘッダーの条件分岐 */}
@@ -563,6 +693,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               isImporting={isImporting}
               onExportJSON={handleExportJSON}
               onExportZIP={handleExportZIP}
+              onExportBackup={() => void handleOpenBackupExport()}
+              onRestoreBackup={handleRestoreBackupClick}
               onDeleteProject={handleOpenDeleteProjectDialog}
               onClose={handleCloseMobileMenu}
             />
@@ -699,6 +831,9 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               <ExportMenu
                 onExportJSON={handleExportJSON}
                 onExportZIP={handleExportZIP}
+                onExportBackup={() => void handleOpenBackupExport()}
+                onRestoreBackup={handleRestoreBackupClick}
+                isImporting={isImporting}
               />
 
               {/* PDFドロップダウンメニュー */}
@@ -722,6 +857,23 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
         onOpenChange={handleDialogOpenChange}
         onConfirm={handleConfirmImport}
         onCancel={handleCancelImport}
+      />
+
+      {/* まとめてバックアップダイアログ */}
+      <BackupExportDialog
+        open={showBackupExportDialog}
+        onOpenChange={setShowBackupExportDialog}
+        counts={backupCounts}
+        onExport={handleExecuteBackupExport}
+      />
+
+      {/* バックアップから復元ダイアログ */}
+      <BackupRestoreDialog
+        open={showBackupRestoreDialog}
+        onOpenChange={handleBackupRestoreDialogOpenChange}
+        backup={pendingBackup}
+        currentCounts={backupCounts}
+        onRestore={handleExecuteBackupRestore}
       />
 
       {/* 指導箋一覧（マイ指導箋） */}

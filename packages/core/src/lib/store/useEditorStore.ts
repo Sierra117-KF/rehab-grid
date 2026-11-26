@@ -26,17 +26,24 @@ import {
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { registerAutosaveFlusher } from "@rehab-grid/core/lib/store/autosaveFlusher";
 import {
+  type BackupCategorySelection,
+  type BackupRestoreMode,
+  type BackupRestoreSummary,
   type Dosages,
   type EditorItem,
   type ImportOpenMode,
   type ImportResult,
+  type ParsedBackup,
   type Precaution,
   type ProjectFile,
   type ProjectMeta,
   type ResolvedProjectSettings,
 } from "@rehab-grid/core/types";
 import { debounce } from "@rehab-grid/core/utils/debounce";
-import { applyImportResult } from "@rehab-grid/core/utils/project";
+import {
+  applyBackupToDB,
+  applyImportResult,
+} from "@rehab-grid/core/utils/project";
 import {
   readLocalStorage,
   requestPersistentStorage,
@@ -172,6 +179,23 @@ type EditorActions = {
    * @param mode - new: 新しい指導箋として開く / overwrite: 現在の指導箋に上書き
    */
   openImportResult: (result: ImportResult, mode: ImportOpenMode) => Promise<void>;
+  /**
+   * 一括バックアップを IndexedDB へ復元する
+   *
+   * @remarks
+   * replace 時は保留中のオートセーブを破棄してから全テーブルを入れ替え、復元後の最新指導箋を開く。
+   * merge 時は保留中のオートセーブを確定してから追加し、現在開いている指導箋を維持する。
+   *
+   * @param backup - 検証済みの一括バックアップ
+   * @param selection - 復元対象とするカテゴリの選択状態
+   * @param mode - 復元方法（merge: 追加 / replace: 全置換）
+   * @returns 復元件数サマリー（他処理の実行中でスキップされた場合は undefined）
+   */
+  restoreBackup: (
+    backup: ParsedBackup,
+    selection: BackupCategorySelection,
+    mode: BackupRestoreMode
+  ) => Promise<BackupRestoreSummary | undefined>;
   /**
    * 保留中のオートセーブを今すぐ保存し、完了を待つ
    *
@@ -735,6 +759,36 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         });
       },
 
+      restoreBackup: async (backup, selection, mode) =>
+        runProjectTransition(async () => {
+          // 置換でも追加でも、先に未保存の編集を確定しておく
+          // （置換が失敗しても直前の編集や failedSave を失わない。成功すれば全消去される）
+          await flushPendingAutosave();
+
+          if (mode === "replace") {
+            const { summary, latestProjectId } = await applyBackupToDB(
+              backup,
+              selection,
+              "replace"
+            );
+            const data =
+              latestProjectId !== undefined
+                ? await loadProject(latestProjectId)
+                : undefined;
+            if (latestProjectId !== undefined && data !== undefined) {
+              get().openProject(latestProjectId, data);
+            } else {
+              openNewProject();
+            }
+            void requestPersistentStorage();
+            return summary;
+          }
+
+          const { summary } = await applyBackupToDB(backup, selection, "merge");
+          void requestPersistentStorage();
+          return summary;
+        }),
+
       flushAutosave: flushPendingAutosave,
 
       setItems: (items) => commit({ items }),
@@ -967,10 +1021,10 @@ useEditorStore.subscribe(
     meta: state.meta,
   }),
   () => {
-    // 初期読み込み完了後のみオートセーブを実行
-    if (useEditorStore.getState().isLoaded) {
+    // 初期読み込み完了後かつプロジェクト切り替え・復元処理中でないときのみオートセーブを予約する
+    const state = useEditorStore.getState();
+    if (state.isLoaded && !state.isSwitchingProject) {
       // 保存先はこの時点のプロジェクトID（実行時に読むと切り替え先へ書き込む恐れがある）
-      const state = useEditorStore.getState();
       failedSave = null;
       debouncedSave(state.projectId, state);
     }

@@ -21,7 +21,7 @@ import {
 import { getImages } from "@rehab-grid/core/lib/db";
 import { projectFileSchema } from "@rehab-grid/core/lib/schemas";
 import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
-import type { JSZipObject, JSZipStreamHelper } from "jszip";
+import type JSZip from "jszip";
 import { nanoid } from "nanoid";
 
 import { getDateString } from "./date";
@@ -30,33 +30,11 @@ import {
   isValidImageBlob,
   partitionImageIds,
 } from "./image";
-
-/**
- * internalStream を持つ ZIP エントリ
- *
- * @remarks
- * internalStream は JSZip の公開 API だが、同梱の型定義に含まれていないため補う
- * @see https://stuk.github.io/jszip/documentation/api_zipobject/internal_stream.html
- */
-type StreamableZipObject = JSZipObject & {
-  internalStream: (
-    type: "uint8array"
-  ) => JSZipStreamHelper<Uint8Array<ArrayBuffer>>;
-};
-
-/**
- * ZIP エントリが internalStream を持つか判定
- *
- * @param entry - 判定対象のZIPエントリ
- * @returns internalStream を持つ場合 true
- */
-function isStreamableZipObject(
-  entry: JSZipObject
-): entry is StreamableZipObject {
-  return (
-    "internalStream" in entry && typeof entry.internalStream === "function"
-  );
-}
+import {
+  detectImportFileType,
+  extractWithLimit,
+  getExtensionFromMimeType,
+} from "./zip";
 
 /**
  * プロジェクトを軽量JSON形式に変換
@@ -131,29 +109,6 @@ export function downloadProjectAsJSON(project: ProjectFile): void {
 }
 
 /**
- * Blob の MIME タイプから拡張子を取得
- *
- * @param blob - 画像 Blob
- * @returns ファイル拡張子（ドットなし）
- */
-function getExtensionFromBlob(blob: Blob): string {
-  const mimeType = blob.type;
-
-  switch (mimeType) {
-    case "image/webp":
-      return "webp";
-    case "image/jpeg":
-      return "jpg";
-    case "image/png":
-      return "png";
-    case "image/gif":
-      return "gif";
-    default:
-      return "webp";
-  }
-}
-
-/**
  * プロジェクトをZIP形式でエクスポート
  *
  * @remarks
@@ -186,7 +141,7 @@ export async function exportToZIP(
   let imageIndex = 1;
   for (const [imageId, blob] of images) {
     if (blob) {
-      const ext = getExtensionFromBlob(blob);
+      const ext = getExtensionFromMimeType(blob.type);
       const filename = `img_${String(imageIndex).padStart(3, "0")}.${ext}`;
       const path = `images/${filename}`;
       imageIdToPath.set(imageId, path);
@@ -285,26 +240,6 @@ export async function downloadProjectAsZIP(
 // ============================================================================
 
 /**
- * ファイル形式を判別
- *
- * @param file - 判別対象のファイル
- * @returns ファイル形式（"json" | "zip" | "unknown"）
- */
-async function detectFileType(file: File): Promise<"json" | "zip" | "unknown"> {
-  // 拡張子による判別
-  const ext = file.name.split(".").pop()?.toLowerCase();
-  if (ext === "json") return "json";
-  if (ext === "zip") return "zip";
-
-  // マジックバイトによるZIP判別（PK = 0x50 0x4B）
-  const header = await file.slice(0, 4).arrayBuffer();
-  const bytes = new Uint8Array(header);
-  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return "zip";
-
-  return "unknown";
-}
-
-/**
  * ファイルサイズをチェック
  *
  * @param file - チェック対象のファイル
@@ -365,73 +300,13 @@ async function importFromJSON(file: File): Promise<ImportResult> {
 }
 
 /**
- * ZIPエントリを上限サイズまで展開する
+ * 読み込み済み JSZip インスタンスから単一プロジェクトをインポート
  *
- * @remarks
- * ZIP爆弾対策: 展開しながらバイト数を数え、上限を超えた時点で中断する
- * （展開し終えてからサイズを確認すると、その前にメモリが尽きるため）
- *
- * @param entry - 展開するZIPエントリ
- * @param maxBytes - 展開後サイズの上限（バイト）
- * @returns 展開したデータ
- * @throws 展開後サイズが上限を超えた場合
- */
-async function extractWithLimit(
-  entry: JSZipObject,
-  maxBytes: number
-): Promise<Uint8Array<ArrayBuffer>> {
-  if (!isStreamableZipObject(entry)) {
-    throw new Error("JSZip の internalStream が利用できません");
-  }
-
-  return new Promise((resolve, reject) => {
-    const chunks: Uint8Array<ArrayBuffer>[] = [];
-    let size = 0;
-    const stream = entry.internalStream("uint8array");
-
-    stream
-      .on("data", (chunk) => {
-        size += chunk.byteLength;
-        // 1チャンクから複数の data が同期的に発火するため、超過後のチャンクは保持しない
-        if (size > maxBytes) {
-          stream.pause();
-          reject(new Error(IMPORT_ERROR_EXTRACTED_TOO_LARGE));
-          return;
-        }
-        chunks.push(chunk);
-      })
-      .on("error", reject)
-      .on("end", () => {
-        const bytes = new Uint8Array(size);
-        let offset = 0;
-        for (const chunk of chunks) {
-          bytes.set(chunk, offset);
-          offset += chunk.byteLength;
-        }
-        resolve(bytes);
-      })
-      .resume();
-  });
-}
-
-/**
- * ZIPファイルをインポート
- *
- * @param file - ZIPファイル
+ * @param zip - 読み込み済み JSZip インスタンス
  * @returns インポート結果
- * @throws 破損したZIP、project.json不在、バリデーションエラー時
+ * @throws project.json 不在、バリデーションエラー、ZIP爆弾対策エラー時
  */
-async function importFromZIP(file: File): Promise<ImportResult> {
-  // 動的インポートで jszip を読み込み（Turbopack 互換性のため）
-  const JSZip = (await import("jszip")).default;
-
-  let zip: InstanceType<typeof JSZip>;
-  try {
-    zip = await JSZip.loadAsync(file);
-  } catch {
-    throw new Error(IMPORT_ERROR_CORRUPTED_ZIP);
-  }
-
+export async function importFromLoadedZIP(zip: JSZip): Promise<ImportResult> {
   // project.json を取得
   const projectJsonFile = zip.file("project.json");
   if (!projectJsonFile) {
@@ -528,6 +403,27 @@ async function importFromZIP(file: File): Promise<ImportResult> {
 }
 
 /**
+ * ZIPファイルをインポート
+ *
+ * @param file - ZIPファイル
+ * @returns インポート結果
+ * @throws 破損したZIP、project.json不在、バリデーションエラー時
+ */
+async function importFromZIP(file: File): Promise<ImportResult> {
+  // 動的インポートで jszip を読み込み（Turbopack 互換性のため）
+  const JSZipModule = (await import("jszip")).default;
+
+  let zip: JSZip;
+  try {
+    zip = await JSZipModule.loadAsync(file);
+  } catch {
+    throw new Error(IMPORT_ERROR_CORRUPTED_ZIP);
+  }
+
+  return importFromLoadedZIP(zip);
+}
+
+/**
  * プロジェクトをインポート
  *
  * @remarks
@@ -552,7 +448,7 @@ async function importFromZIP(file: File): Promise<ImportResult> {
  * ```
  */
 export async function importProject(file: File): Promise<ImportResult> {
-  const fileType = await detectFileType(file);
+  const fileType = await detectImportFileType(file);
 
   // ファイルサイズチェック（パース処理前の早期リターン）
   if (fileType !== "unknown") {
