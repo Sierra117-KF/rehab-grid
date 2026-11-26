@@ -47,6 +47,7 @@ next-env.d.ts
 
 # Font
 public/fonts/originals/
+packages/assets/fonts/originals/
 
 # Generated assets (copied from packages/assets by copy-assets.mjs)
 apps/web/public/fonts/
