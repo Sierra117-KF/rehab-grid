@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-27
+
 ### Added
 
 - 全データ・マイライブラリ（マイ指導箋・マイテンプレート・マイ運動・マイ定型文・取り込み画像）を 1 つの ZIP ファイル（`rehab-grid-backup-YYYY-MM-DD.zip`）にまとめて書き出し・復元できる「まとめてバックアップ／バックアップから復元」機能を追加。書き出し・復元ともに対象カテゴリ（未使用の取り込み画像を含む）をチェックボックスで選択でき、復元時は「現在のデータに追加する（推奨）」と「端末のデータをすべて置き換える」を選べる。サンプル画像は実体を同梱せず ID を維持し、複数箇所で参照される取り込み画像は重複排除して保存する。単一指導箋ファイルと一括バックアップ ZIP は中身で自動判別する
@@ -138,7 +140,9 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.3...v1.4.0
+[1.3.3]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.2.0...v1.3.0
