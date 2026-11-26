@@ -15,7 +15,6 @@
       "Skill(frontend-design)"
     ],
     "deny": [
-      "Bash(rm:*)",
       "Bash(rm:-rf:*)",
       "Bash(del:*)",
       "Bash(dd:*)",
@@ -37,9 +36,7 @@
       "Bash(apt:*)",
       "Bash(yum:*)",
       "Bash(mv:*)",
-      "Bash(npm:*)",
-      "Read(.env)",
-      "Read(.env.local)"
+      "Bash(npm:*)"
     ]
   },
   "outputStyle": "Explanatory"
