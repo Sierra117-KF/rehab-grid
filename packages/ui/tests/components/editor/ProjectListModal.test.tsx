@@ -264,6 +264,56 @@ describe("ProjectListModal", () => {
       });
     });
 
+    it("指導箋を開いて閉じたあと、再度開くと検索語がリセットされている", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue(SAVED_PROJECTS);
+      const onOpenChange = vi.fn();
+      const { rerender } = render(
+        <ProjectListModal open onOpenChange={onOpenChange} />
+      );
+
+      await user.type(
+        screen.getByRole("textbox", { name: PROJECT_LIST_SEARCH_LABEL }),
+        "膝"
+      );
+      await user.click(screen.getByRole("button", { name: OPEN_PROJECT_B }));
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+
+      rerender(<ProjectListModal open onOpenChange={onOpenChange} />);
+
+      expect(
+        screen.getByRole("textbox", { name: PROJECT_LIST_SEARCH_LABEL })
+      ).toHaveValue("");
+    });
+
+    it("「新しい指導箋」を作成して閉じたあと、検索語がリセットされている", async () => {
+      const user = userEvent.setup();
+      mockUseLiveQuery.mockReturnValue(SAVED_PROJECTS);
+      const onOpenChange = vi.fn();
+      const { rerender } = render(
+        <ProjectListModal open onOpenChange={onOpenChange} />
+      );
+
+      await user.type(
+        screen.getByRole("textbox", { name: PROJECT_LIST_SEARCH_LABEL }),
+        "膝"
+      );
+      await user.click(
+        screen.getByRole("button", { name: PROJECT_LIST_NEW_LABEL })
+      );
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+
+      rerender(<ProjectListModal open onOpenChange={onOpenChange} />);
+
+      expect(
+        screen.getByRole("textbox", { name: PROJECT_LIST_SEARCH_LABEL })
+      ).toHaveValue("");
+    });
+
     it("処理中は操作ボタンを無効にする", () => {
       mockStoreState.isSwitchingProject = true;
       setupModal();

@@ -65,6 +65,9 @@ export type ExerciseCardLibraryModalProps = {
   onAdd: (item: EditorItem) => void;
 };
 
+/** モーダルが閉じている間に useCanvasImages へ渡す空配列（不要な DB 読み込み・Object URL 生成を避ける） */
+const EMPTY_ITEMS: EditorItem[] = [];
+
 /** 表示用の運動名（空なら「無題の運動」） */
 function getDisplayTitle(item: EditorItem): string {
   return item.title.trim() || LABELS.untitledExercise;
@@ -185,7 +188,7 @@ export function ExerciseCardLibraryModal({
     () => (cards ?? []).map((card) => card.item),
     [cards]
   );
-  const imageUrls = useCanvasImages(cardItems);
+  const imageUrls = useCanvasImages(open ? cardItems : EMPTY_ITEMS);
 
   const filteredCards = (cards ?? []).filter((card) =>
     matchesSearchQuery(getDisplayTitle(card.item), searchQuery)

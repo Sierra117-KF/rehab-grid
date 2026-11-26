@@ -246,11 +246,17 @@ export function ProjectListModal({
     matchesSearchQuery(getDisplayTitle(project.title), searchQuery)
   );
 
+  /** モーダルを閉じたら検索語を戻す */
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setSearchQuery("");
+    handleOpenChange(nextOpen);
+  };
+
   /** 指導箋を開く（編集中の指導箋なら閉じるだけ） */
   const handleOpen = async (id: string) => {
     try {
       await switchProject(id);
-      handleOpenChange(false);
+      handleDialogOpenChange(false);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : PROJECT_SWITCH_FAILED_MESSAGE
@@ -262,7 +268,7 @@ export function ProjectListModal({
   const handleCreate = async () => {
     try {
       await createProject();
-      handleOpenChange(false);
+      handleDialogOpenChange(false);
       toast.success(PROJECT_CREATE_SUCCESS_MESSAGE);
     } catch (error) {
       toast.error(toErrorMessage(error));
@@ -290,12 +296,6 @@ export function ProjectListModal({
     } finally {
       setDeleteTarget(null);
     }
-  };
-
-  /** モーダルを閉じたら検索語を戻す */
-  const handleDialogOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setSearchQuery("");
-    handleOpenChange(nextOpen);
   };
 
   return (

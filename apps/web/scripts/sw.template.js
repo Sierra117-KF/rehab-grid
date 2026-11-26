@@ -133,7 +133,9 @@ function withRequestUrlForWorker(event, response) {
  * キャッシュ優先: キャッシュになければネットワークから取得して保存
  */
 async function cacheFirst(event) {
-  const cachedResponse = await caches.match(event.request);
+  const cachedResponse = await caches.match(event.request, {
+    cacheName: CACHE_NAME,
+  });
   if (cachedResponse) return withRequestUrlForWorker(event, cachedResponse);
 
   const response = await fetch(event.request);
@@ -150,11 +152,13 @@ async function networkFirst(event) {
     putInCache(event, response);
     return response;
   } catch (error) {
-    const cachedResponse = await caches.match(event.request);
+    const cachedResponse = await caches.match(event.request, {
+      cacheName: CACHE_NAME,
+    });
     if (cachedResponse) return cachedResponse;
     // 未訪問ページへの遷移はトップページで代替する
     if (event.request.mode === "navigate") {
-      const fallback = await caches.match("/");
+      const fallback = await caches.match("/", { cacheName: CACHE_NAME });
       if (fallback) return fallback;
     }
     throw error;

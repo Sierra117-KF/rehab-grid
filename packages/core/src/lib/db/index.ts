@@ -14,6 +14,7 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import {
   editorItemSchema,
+  normalizeCustomSnippetValue,
   projectFileSchema,
   sanitizeText,
 } from "@rehab-grid/core/lib/schemas";
@@ -154,7 +155,8 @@ export async function duplicateProject(
   if (!source) return undefined;
 
   const newId = nanoid();
-  const baseTitle = source.meta.title.slice(
+  const sourceTitle = source.meta.title.trim() || DEFAULT_PROJECT_TITLE;
+  const baseTitle = sourceTitle.slice(
     0,
     TEXT_LIMITS.projectTitle - PROJECT_COPY_SUFFIX.length
   );
@@ -222,10 +224,9 @@ export async function saveUserTemplate(
   if (!result.success) throw new Error(LIBRARY_SAVE_FAILED_MESSAGE);
 
   const id = nanoid();
-  const normalizedName = sanitizeText(name.trim()).slice(
-    0,
-    TEXT_LIMITS.projectTitle
-  );
+  const normalizedName = sanitizeText(name)
+    .trim()
+    .slice(0, TEXT_LIMITS.projectTitle);
   await db.userTemplates.put({
     id,
     name: normalizedName || DEFAULT_PROJECT_TITLE,
@@ -317,18 +318,23 @@ export async function deleteExerciseCard(id: string): Promise<void> {
  * マイ定型文を登録する
  *
  * @remarks
- * 前後の空白を除き、注意点の文字数上限で切り詰める。
+ * HTML タグと前後の空白を除き、注意点の文字数上限で切り詰める。
+ * 正規化後に空文字になる場合は保存せずエラーにする。
  * 組み込みの定型文・登録済みの定型文との重複は呼び出し側で確かめる。
  *
  * @param value - 定型文の内容
  * @returns 登録したマイ定型文
+ * @throws 正規化後に文字が残らないとき
  */
 export async function addCustomSnippet(
   value: string
 ): Promise<CustomSnippetRecord> {
+  const normalized = normalizeCustomSnippetValue(value);
+  if (normalized === "") throw new Error(LIBRARY_SAVE_FAILED_MESSAGE);
+
   const record: CustomSnippetRecord = {
     id: nanoid(),
-    value: sanitizeText(value.trim()).slice(0, TEXT_LIMITS.precaution),
+    value: normalized,
     createdAt: new Date(),
   };
   await db.customSnippets.put(record);

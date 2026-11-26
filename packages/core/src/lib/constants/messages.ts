@@ -28,7 +28,7 @@ export const IMPORT_ERROR_NO_PROJECT =
   "ZIPファイルにプロジェクトデータがありません";
 
 /** 上書き確認ダイアログのタイトル */
-export const IMPORT_CONFIRM_TITLE = "プロジェクトを開く";
+export const IMPORT_CONFIRM_TITLE = "指導箋を開きますか？";
 
 /** 上書き確認ダイアログの説明 */
 export const IMPORT_CONFIRM_DESCRIPTION =
@@ -218,17 +218,17 @@ export const IMAGE_EDIT_STALE_MESSAGE =
 
 // プロジェクト削除関連メッセージ
 /** プロジェクト削除ボタンのツールチップ */
-export const PROJECT_DELETE_TOOLTIP = "現在のプロジェクトを削除";
+export const PROJECT_DELETE_TOOLTIP = "現在の指導箋を削除";
 
 /** プロジェクト削除確認ダイアログのタイトル */
-export const PROJECT_DELETE_CONFIRM_TITLE = "プロジェクトを削除";
+export const PROJECT_DELETE_CONFIRM_TITLE = "指導箋を削除";
 
 /** プロジェクト削除確認ダイアログの説明 */
 export const PROJECT_DELETE_CONFIRM_DESCRIPTION =
-  "現在表示されているプロジェクトを削除します。この操作は元に戻せません。保存する場合は事前にバックアップをダウンロードしてください。";
+  "現在表示されている指導箋を削除します。この操作は元に戻せません。保存する場合は事前にバックアップをダウンロードしてください。";
 
 /** プロジェクト削除成功メッセージ */
-export const PROJECT_DELETE_SUCCESS_MESSAGE = "プロジェクトを削除しました";
+export const PROJECT_DELETE_SUCCESS_MESSAGE = "指導箋を削除しました";
 
 /**
  * 指導箋一覧で削除するときの確認ダイアログの説明を生成
