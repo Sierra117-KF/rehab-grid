@@ -518,7 +518,7 @@ type ProjectSettings = {
 };
 
 // ストアと PDF 生成では resolveProjectSettings() でデフォルト値を補った ResolvedProjectSettings を使用
-type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
+type LayoutType = "grid1" | "grid2" | "grid3" | "grid4" | "slide"; // slide: A4 横 1 ページに横長カード 1 枚
 ```
 
 ---
@@ -532,17 +532,17 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 ```
 lib/pdf/
 ├── index.ts      # buildPdfDocument を export
-├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる）
-├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）
-├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ）
+├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる。スライドはカード 1 枚ごとに Page を作る）
+├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）、createSlideCard（スライドの横長カード。左に画像と用量、右に説明と注意点）
+├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ。スライドは全ページ）
 ├── footer.ts     # createFooter（2ページ以上のときのページ番号。fixed で全ページに描画）
-├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ、1か月は A4 横の別ページ）
-├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・ヘッダーの高さの計算
-├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード）
+├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ（スライドはヘッダー付きの別ページ）、1か月は A4 横の別ページ）
+├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・ヘッダーの高さ・スライドのカード寸法と説明／注意点の行数（getPdfSlideCardSize / getPdfSlideColumns / getSlideTextLines）の計算
+├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード。スライドは 1 カード 1 ページ）
 └── styles.ts     # StyleSheet 定義
 ```
 
-`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。ただし `layout.ts`（と `metrics.ts`）は依存しないため、エディタのメインスレッドから `@rehab-grid/core/lib/pdf/layout` で直接読み込む。見積もりと実際の PDF の一致は `tests/lib/pdf/layout.render.test.ts`（実際のフォントで react-pdf のレイアウトを計算する）で確かめている。
+`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。ただし `layout.ts`（と `metrics.ts`）は依存しないため、エディタのメインスレッドから `@rehab-grid/core/lib/pdf/layout`（スライドの寸法・行数は `@rehab-grid/core/lib/pdf/metrics`）で直接読み込む。見積もりと実際の PDF の一致は `tests/lib/pdf/layout.render.test.ts`（実際のフォントで react-pdf のレイアウトを計算する）で確かめている。
 
 ```typescript
 // Worker へのメッセージ
