@@ -506,8 +506,8 @@ export function TrainingPage() {
         </div>
       </aside>
 
-      {/* 中央キャンバス */}
-      <main className="flex-1 bg-background">
+      {/* 中央キャンバス（min-w-0：要約の 1 行表示などの長い内容に合わせて画面の外へ広がらないようにする） */}
+      <main className="min-w-0 flex-1 bg-background">
         <Canvas
           items={items}
           onItemsChange={handleItemsChange}
