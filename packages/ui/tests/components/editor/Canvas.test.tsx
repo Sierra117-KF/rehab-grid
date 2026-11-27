@@ -880,19 +880,24 @@ describe("Canvas", () => {
       ).toBeInTheDocument();
     });
 
-    it("収まらない説明は、画面の幅によらず先頭から切り詰めて末尾に「…」を付ける", () => {
+    it("収まらない説明・注意点は、画面の幅によらず PDF と同じ位置で切り詰めて末尾に「…」を付ける", () => {
       const longDescription = "膝を曲げてゆっくり立ち上がる。".repeat(14).slice(0, 200);
-      // 50 文字（注意点の上限）。5 件で右の列の大半を使い、説明が短縮される
-      const longPrecaution =
-        "膝がつま先より前に出ないようにし、背中を丸めずに、ゆっくりとした動作で行い、痛みや違和感が出たらすぐ";
+      // 3 行ある注意点を 5 件並べ、ヘッダー最大＋白黒モードで右の列に収まらない状態を作る
+      const multiLinePrecaution = "1行目の注意点\n2行目の注意点\n3行目の注意点";
       setupSlide({
+        printColorMode: "monochrome",
+        sheetHeader: {
+          ...resolveProjectSettings(undefined).header,
+          facilityName: "○○病院",
+          overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
+        },
         items: [
           {
             ...slideItem,
             description: longDescription,
             precautions: [1, 2, 3, 4, 5].map((n) => ({
               id: `p${String(n)}`,
-              value: longPrecaution,
+              value: multiLinePrecaution,
             })),
           },
         ],
@@ -904,8 +909,13 @@ describe("Canvas", () => {
       expect(shown.endsWith("…")).toBeTruthy();
       expect(longDescription.startsWith(shown.slice(0, -1))).toBeTruthy();
       expect(shown.length).toBeLessThan(longDescription.length);
-      // 注意点は行頭の「•」付きでそのまま出る
-      expect(right.getAllByText(`• ${longPrecaution}`)).toHaveLength(5);
+      // 注意点も 2 行に縮められ、行頭の「•」付き＋末尾「…」で切り詰められる
+      const precautions = right.getAllByText(/^• 1行目の注意点/);
+      expect(precautions).toHaveLength(5);
+      for (const precaution of precautions) {
+        expect(precaution.textContent.endsWith("…")).toBeTruthy();
+        expect(precaution.textContent).not.toContain("3行目の注意点");
+      }
     });
 
     it("ヘッダーが高いほどカードの縦横比が横長になる", () => {

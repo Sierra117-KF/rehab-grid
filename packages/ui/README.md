@@ -32,7 +32,7 @@ packages/ui/
 │   │   │   │   ├── SlideCardBody.tsx    # スライドの横長カードの中身
 │   │   │   │   ├── SortableCard.tsx     # 外側（ドラッグ・選択・画像ドロップ・操作ボタン）
 │   │   │   │   ├── VerticalCardBody.tsx # 1〜4列の縦型カードの中身
-│   │   │   │   ├── cardStyles.ts        # 共通のスタイル（line-clamp・cqw 変換）
+│   │   │   │   ├── cardStyles.ts        # 共通のスタイル（cqw 変換・CSS 変数の型）
 │   │   │   │   └── cardTypes.ts         # 中身の部品の共通 props
 │   │   │   ├── EditorHeader/       # ヘッダーメニュー群
 │   │   │   │   ├── index.tsx
