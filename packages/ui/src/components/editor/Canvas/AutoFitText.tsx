@@ -108,6 +108,13 @@ export type AutoFitTextProps = {
   text: string;
   /** 親コンテナのクラス（基準フォントサイズや配置を指定する） */
   containerClassName?: string;
+  /**
+   * 親コンテナのインラインスタイル（コンテナクエリ単位などで基準フォントサイズを指定する）
+   *
+   * @remarks
+   * cqw 指定でも getComputedStyle は px に解決した値を返し、幅の変化は ResizeObserver が拾う
+   */
+  containerStyle?: React.CSSProperties;
   /** テキスト要素のクラス（太字・文字色・下線など） */
   textClassName?: string;
   /** テキスト要素のインラインスタイル */
@@ -124,6 +131,7 @@ export type AutoFitTextProps = {
 export function AutoFitText({
   text,
   containerClassName,
+  containerStyle,
   textClassName,
   textStyle,
   title,
@@ -131,7 +139,7 @@ export function AutoFitText({
 }: AutoFitTextProps) {
   const { containerRef, textRef } = useAutoFitFontSize(
     text,
-    containerClassName
+    `${containerClassName ?? ""}|${String(containerStyle?.fontSize ?? "")}`
   );
 
   return (
@@ -141,6 +149,7 @@ export function AutoFitText({
         "flex w-full min-w-0 justify-center overflow-hidden",
         containerClassName
       )}
+      style={containerStyle}
     >
       <span
         ref={textRef}

@@ -23,6 +23,8 @@ type InlineEditInputProps = {
   label: string;
   /** 入力欄の文字の見た目（カード上の表示と同じ文字サイズにする） */
   className?: string;
+  /** 入力欄のインラインスタイル（スライドのコンテナクエリ単位の文字サイズなど） */
+  style?: React.CSSProperties;
   /** 確定したとき（Enter・フォーカスが外れたとき）のハンドラ */
   onCommit: (value: string) => void;
   /** 取り消したとき（Esc）のハンドラ */
@@ -47,6 +49,7 @@ export function InlineEditInput({
   maxLength,
   label,
   className,
+  style,
   onCommit,
   onCancel,
 }: InlineEditInputProps) {
@@ -83,6 +86,7 @@ export function InlineEditInput({
         "outline-none focus-visible:ring-2 focus-visible:ring-primary",
         className
       )}
+      style={style}
       onChange={(event) => setDraft(event.target.value)}
       onKeyDown={(event) => {
         event.stopPropagation();

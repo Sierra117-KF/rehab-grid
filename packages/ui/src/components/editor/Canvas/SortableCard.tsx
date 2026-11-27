@@ -3,93 +3,30 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  CANVAS_DROP_HERE,
-  CARD_NUMBER_BADGE_RATIO,
-  createInlineDosageInputLabel,
   DUPLICATE_TOOLTIP,
-  EDITOR_TEXT_STYLE,
-  EDITOR_TEXT_STYLE_LARGE,
-  EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   IMAGE_DRAG_TYPE,
   IMAGE_FLIP_TOOLTIP,
   INLINE_EDIT_HINT,
-  INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LONG_PRESS_DURATION,
-  MOBILE_TAP_TO_SELECT_IMAGE,
-  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
-  BadgeType,
   DosageLabels,
   EditorItem,
   LayoutType,
   TextScale,
 } from "@rehab-grid/core/types";
-import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
-import {
-  Copy,
-  FlipHorizontal2,
-  GripVertical,
-  ImagePlus,
-  Pencil,
-} from "lucide-react";
-import Image from "next/image";
+import { Copy, FlipHorizontal2, GripVertical, Pencil } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
-import { AutoFitText } from "./AutoFitText";
-import { InlineEditInput } from "./InlineEditInput";
-
-/**
- * 用量の区切り線の色（Canvas がテーマカラーから上書きする CSS 変数を参照する）
- */
-const DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
-  borderTopColor: "var(--dosage-accent-light)",
-};
-
-/**
- * 注意点ボックスの枠線の色（白黒モードのみ Canvas が濃い色に上書きする。既定は透明）
- */
-const PRECAUTION_BORDER_STYLE: React.CSSProperties = {
-  borderColor: "var(--precaution-border)",
-};
-
-/**
- * カード番号バッジの見た目（大きさはタイトルの文字サイズに対する比率。PDF と同じ比率）
- */
-const CARD_NUMBER_BADGE_STYLE: React.CSSProperties = {
-  width: `${String(CARD_NUMBER_BADGE_RATIO.size)}em`,
-  height: `${String(CARD_NUMBER_BADGE_RATIO.size)}em`,
-  fontSize: `${String(CARD_NUMBER_BADGE_RATIO.fontSize)}em`,
-  backgroundColor: "var(--card-number-bg)",
-};
-
-/**
- * カード内の文字サイズを選ぶ
- *
- * @remarks
- * デスクトップの 1 列は常に拡大スタイル（文字サイズの設定に関わらず）。
- * モバイルは 1 列表示でも拡大スタイルを使わないため、「大きめ」なら 2〜4 列向けの大きめスタイルにする。
- *
- * @param layoutType - レイアウトタイプ
- * @param textScale - 文字サイズの設定
- * @param isMobile - モバイル表示かどうか
- * @returns Tailwind のクラス名の組
- */
-function getCardTextStyle(
-  layoutType: LayoutType | undefined,
-  textScale: TextScale,
-  isMobile: boolean
-):
-  | typeof EDITOR_TEXT_STYLE
-  | typeof EDITOR_TEXT_STYLE_LARGE
-  | typeof EDITOR_TEXT_STYLE_SINGLE_COLUMN {
-  if (layoutType === "grid1" && !isMobile) {
-    return EDITOR_TEXT_STYLE_SINGLE_COLUMN;
-  }
-  return textScale === "large" ? EDITOR_TEXT_STYLE_LARGE : EDITOR_TEXT_STYLE;
-}
+import {
+  type CardInlineEdit,
+  type ContentTouchHandlers,
+  type InlineEditField,
+  type InlineEditUpdates,
+} from "./cardTypes";
+import { VerticalCardBody } from "./VerticalCardBody";
 
 /**
  * カード右上のホバーアクションボタン（デスクトップ用）
@@ -183,17 +120,11 @@ export type SortableCardProps = {
 };
 
 /**
- * カード上のインライン編集で変更する項目
- */
-export type InlineEditUpdates = Partial<Pick<EditorItem, "title" | "dosages">>;
-
-/** インライン編集中の項目（タイトルまたは用量の種類） */
-type InlineEditField = "title" | BadgeType;
-
-/**
  * ソート可能なカードコンポーネント
  *
- * dnd-kit の useSortable フックを使用してドラッグ可能なカードを実装
+ * dnd-kit の useSortable フックを使用してドラッグ可能なカードを実装。
+ * ドラッグ・選択・画像のドロップ・操作ボタン・インライン編集の状態を受け持ち、中身の描画は
+ * VerticalCardBody に任せる
  */
 export function SortableCard({
   item,
@@ -216,7 +147,6 @@ export function SortableCard({
   onInlineEdit,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
-  const textStyle = getCardTextStyle(layoutType, textScale, isMobile);
 
   // インライン編集は選択中のカードだけ。選択が外れたら編集をやめる（レンダー中に前回の選択状態と比べる）
   const canInlineEdit = isSelected && onInlineEdit !== undefined;
@@ -248,16 +178,20 @@ export function SortableCard({
     });
   };
 
-  /**
-   * ダブルクリックで編集を始めるための props（編集できないときは何も付けない）
-   */
-  const inlineEditTriggerProps = (field: InlineEditField) =>
-    canInlineEdit
-      ? {
-          title: INLINE_EDIT_HINT,
-          onDoubleClick: () => setEditingField(field),
-        }
-      : {};
+  const inlineEdit: CardInlineEdit = {
+    canEdit: canInlineEdit,
+    editingField: canInlineEdit ? editingField : null,
+    // ダブルクリックで編集を始めるための props（編集できないときは何も付けない）
+    triggerProps: (field) =>
+      canInlineEdit
+        ? {
+            title: INLINE_EDIT_HINT,
+            onDoubleClick: () => setEditingField(field),
+          }
+        : {},
+    commit: commitInlineEdit,
+    cancel: () => setEditingField(null),
+  };
 
   // ロングプレス用タイマーRef
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -313,6 +247,13 @@ export function SortableCard({
   const handleContentTouchEnd = useCallback(() => {
     clearLongPressTimer();
   }, [clearLongPressTimer]);
+
+  const touchHandlers: ContentTouchHandlers = {
+    onTouchStart: handleContentTouchStart,
+    onTouchEnd: handleContentTouchEnd,
+    onTouchMove: handleContentTouchEnd,
+    onTouchCancel: handleContentTouchEnd,
+  };
 
   /**
    * 画像ドラッグオーバー時の処理
@@ -451,264 +392,19 @@ export function SortableCard({
       ) : null}
 
       {/* カードコンテンツ */}
-      <div className="flex flex-col gap-3 p-4">
-        {/* 画像エリア */}
-        <div
-          className={cn(
-            "relative aspect-5/3 rounded-lg overflow-hidden",
-            "bg-muted/30 border border-border/30",
-            "flex items-center justify-center",
-            "transition-all duration-200",
-            isImageDragOver &&
-              "border-primary-active border-2 bg-primary-active/30"
-          )}
-        >
-          {hasImage ? (
-            <Image
-              src={imageUrl}
-              alt={item.title || LABELS.untitledExercise}
-              fill
-              sizes="(max-width: 768px) 50vw, 300px"
-              className="object-contain"
-              unoptimized
-              draggable={false}
-            />
-          ) : isImageDragOver ? (
-            <div className="flex flex-col items-center gap-2 text-primary-active">
-              <ImagePlus className="size-8" />
-              <span className="text-xs font-medium">{CANVAS_DROP_HERE}</span>
-            </div>
-          ) : (
-            // モバイル版ではタップオーバーレイが表示されるため、デフォルトプレースホルダーは非表示
-            !isMobile && (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
-                <ImagePlus className="size-8" />
-                <span className="text-xs">{LABELS.noImage}</span>
-              </div>
-            )
-          )}
-
-          {/* モバイル用: 画像選択タップオーバーレイ */}
-          {isMobile && onImageAreaClick ? (
-            <button
-              type="button"
-              className={cn(
-                "absolute inset-0 z-10",
-                "flex flex-col items-center justify-center gap-2",
-                "text-white transition-opacity",
-                // 画像がない場合（参照切れを含む）のみオーバーレイを表示
-                !hasImage
-                  ? "bg-black/20 opacity-100"
-                  : "bg-transparent opacity-0"
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                onImageAreaClick(item.id);
-              }}
-              aria-label="画像を選択"
-            >
-              {/* 画像がない場合のみメッセージを表示 */}
-              {!hasImage ? (
-                <>
-                  <ImagePlus className="size-6" />
-                  <span className="text-xs font-medium">
-                    {MOBILE_TAP_TO_SELECT_IMAGE}
-                  </span>
-                </>
-              ) : null}
-            </button>
-          ) : null}
-        </div>
-
-        {/* タイトル */}
-        <div
-          className="space-y-2"
-          onTouchStart={handleContentTouchStart}
-          onTouchEnd={handleContentTouchEnd}
-          onTouchMove={handleContentTouchEnd}
-          onTouchCancel={handleContentTouchEnd}
-        >
-          <h3
-            className={cn(
-              "flex items-center justify-center gap-[0.3em] font-semibold",
-              textStyle.titleSize
-            )}
-          >
-            {/* カード番号バッジ（丸数字。サイズはタイトルの文字サイズに追従する） */}
-            {cardNumber !== undefined ? (
-              <span
-                className="flex shrink-0 items-center justify-center rounded-full font-bold not-italic leading-none text-white"
-                style={CARD_NUMBER_BADGE_STYLE}
-              >
-                {cardNumber}
-              </span>
-            ) : null}
-            {canInlineEdit && editingField === "title" ? (
-              <InlineEditInput
-                value={item.title}
-                maxLength={TEXT_LIMITS.title}
-                label={INLINE_EDIT_TITLE_LABEL}
-                className="font-semibold"
-                onCommit={(value) => commitInlineEdit("title", value)}
-                onCancel={() => setEditingField(null)}
-              />
-            ) : (
-              <span
-                className={cn(
-                  "min-w-0 truncate",
-                  !item.title && "text-muted-foreground/50 italic",
-                  canInlineEdit && "cursor-text"
-                )}
-                {...inlineEditTriggerProps("title")}
-              >
-                {item.title
-                  ? item.title.slice(0, TEXT_LIMITS.title)
-                  : LABELS.untitledExercise}
-              </span>
-            )}
-          </h3>
-
-          {/* 説明（あれば） */}
-          {item.description ? (
-            <p
-              className={cn(
-                textStyle.descriptionSize,
-                "text-muted-foreground line-clamp-4 whitespace-pre-line"
-              )}
-            >
-              {item.description.slice(0, TEXT_LIMITS.description)}
-            </p>
-          ) : null}
-        </div>
-
-        {/* 回数・セット数・頻度（数値強調型デザイン） */}
-        {(() => {
-          const badgeLayout = getDosageBadgeLayout(
-            item.dosages,
-            layoutType ?? "grid2"
-          );
-          if (badgeLayout.length === 0) return null;
-          return (
-            <div
-              className="flex flex-col gap-2 py-2"
-              onTouchStart={handleContentTouchStart}
-              onTouchEnd={handleContentTouchEnd}
-              onTouchMove={handleContentTouchEnd}
-              onTouchCancel={handleContentTouchEnd}
-            >
-              {badgeLayout.map((row) => {
-                const rowKey = row.badges.map((b) => b.type).join("-");
-                return (
-                  <div
-                    key={rowKey}
-                    className={cn(
-                      "grid",
-                      layoutType === "grid3" || layoutType === "grid4"
-                        ? "gap-2"
-                        : "gap-4",
-                      row.isFullWidth
-                        ? "grid-cols-1"
-                        : row.badges.length === 2
-                          ? "grid-cols-2"
-                          : "grid-cols-3"
-                    )}
-                  >
-                    {row.badges.map((badge) => {
-                      const displayValue = badge.hasValue
-                        ? badge.value.slice(0, TEXT_LIMITS[badge.type])
-                        : "-";
-                      return (
-                        <div
-                          key={badge.type}
-                          className={cn(
-                            "flex min-w-0 flex-col items-center",
-                            !badge.hasValue && "invisible"
-                          )}
-                        >
-                          {/* 数値（大きく強調。幅に収まらない場合は 1 行のまま自動縮小する） */}
-                          {canInlineEdit && editingField === badge.type ? (
-                            <div className="flex w-full flex-1 items-end justify-center">
-                              <InlineEditInput
-                                value={badge.value}
-                                maxLength={TEXT_LIMITS[badge.type]}
-                                label={createInlineDosageInputLabel(
-                                  dosageLabels[badge.type]
-                                )}
-                                className={cn(
-                                  textStyle.dosageValueSize,
-                                  "font-bold"
-                                )}
-                                onCommit={(value) =>
-                                  commitInlineEdit(badge.type, value)
-                                }
-                                onCancel={() => setEditingField(null)}
-                              />
-                            </div>
-                          ) : (
-                            <AutoFitText
-                              text={displayValue}
-                              containerClassName={cn(
-                                textStyle.dosageValueSize,
-                                "flex-1 items-end"
-                              )}
-                              textClassName={cn(
-                                "font-bold text-dosage-value",
-                                canInlineEdit && badge.hasValue && "cursor-text"
-                              )}
-                              {...(badge.hasValue
-                                ? inlineEditTriggerProps(badge.type)
-                                : {})}
-                            />
-                          )}
-                          {/* ラベル（下線付き。線の色は Canvas がテーマカラーから上書きする CSS 変数を参照する） */}
-                          <AutoFitText
-                            text={dosageLabels[badge.type]}
-                            containerClassName={textStyle.dosageLabelSize}
-                            textClassName="text-dosage-label border-t pt-1 mt-1"
-                            textStyle={DOSAGE_DIVIDER_STYLE}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
-
-        {/* 注意点（あれば）。枠線は白黒モードでだけ見える（Canvas が上書きする CSS 変数を参照する） */}
-        {item.precautions && item.precautions.length > 0 ? (
-          <div
-            className="rounded-lg border bg-precaution-bg p-2.5 space-y-1"
-            style={PRECAUTION_BORDER_STYLE}
-            onTouchStart={handleContentTouchStart}
-            onTouchEnd={handleContentTouchEnd}
-            onTouchMove={handleContentTouchEnd}
-            onTouchCancel={handleContentTouchEnd}
-          >
-            <span
-              className={cn(
-                textStyle.precautionTitleSize,
-                "font-semibold text-precaution-title"
-              )}
-            >
-              {LABELS.precautionTitle}
-            </span>
-            {item.precautions.map((precaution) => (
-              <p
-                key={precaution.id}
-                className={cn(
-                  textStyle.precautionTextSize,
-                  "text-precaution-text whitespace-pre-line wrap-break-words"
-                )}
-              >
-                • {precaution.value.slice(0, TEXT_LIMITS.precaution)}
-              </p>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <VerticalCardBody
+        item={item}
+        imageUrl={hasImage ? imageUrl : undefined}
+        isImageDragOver={isImageDragOver}
+        isMobile={isMobile}
+        onImageAreaClick={onImageAreaClick}
+        layoutType={layoutType}
+        textScale={textScale}
+        cardNumber={cardNumber}
+        dosageLabels={dosageLabels}
+        inlineEdit={inlineEdit}
+        touchHandlers={touchHandlers}
+      />
     </div>
   );
 }

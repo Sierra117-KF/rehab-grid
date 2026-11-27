@@ -44,10 +44,11 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
 import { Fragment, useCallback, useState } from "react";
 
+import { type InlineEditUpdates } from "./cardTypes";
 import { EmptyState } from "./EmptyState";
 import { PageEstimateBadge } from "./PageEstimateBadge";
 import { SheetSummary } from "./SheetSummary";
-import { type InlineEditUpdates, SortableCard } from "./SortableCard";
+import { SortableCard } from "./SortableCard";
 
 /**
  * カードの間に出す改ページの目安（グリッドの行の切れ目に、横幅いっぱいで置く）
