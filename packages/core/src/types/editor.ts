@@ -93,8 +93,9 @@ export type EditorItem = {
  * - grid2: 2列表示
  * - grid3: 3列表示
  * - grid4: 4列表示（リスト風）
+ * - slide: A4 横 1 ページに横長カード 1 枚（PowerPoint のスライド風）
  */
-export type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
+export type LayoutType = "grid1" | "grid2" | "grid3" | "grid4" | "slide";
 
 /**
  * Blob レコード

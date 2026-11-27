@@ -206,7 +206,7 @@ describe("lib/schemas/project", () => {
   });
 
   describe("layoutTypeSchema", () => {
-    it.each(["grid1", "grid2", "grid3", "grid4"] as const)(
+    it.each(["grid1", "grid2", "grid3", "grid4", "slide"] as const)(
       "有効な値 '%s' でパース成功する",
       (layoutType) => {
         const result = layoutTypeSchema.safeParse(layoutType);
@@ -414,7 +414,7 @@ describe("lib/schemas/project", () => {
       expect(result.data).toEqual(data);
     });
 
-    it.each(["grid1", "grid2", "grid3", "grid4"] as const)(
+    it.each(["grid1", "grid2", "grid3", "grid4", "slide"] as const)(
       "layoutType '%s' でパース成功する",
       (layoutType) => {
         const data = { ...createValidProjectSettings(), layoutType };

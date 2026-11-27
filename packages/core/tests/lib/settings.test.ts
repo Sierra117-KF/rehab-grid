@@ -28,7 +28,7 @@ const DEFAULT_PRINT_STYLE = {
 };
 
 describe("isLayoutType", () => {
-  it.each(["grid1", "grid2", "grid3", "grid4"])("'%s' で true を返す", (value) => {
+  it.each(["grid1", "grid2", "grid3", "grid4", "slide"])("'%s' で true を返す", (value) => {
     expect(isLayoutType(value)).toBeTruthy();
   });
 
@@ -126,6 +126,12 @@ describe("resolveProjectSettings", () => {
       themeColor: "#ABCDEF",
       ...DEFAULT_PRINT_STYLE,
     });
+  });
+
+  it("スライドのレイアウトをそのまま残す", () => {
+    expect(resolveProjectSettings({ layoutType: "slide" }).layoutType).toBe(
+      "slide"
+    );
   });
 
   it("印刷スタイルの設定値を保つ", () => {

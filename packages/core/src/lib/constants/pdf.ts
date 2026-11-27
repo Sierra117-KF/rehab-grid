@@ -62,6 +62,7 @@ export const PDF_CONTENT_SIZE_LANDSCAPE = {
  * レイアウトタイプと用紙の向きの設定から、PDFを横向き（landscape）にするかを判定
  *
  * @remarks
+ * スライドは横長カードを置く形式のため、指定に関わらず横向きにする。
  * 1列は横向きにすると 1 枚のカードがページに収まらないため、指定に関わらず縦向きにする
  *
  * @param layoutType - グリッドレイアウトタイプ
@@ -72,6 +73,7 @@ export function isLandscapeLayout(
   layoutType: LayoutType,
   orientation: PageOrientation = "auto"
 ): boolean {
+  if (layoutType === "slide") return true;
   const columns = LAYOUT_COLUMNS[layoutType];
   if (columns === 1) return false;
   if (orientation === "auto") return columns >= 3;
@@ -125,6 +127,31 @@ export const PDF_HEADER_HEIGHT = 35;
 
 /** 全体メモ（PDF ヘッダー）の最大行数。超えた分は「…」で切り詰める */
 export const PDF_OVERALL_NOTE_MAX_LINES = 5;
+
+/**
+ * スライド（A4 横・1 ページ 1 運動）のレイアウト（ポイント単位）
+ *
+ * カードの大きさはヘッダーの高さから決まる固定値（lib/pdf/metrics.ts の getPdfSlideCardSize）
+ */
+export const PDF_SLIDE = {
+  /** ヘッダーとカードの間隔 */
+  headerGap: PDF_GRID_GAP,
+  /**
+   * ページ下端の余裕（折り返しの見積もり誤差を吸収する）
+   *
+   * @remarks
+   * 描画テストは PDF_PAGE_ESTIMATE_MARGIN を 0 にして見積もりを確かめるため、描画寸法に使う値は別に持つ
+   */
+  pageBottomMargin: 8,
+  /** 左の列（画像・用量）と右の列（説明・注意点）の間隔 */
+  columnGap: 16,
+  /** 左の列の基本幅（内側の幅から列の間隔を引いた幅に対する比率） */
+  imageColumnRatio: 0.58,
+  /** 説明の最大行数 */
+  descriptionMaxLines: 10,
+  /** 注意点の行数を減らしてでも確保したい説明の行数 */
+  descriptionMinLines: 3,
+} as const;
 
 /**
  * 自主トレ実施チェック表のレイアウト（ポイント単位）

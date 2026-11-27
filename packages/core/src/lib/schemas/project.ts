@@ -65,7 +65,13 @@ export const precautionSchema = z.object({
 /**
  * グリッドレイアウトタイプスキーマ
  */
-export const layoutTypeSchema = z.enum(["grid1", "grid2", "grid3", "grid4"]);
+export const layoutTypeSchema = z.enum([
+  "grid1",
+  "grid2",
+  "grid3",
+  "grid4",
+  "slide",
+]);
 
 /**
  * エディタアイテムスキーマ

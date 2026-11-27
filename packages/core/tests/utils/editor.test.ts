@@ -235,8 +235,8 @@ describe("getDosageBadgeLayout", () => {
     });
   });
 
-  describe("通常レイアウト（grid1, grid2, grid3）", () => {
-    const normalLayouts: LayoutType[] = ["grid1", "grid2", "grid3"];
+  describe("通常レイアウト（grid1, grid2, grid3, slide）", () => {
+    const normalLayouts: LayoutType[] = ["grid1", "grid2", "grid3", "slide"];
 
     it.each(normalLayouts)("%s レイアウトでは全値を1行で返す", (layoutType) => {
       const dosages = createDosages({

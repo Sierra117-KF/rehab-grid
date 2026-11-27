@@ -631,6 +631,17 @@ describe("export.ts", () => {
         expect(result.images.size).toBe(0);
       });
 
+      it("スライドの指導箋を JSON で書き出して取り込むとレイアウトが保たれる", async () => {
+        const project = createTestProject({
+          settings: { layoutType: "slide", themeColor: "#3b82f6" },
+        });
+        const file = createTestFile("project.json", exportToJSON(project));
+
+        const result = await importProject(file);
+
+        expect(result.project.settings.layoutType).toBe("slide");
+      });
+
       it("拡張子でZIP形式を判別してインポートできる", async () => {
         // 有効なZIPファイルを作成
         const JSZip = (await import("jszip")).default;

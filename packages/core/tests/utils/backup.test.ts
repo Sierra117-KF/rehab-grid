@@ -518,6 +518,35 @@ describe("backup.ts", () => {
       expect(parsed.unusedImagePaths.has("images/img_002.png")).toBeTruthy();
     });
 
+    it("スライドの指導箋・テンプレートを書き出して読み戻すとレイアウトが保たれる", async () => {
+      const source = createFullSourceData();
+      const toSlide = (data: ProjectFile): ProjectFile => ({
+        ...data,
+        settings: { ...data.settings, layoutType: "slide" },
+      });
+      const slideSource: BackupSourceData = {
+        ...source,
+        projects: source.projects.map((p) => ({ ...p, data: toSlide(p.data) })),
+        userTemplates: source.userTemplates.map((t) => ({
+          ...t,
+          data: toSlide(t.data),
+        })),
+      };
+      const blob = await createBackupZIP(
+        slideSource,
+        ALL_BACKUP_CATEGORIES_SELECTED
+      );
+
+      const parsed = await parseBackupZIP(await zipBlobToFile(blob));
+
+      expect(
+        parsed.manifest.projects.map((p) => p.data.settings.layoutType)
+      ).toEqual(["slide", "slide"]);
+      expect(parsed.manifest.userTemplates[0]?.data.settings.layoutType).toBe(
+        "slide"
+      );
+    });
+
     it("ZIP 以外の形式・サイズ超過・破損 ZIP・backup.json 不在・未対応バージョンでエラーを投げる", async () => {
       // 不正形式
       const txtFile = createZipFileFromBytes(
