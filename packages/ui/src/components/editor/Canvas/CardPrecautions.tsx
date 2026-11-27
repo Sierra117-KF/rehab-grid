@@ -71,7 +71,7 @@ export function CardPrecautions({
           key={precaution.id}
           className={cn(
             textClassName,
-            "text-precaution-text whitespace-pre-line wrap-break-words",
+            "text-precaution-text whitespace-pre-line wrap-break-word",
             lineClamp !== undefined && LINE_CLAMP_CLASS
           )}
           style={clampedTextStyle}

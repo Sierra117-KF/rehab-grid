@@ -46,6 +46,7 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
 import { Fragment, useCallback, useState } from "react";
 
+import { type CssVariableStyle } from "./cardStyles";
 import { type InlineEditUpdates } from "./cardTypes";
 import { EmptyState } from "./EmptyState";
 import { PageEstimateBadge } from "./PageEstimateBadge";
@@ -72,11 +73,6 @@ function PageBreakDivider({ page }: { page: number }) {
     </div>
   );
 }
-
-/**
- * CSS 変数（--xxx）を含められる style の型
- */
-type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
  * カードの色を持つ CSS 変数の名前（既定値は globals.css。SortableCard がユーティリティやインライン style で参照する）

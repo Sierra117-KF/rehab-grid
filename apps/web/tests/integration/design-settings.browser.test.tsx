@@ -242,7 +242,7 @@ describe("デザイン設定（browser）", () => {
       .element(page.getByText(DESIGN_SETTINGS_DESCRIPTION))
       .toBeInTheDocument();
 
-    // 4つのレイアウトオプション（ラベル）を確認
+    // 5つのレイアウトオプション（ラベル）を確認
     await expect
       .element(page.getByRole("button", { name: "1列" }))
       .toBeInTheDocument();

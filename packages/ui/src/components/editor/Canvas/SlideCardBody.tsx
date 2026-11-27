@@ -186,7 +186,7 @@ export function SlideCardBody({
             {descriptionLines > 0 ? (
               <p
                 className={cn(
-                  "text-muted-foreground whitespace-pre-line wrap-break-words",
+                  "text-muted-foreground whitespace-pre-line wrap-break-word",
                   LINE_CLAMP_CLASS
                 )}
                 style={{
@@ -208,6 +208,8 @@ export function SlideCardBody({
                   marginTop:
                     descriptionLines > 0 ? SLIDE_PRECAUTION_MARGIN_TOP : 0,
                 }}
+                // 見出しをブロック要素にし、狭い画面で文字を縮小しても親の line-height（16px）に引っ張られないようにする
+                titleClassName="block"
                 titleStyle={SLIDE_FONT_STYLE.precautionTitle}
                 textStyle={SLIDE_FONT_STYLE.precautionText}
                 lineClamp={precautionLines}

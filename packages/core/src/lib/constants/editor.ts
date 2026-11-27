@@ -243,7 +243,7 @@ export const DOSAGE_LABEL_SUGGESTIONS: Readonly<
  * 用途別のデザインプリセット
  *
  * @remarks
- * 列数・テーマカラー・用量ラベルには触れない（利用者が個別に決めた値を上書きしない）。
+ * レイアウト・テーマカラー・用量ラベルには触れない（利用者が個別に決めた値を上書きしない）。
  * 選ぶと updateSettings で一括適用する（履歴 1 件）。
  */
 export const DESIGN_PRESETS: readonly {
