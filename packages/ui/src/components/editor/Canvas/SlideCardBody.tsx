@@ -6,20 +6,21 @@ import {
   PDF_DEFAULT_LINE_HEIGHT,
   PDF_SLIDE,
   PDF_SPACING,
-  TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
+  getPdfPrecautionTextWidth,
   getPdfSlideCardSize,
   getPdfSlideColumns,
+  getPdfSlideDescriptionText,
+  getPdfSlidePrecautionText,
   getSlideTextLines,
 } from "@rehab-grid/core/lib/pdf/metrics";
-import { cn } from "@rehab-grid/core/lib/utils";
 import type { ResolvedProjectSettings } from "@rehab-grid/core/types";
 
 import { CardDosages } from "./CardDosages";
 import { CardImage } from "./CardImage";
 import { CardPrecautions } from "./CardPrecautions";
-import { getLineClampStyle, LINE_CLAMP_CLASS, ptToSlideCqw } from "./cardStyles";
+import { ptToSlideCqw } from "./cardStyles";
 import { CardTitle } from "./CardTitle";
 import { type CardBodyProps } from "./cardTypes";
 
@@ -156,13 +157,22 @@ export function SlideCardBody({
   slideSettings,
 }: SlideCardBodyProps) {
   const cardSize = getPdfSlideCardSize(slideSettings);
-  const { innerWidth, leftColumnWidth } = getPdfSlideColumns(cardSize);
+  const { innerWidth, leftColumnWidth, rightColumnWidth } =
+    getPdfSlideColumns(cardSize);
   const { descriptionLines, precautionLines } = getSlideTextLines(
     item,
     slideSettings
   );
   const hasPrecautions =
     item.precautions !== undefined && item.precautions.length > 0;
+  // 説明・注意点は PDF と同じ位置で切り詰めた文字列を出す（行数で切ると、文字が下限の大きさで
+  // 止まる狭い画面では 1 行の文字数が減り、PDF より手前で切れてしまうため）
+  const precautionTextWidth = getPdfPrecautionTextWidth(
+    rightColumnWidth,
+    slideSettings.printColorMode
+  );
+  const formatPrecaution = (value: string) =>
+    getPdfSlidePrecautionText(value, precautionLines, precautionTextWidth);
 
   return (
     // 外枠は縦横比だけを決める（文字の下限で中身が溢れたときは縦に伸びる）
@@ -223,16 +233,14 @@ export function SlideCardBody({
           >
             {descriptionLines > 0 ? (
               <p
-                className={cn(
-                  "text-muted-foreground whitespace-pre-line wrap-break-word",
-                  LINE_CLAMP_CLASS
-                )}
-                style={{
-                  ...SLIDE_FONT_STYLE.description,
-                  ...getLineClampStyle(descriptionLines),
-                }}
+                className="text-muted-foreground whitespace-pre-line wrap-break-word"
+                style={SLIDE_FONT_STYLE.description}
               >
-                {item.description.slice(0, TEXT_LIMITS.description)}
+                {getPdfSlideDescriptionText(
+                  item.description,
+                  descriptionLines,
+                  rightColumnWidth
+                )}
               </p>
             ) : null}
             {hasPrecautions ? (
@@ -252,7 +260,7 @@ export function SlideCardBody({
                 titleClassName="block"
                 titleStyle={SLIDE_FONT_STYLE.precautionTitle}
                 textStyle={SLIDE_FONT_STYLE.precautionText}
-                lineClamp={precautionLines}
+                formatText={formatPrecaution}
               />
             ) : null}
           </div>

@@ -4,8 +4,17 @@ import { LABELS, TEXT_LIMITS } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { Precaution } from "@rehab-grid/core/types";
 
-import { getLineClampStyle, LINE_CLAMP_CLASS } from "./cardStyles";
 import { type ContentTouchHandlers } from "./cardTypes";
+
+/**
+ * 注意点 1 件の既定の表示（行頭の「•」付き、最大文字数で切る）
+ *
+ * @param value - 注意点
+ * @returns 表示する文字列
+ */
+function formatPrecautionLine(value: string): string {
+  return `• ${value.slice(0, TEXT_LIMITS.precaution)}`;
+}
 
 /**
  * 注意点ボックスの枠線の色（白黒モードのみ Canvas が濃い色に上書きする。既定は透明）
@@ -34,8 +43,8 @@ type CardPrecautionsProps = {
   textClassName?: string;
   /** 本文の文字サイズのインラインスタイル */
   textStyle?: React.CSSProperties;
-  /** 1 件あたりの行数の上限（省略時は制限しない） */
-  lineClamp?: number;
+  /** 注意点 1 件の表示を作る（スライドは PDF と同じ位置で切り詰める。省略時は「• 注意点」） */
+  formatText?: (value: string) => string;
 };
 
 /**
@@ -50,13 +59,8 @@ export function CardPrecautions({
   titleStyle,
   textClassName,
   textStyle,
-  lineClamp,
+  formatText = formatPrecautionLine,
 }: CardPrecautionsProps) {
-  const clampedTextStyle =
-    lineClamp === undefined
-      ? textStyle
-      : { ...textStyle, ...getLineClampStyle(lineClamp) };
-
   return (
     <div
       className={cn(
@@ -77,12 +81,11 @@ export function CardPrecautions({
           key={precaution.id}
           className={cn(
             textClassName,
-            "text-precaution-text whitespace-pre-line wrap-break-word",
-            lineClamp !== undefined && LINE_CLAMP_CLASS
+            "text-precaution-text whitespace-pre-line wrap-break-word"
           )}
-          style={clampedTextStyle}
+          style={textStyle}
         >
-          • {precaution.value.slice(0, TEXT_LIMITS.precaution)}
+          {formatText(precaution.value)}
         </p>
       ))}
     </div>

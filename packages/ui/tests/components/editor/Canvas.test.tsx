@@ -13,10 +13,7 @@ import {
   SHEET_SUMMARY_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
-import {
-  getPdfSlideCardSize,
-  getSlideTextLines,
-} from "@rehab-grid/core/lib/pdf/metrics";
+import { getPdfSlideCardSize } from "@rehab-grid/core/lib/pdf/metrics";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
 import { Canvas, type CanvasProps } from "@rehab-grid/ui/components/editor/Canvas";
@@ -883,24 +880,32 @@ describe("Canvas", () => {
       ).toBeInTheDocument();
     });
 
-    it("説明と注意点の行数は PDF と同じ計算の結果で切る", () => {
-      setupSlide({ printColorMode: "monochrome" });
+    it("収まらない説明は、画面の幅によらず先頭から切り詰めて末尾に「…」を付ける", () => {
+      const longDescription = "膝を曲げてゆっくり立ち上がる。".repeat(14).slice(0, 200);
+      // 50 文字（注意点の上限）。5 件で右の列の大半を使い、説明が短縮される
+      const longPrecaution =
+        "膝がつま先より前に出ないようにし、背中を丸めずに、ゆっくりとした動作で行い、痛みや違和感が出たらすぐ";
+      setupSlide({
+        items: [
+          {
+            ...slideItem,
+            description: longDescription,
+            precautions: [1, 2, 3, 4, 5].map((n) => ({
+              id: `p${String(n)}`,
+              value: longPrecaution,
+            })),
+          },
+        ],
+      });
 
-      const settings = resolveProjectSettings({ printColorMode: "monochrome" });
-      const { descriptionLines, precautionLines } = getSlideTextLines(
-        slideItem,
-        settings
-      );
-      expect(
-        screen.getByText(slideItem.description).style.getPropertyValue(
-          "--line-clamp"
-        )
-      ).toBe(String(descriptionLines));
-      expect(
-        screen.getByText(/痛みが出たら中止/).style.getPropertyValue(
-          "--line-clamp"
-        )
-      ).toBe(String(precautionLines));
+      const right = within(screen.getByTestId("slide-right-column"));
+      const description = right.getByText(/^膝を曲げてゆっくり立ち上がる。/);
+      const shown = description.textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(longDescription.startsWith(shown.slice(0, -1))).toBeTruthy();
+      expect(shown.length).toBeLessThan(longDescription.length);
+      // 注意点は行頭の「•」付きでそのまま出る
+      expect(right.getAllByText(`• ${longPrecaution}`)).toHaveLength(5);
     });
 
     it("ヘッダーが高いほどカードの縦横比が横長になる", () => {
