@@ -247,6 +247,16 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       expect(result.images.size).toBe(0); // JSONでは画像なし
     });
 
+    it("スライド（layoutType: slide）の JSON を取り込める", async () => {
+      const file = createValidJSONFile({
+        settings: { layoutType: "slide", themeColor: "#22c55e" },
+      });
+
+      const result = await importProject(file);
+
+      expect(result.project.settings.layoutType).toBe("slide");
+    });
+
     it("JSONインポートでは画像参照がクリアされる", async () => {
       const file = createValidJSONFile({
         items: [

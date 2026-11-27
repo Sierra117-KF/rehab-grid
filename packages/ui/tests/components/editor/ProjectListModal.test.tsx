@@ -128,6 +128,22 @@ describe("ProjectListModal", () => {
       ).toHaveTextContent("2026年11月26日 09:05 ・ 6カード ・ 3列");
     });
 
+    it("スライドの指導箋は「スライド」と表示する（列数ではない）", () => {
+      setupModal([
+        ...SAVED_PROJECTS,
+        createSummary({
+          id: "project-c",
+          title: "肩の体操",
+          cardCount: 4,
+          layoutType: "slide",
+        }),
+      ]);
+
+      expect(
+        screen.getByRole("button", { name: /肩の体操.*カード/ })
+      ).toHaveTextContent("4カード ・ スライド");
+    });
+
     it("編集中の指導箋は保存前の値（ストア）で表示し、バッジを付ける", () => {
       setupModal();
 

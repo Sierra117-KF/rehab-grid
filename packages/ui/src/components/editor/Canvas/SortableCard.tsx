@@ -10,23 +10,43 @@ import {
   LABELS,
   LONG_PRESS_DURATION,
 } from "@rehab-grid/core/lib/constants";
+import { resolveSheetHeader } from "@rehab-grid/core/lib/settings";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   DosageLabels,
   EditorItem,
   LayoutType,
+  ResolvedProjectSettings,
   TextScale,
 } from "@rehab-grid/core/types";
 import { Copy, FlipHorizontal2, GripVertical, Pencil } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import {
+  type CardBodyProps,
   type CardInlineEdit,
   type ContentTouchHandlers,
   type InlineEditField,
   type InlineEditUpdates,
 } from "./cardTypes";
+import { SlideCardBody } from "./SlideCardBody";
 import { VerticalCardBody } from "./VerticalCardBody";
+
+/** スライドの設定を省略したときの既定値（ヘッダーの既定値・カラー） */
+const DEFAULT_SLIDE_SETTINGS: Pick<
+  ResolvedProjectSettings,
+  "header" | "printColorMode"
+> = {
+  header: resolveSheetHeader(undefined),
+  printColorMode: "color",
+};
+
+/** モバイルの操作ボタン（ドラッグハンドル・編集）の見た目 */
+const MOBILE_ACTION_BUTTON_CLASS = cn(
+  "flex size-9 items-center justify-center rounded-full border border-gray-400",
+  "bg-gray-200/90 text-gray-700 shadow-md",
+  "transition-colors active:bg-gray-400 active:text-gray-900"
+);
 
 /**
  * カード右上のホバーアクションボタン（デスクトップ用）
@@ -111,6 +131,13 @@ export type SortableCardProps = {
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
   dosageLabels?: DosageLabels;
   /**
+   * スライドのカードの大きさと説明・注意点の行数を決める設定
+   *
+   * @remarks
+   * layoutType が "slide" のときだけ使う（省略時はヘッダーの既定値・カラー）
+   */
+  slideSettings?: Pick<ResolvedProjectSettings, "header" | "printColorMode">;
+  /**
    * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
    *
    * @remarks
@@ -124,7 +151,7 @@ export type SortableCardProps = {
  *
  * dnd-kit の useSortable フックを使用してドラッグ可能なカードを実装。
  * ドラッグ・選択・画像のドロップ・操作ボタン・インライン編集の状態を受け持ち、中身の描画は
- * VerticalCardBody に任せる
+ * VerticalCardBody（スライドは SlideCardBody）に任せる
  */
 export function SortableCard({
   item,
@@ -144,9 +171,11 @@ export function SortableCard({
   textScale = "standard",
   cardNumber,
   dosageLabels = LABELS,
+  slideSettings = DEFAULT_SLIDE_SETTINGS,
   onInlineEdit,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
+  const isSlide = layoutType === "slide";
 
   // インライン編集は選択中のカードだけ。選択が外れたら編集をやめる（レンダー中に前回の選択状態と比べる）
   const canInlineEdit = isSelected && onInlineEdit !== undefined;
@@ -306,6 +335,55 @@ export function SortableCard({
     [onImageDrop, onCanvasDragEnd]
   );
 
+  // モバイル用: ドラッグハンドル（縦型は左上に重ねて常時表示）
+  const mobileDragHandle = isMobile ? (
+    <button
+      type="button"
+      {...attributes}
+      {...listeners}
+      className={cn(
+        !isSlide && "absolute left-2 top-2 z-20",
+        MOBILE_ACTION_BUTTON_CLASS,
+        "touch-none cursor-grab active:cursor-grabbing"
+      )}
+      aria-label="ドラッグして並べ替え"
+    >
+      <GripVertical className="size-5" />
+    </button>
+  ) : null;
+
+  // モバイル用: 設定アイコン（縦型は右上に重ねて常時表示）
+  const mobileSettingsButton =
+    isMobile && onSettingsClick ? (
+      <button
+        type="button"
+        className={cn(
+          !isSlide && "absolute right-2 top-2 z-20",
+          MOBILE_ACTION_BUTTON_CLASS
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSettingsClick(item.id);
+        }}
+        aria-label="カードを編集"
+      >
+        <Pencil className="size-5" />
+      </button>
+    ) : null;
+
+  const cardBodyProps: CardBodyProps = {
+    item,
+    imageUrl: hasImage ? imageUrl : undefined,
+    isImageDragOver,
+    isMobile,
+    onImageAreaClick,
+    layoutType,
+    cardNumber,
+    dosageLabels,
+    inlineEdit,
+    touchHandlers,
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -332,24 +410,24 @@ export function SortableCard({
       onDragLeave={handleImageDragLeave}
       onDrop={handleImageDrop}
     >
-      {/* モバイル用: ドラッグハンドル（左上に常時表示） */}
-      {isMobile ? (
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className={cn(
-            "absolute left-2 top-2 z-20",
-            "flex size-9 items-center justify-center rounded-full border border-gray-400",
-            "bg-gray-200/90 text-gray-700 shadow-md",
-            "touch-none cursor-grab active:cursor-grabbing",
-            "transition-colors active:bg-gray-400 active:text-gray-900"
-          )}
-          aria-label="ドラッグして並べ替え"
+      {/*
+        モバイルのスライドは最上部に左寄せのタイトルが来るため、操作ボタンをタイトルに重ねず、
+        スライドの上に独立した操作バーとして置く
+      */}
+      {isMobile && isSlide ? (
+        <div
+          data-testid="slide-mobile-actions"
+          className="flex items-center justify-between px-2 pt-2"
         >
-          <GripVertical className="size-5" />
-        </button>
-      ) : null}
+          {mobileDragHandle}
+          {mobileSettingsButton}
+        </div>
+      ) : (
+        <>
+          {mobileDragHandle}
+          {mobileSettingsButton}
+        </>
+      )}
 
       {/* デスクトップ用: ホバーアクション（ホバー・フォーカス時に右上へ表示） */}
       {!isMobile && (onDuplicate || canFlipImage) ? (
@@ -371,40 +449,12 @@ export function SortableCard({
         </div>
       ) : null}
 
-      {/* モバイル用: 設定アイコン（右上に常時表示） */}
-      {isMobile && onSettingsClick ? (
-        <button
-          type="button"
-          className={cn(
-            "absolute right-2 top-2 z-20",
-            "flex size-9 items-center justify-center rounded-full border border-gray-400",
-            "bg-gray-200/90 text-gray-700 shadow-md",
-            "transition-colors active:bg-gray-400 active:text-gray-900"
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSettingsClick(item.id);
-          }}
-          aria-label="カードを編集"
-        >
-          <Pencil className="size-5" />
-        </button>
-      ) : null}
-
       {/* カードコンテンツ */}
-      <VerticalCardBody
-        item={item}
-        imageUrl={hasImage ? imageUrl : undefined}
-        isImageDragOver={isImageDragOver}
-        isMobile={isMobile}
-        onImageAreaClick={onImageAreaClick}
-        layoutType={layoutType}
-        textScale={textScale}
-        cardNumber={cardNumber}
-        dosageLabels={dosageLabels}
-        inlineEdit={inlineEdit}
-        touchHandlers={touchHandlers}
-      />
+      {isSlide ? (
+        <SlideCardBody {...cardBodyProps} slideSettings={slideSettings} />
+      ) : (
+        <VerticalCardBody {...cardBodyProps} textScale={textScale} />
+      )}
     </div>
   );
 }

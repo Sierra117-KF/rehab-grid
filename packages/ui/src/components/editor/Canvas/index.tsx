@@ -28,6 +28,8 @@ import {
   MONOCHROME_COLORS,
 } from "@rehab-grid/core/lib/constants";
 import { type PdfLayoutEstimate } from "@rehab-grid/core/lib/pdf/layout";
+import { getPdfSlideCardSize } from "@rehab-grid/core/lib/pdf/metrics";
+import { resolveSheetHeader } from "@rehab-grid/core/lib/settings";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   CheckTableType,
@@ -352,10 +354,19 @@ export function Canvas({
       />
     ) : null;
 
+  const isSlide = layoutType === "slide";
+  // スライドのカードの大きさと行数を決める設定（ヘッダーを省略したときは既定値）
+  const slideSettings = {
+    header: sheetHeader ?? resolveSheetHeader(undefined),
+    printColorMode,
+  };
+  const slideCardSize = isSlide ? getPdfSlideCardSize(slideSettings) : null;
+
   // 改ページの目安（各ページの先頭のカードの位置 → ページ番号）。モバイルは常に 1 列表示で
   // グリッドの行の切れ目と PDF の改ページが一致しないため、区切り線を出さない
+  // （スライドは PDF も 1 ページ 1 枚で一致するため出す）
   const pageStartByIndex = new Map(
-    isMobile || pageEstimate === undefined
+    (isMobile && !isSlide) || pageEstimate === undefined
       ? []
       : pageEstimate.firstCardIndexByPage
           .map((index, page) => [index, page + 1] as const)
@@ -536,6 +547,7 @@ export function Canvas({
                       textScale={textScale}
                       cardNumber={showCardNumbers ? index + 1 : undefined}
                       dosageLabels={dosageLabels}
+                      slideSettings={slideSettings}
                       onInlineEdit={
                         !isMobile && onItemInlineEdit
                           ? (updates) => onItemInlineEdit(item.id, updates)
@@ -552,12 +564,28 @@ export function Canvas({
             <DragOverlay>
               {activeItem ? (
                 <div className="rounded-xl border border-primary bg-card shadow-2xl opacity-95">
-                  <div className="flex flex-col gap-3 p-4">
-                    <div className="aspect-4/3 rounded-lg bg-muted/30" />
-                    <h3 className="font-semibold text-sm">
-                      {activeItem.title || LABELS.untitledExercise}
-                    </h3>
-                  </div>
+                  {slideCardSize !== null ? (
+                    // スライドは横長のカードと同じ比率の箱にする
+                    <div
+                      data-testid="drag-overlay-slide"
+                      className="flex flex-col gap-3 p-4"
+                      style={{
+                        aspectRatio: slideCardSize.width / slideCardSize.height,
+                      }}
+                    >
+                      <h3 className="font-semibold text-sm">
+                        {activeItem.title || LABELS.untitledExercise}
+                      </h3>
+                      <div className="w-1/2 flex-1 rounded-lg bg-muted/30" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3 p-4">
+                      <div className="aspect-4/3 rounded-lg bg-muted/30" />
+                      <h3 className="font-semibold text-sm">
+                        {activeItem.title || LABELS.untitledExercise}
+                      </h3>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </DragOverlay>

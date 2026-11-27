@@ -5,8 +5,9 @@
  * 実ブラウザ（Vitest Browser Mode）上で、ヘッダーからデザイン設定ダイアログを開き、
  * 以下が成立することを検証する。
  * - ダイアログが表示される
- * - 列数（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
+ * - レイアウト（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
  *   ダイアログは開いたまま（「閉じる」で閉じる）
+ * - スライドを選ぶと Canvas が 1 列の横型カードになる
  * - テーマカラーを選ぶと Canvas のカードの枠線と用量の区切り線の色が変わり、元に戻すで戻る
  */
 
@@ -253,6 +254,37 @@ describe("デザイン設定（browser）", () => {
       .toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: "4列" }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("button", { name: "スライド" }))
+      .toBeInTheDocument();
+  });
+
+  it("「スライド」に切り替えると、ストアと Canvas（1 列の横型カード）が更新される", async () => {
+    await renderEditor();
+    await expectCanvasColumns(2);
+
+    await userEvent.click(getDesignSettingsButton());
+    await userEvent.click(page.getByRole("button", { name: "スライド" }));
+
+    await expect
+      .poll(() => useEditorStore.getState().settings.layoutType, {
+        timeout: 5000,
+      })
+      .toBe("slide");
+    // 用紙の向きの保存値は書き換えない（ほかのレイアウトに戻したとき元に戻す）
+    expect(useEditorStore.getState().settings.pageOrientation).toBe("auto");
+
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await expectCanvasColumns(1);
+    await expect
+      .element(page.getByTestId("card-item-1").getByTestId("slide-card-body"))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("slide-left-column"))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("slide-right-column"))
       .toBeInTheDocument();
   });
 

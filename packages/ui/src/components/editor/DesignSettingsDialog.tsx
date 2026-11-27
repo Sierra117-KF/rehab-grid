@@ -3,7 +3,7 @@
 /**
  * デザイン設定ダイアログコンポーネント
  *
- * 指導箋の見た目と印刷に関する設定（列数・用紙の向き・用途別プリセット・テーマカラー・
+ * 指導箋の見た目と印刷に関する設定（レイアウト・用紙の向き・用途別プリセット・テーマカラー・
  * 印刷の色・文字サイズ・カード番号・用量のラベル・PDF のヘッダーと実施チェック表）をまとめて変更するダイアログ。
  * 設定は選んだ時点で反映し、ダイアログは「閉じる」で閉じる。
  */
@@ -30,10 +30,13 @@ import {
   PAGE_ORIENTATION_NARROW_NOTE,
   PAGE_ORIENTATION_OPTIONS,
   PAGE_ORIENTATION_SINGLE_COLUMN_NOTE,
+  PAGE_ORIENTATION_SLIDE_NOTE,
   PRINT_COLOR_MODE_OPTIONS,
   PRINT_COLOR_MONOCHROME_HINT,
+  SHEET_HEADER_SLIDE_NOTE,
   TEXT_SCALE_OPTIONS,
   TEXT_SCALE_SINGLE_COLUMN_NOTE,
+  TEXT_SCALE_SLIDE_NOTE,
   THEME_COLOR_DESCRIPTION,
   THEME_COLOR_MONOCHROME_NOTE,
 } from "@rehab-grid/core/lib/constants";
@@ -184,10 +187,14 @@ export function DesignSettingsDialog({
   };
 
   const isSingleColumn = settings.layoutType === "grid1";
-  // 1列は横向きにするとカードが 1 ページに収まらないため、横向きを選べなくする
+  const isSlide = settings.layoutType === "slide";
+  // 1列は横向きにするとカードが 1 ページに収まらないため、横向きを選べなくする。
+  // スライドは常に横向きのため、「自動」「縦」を選べなくする
   const orientationOptions = PAGE_ORIENTATION_OPTIONS.map((option) => ({
     ...option,
-    disabled: isSingleColumn && option.value === "landscape",
+    disabled: isSlide
+      ? option.value !== "landscape"
+      : isSingleColumn && option.value === "landscape",
   }));
 
   return (
@@ -206,7 +213,7 @@ export function DesignSettingsDialog({
         </DialogHeader>
 
         <div className="-mx-6 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 pb-1">
-          {/* 列数 */}
+          {/* レイアウト */}
           <SettingsSection
             headingId={layoutHeadingId}
             heading={DESIGN_SETTINGS_LAYOUT_HEADING}
@@ -225,14 +232,19 @@ export function DesignSettingsDialog({
           >
             <OptionButtonGroup
               options={orientationOptions}
-              value={settings.pageOrientation}
-              onChange={(pageOrientation) =>
-                onSettingsChange({ pageOrientation })
-              }
+              // スライドは常に横で表示する。保存値は書き換えない（ほかのレイアウトに戻したとき元の向きに戻す）
+              value={isSlide ? "landscape" : settings.pageOrientation}
+              onChange={(pageOrientation) => {
+                if (isSlide) return;
+                onSettingsChange({ pageOrientation });
+              }}
               labelledBy={orientationHeadingId}
             />
             {isSingleColumn ? (
               <SettingsNote>{PAGE_ORIENTATION_SINGLE_COLUMN_NOTE}</SettingsNote>
+            ) : null}
+            {isSlide ? (
+              <SettingsNote>{PAGE_ORIENTATION_SLIDE_NOTE}</SettingsNote>
             ) : null}
             {settings.layoutType === "grid4" &&
             settings.pageOrientation === "portrait" ? (
@@ -334,6 +346,9 @@ export function DesignSettingsDialog({
             {isSingleColumn ? (
               <SettingsNote>{TEXT_SCALE_SINGLE_COLUMN_NOTE}</SettingsNote>
             ) : null}
+            {isSlide ? (
+              <SettingsNote>{TEXT_SCALE_SLIDE_NOTE}</SettingsNote>
+            ) : null}
           </SettingsSection>
 
           {/* カード番号 */}
@@ -389,6 +404,9 @@ export function DesignSettingsDialog({
               }
               firstControlRef={sheetFirstControlRef}
             />
+            {isSlide ? (
+              <SettingsNote>{SHEET_HEADER_SLIDE_NOTE}</SettingsNote>
+            ) : null}
           </SettingsSection>
         </div>
 

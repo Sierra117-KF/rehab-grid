@@ -643,8 +643,8 @@ export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 export const DESIGN_SETTINGS_DESCRIPTION =
   "指導箋の見た目と印刷の設定を変更できます。変更はすぐに反映されます";
 
-/** デザイン設定ダイアログの列数セクションの見出し */
-export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+/** デザイン設定ダイアログのレイアウトセクションの見出し */
+export const DESIGN_SETTINGS_LAYOUT_HEADING = "レイアウト";
 
 /** デザイン設定ダイアログの用紙の向きセクションの見出し */
 export const DESIGN_SETTINGS_ORIENTATION_HEADING = "用紙の向き（PDF）";
@@ -656,6 +656,10 @@ export const PAGE_ORIENTATION_AUTO_HINT = "自動：1〜2列は縦、3〜4列は
 export const PAGE_ORIENTATION_SINGLE_COLUMN_NOTE =
   "1列は縦向き固定です（横向きでは1枚のカードがページに収まりません）";
 
+/** スライドのときに向きを選べない理由 */
+export const PAGE_ORIENTATION_SLIDE_NOTE =
+  "スライドは常にA4横です（1ページに運動を1つずつ配置します）";
+
 /** 4列を縦向きにしたときの注意 */
 export const PAGE_ORIENTATION_NARROW_NOTE =
   "4列を縦向きにするとカードが細くなり、回数などの数値が窮屈になります";
@@ -665,7 +669,7 @@ export const DESIGN_SETTINGS_PRESET_HEADING = "用途別プリセット";
 
 /** 用途別プリセットの説明（どの設定が変わるか） */
 export const DESIGN_SETTINGS_PRESET_DESCRIPTION =
-  "よく使う組み合わせをまとめて設定します（列数・色・用量のラベルは変わりません）";
+  "よく使う組み合わせをまとめて設定します（レイアウト・色・用量のラベルは変わりません）";
 
 /** デザイン設定ダイアログの印刷の色セクションの見出し */
 export const DESIGN_SETTINGS_PRINT_COLOR_HEADING = "印刷の色";
@@ -680,6 +684,14 @@ export const DESIGN_SETTINGS_TEXT_SCALE_HEADING = "文字サイズ";
 /** 1列のときに文字サイズが変わらない理由 */
 export const TEXT_SCALE_SINGLE_COLUMN_NOTE =
   "1列は常に大きめの文字で表示されます";
+
+/** スライドのときに文字サイズが変わらない理由 */
+export const TEXT_SCALE_SLIDE_NOTE =
+  "スライドは専用の文字サイズで表示されます";
+
+/** スライドのときのヘッダーの扱い */
+export const SHEET_HEADER_SLIDE_NOTE =
+  "スライドではヘッダー（全体メモを含む）が全ページに表示されます。全体メモが長いと、運動カードが小さくなります";
 
 /** デザイン設定ダイアログのカード番号セクションの見出し */
 export const DESIGN_SETTINGS_CARD_NUMBER_HEADING = "カード番号";

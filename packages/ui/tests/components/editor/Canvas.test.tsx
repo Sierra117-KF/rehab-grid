@@ -13,10 +13,14 @@ import {
   SHEET_SUMMARY_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import {
+  getPdfSlideCardSize,
+  getSlideTextLines,
+} from "@rehab-grid/core/lib/pdf/metrics";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
 import { Canvas, type CanvasProps } from "@rehab-grid/ui/components/editor/Canvas";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -833,6 +837,182 @@ describe("Canvas", () => {
       expect(
         screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("スライド", () => {
+    const slideItem = createTestItem({
+      id: "item-1",
+      title: "スクワット",
+      imageSource: "img-123",
+      description: "膝を90度に曲げて、ゆっくり立ち上がる",
+      dosages: { reps: "10回", sets: "3セット", frequency: "1日2回" },
+      precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+    });
+    const imageUrls = new Map([["img-123", "blob:http://example.com/image"]]);
+
+    /** スライドのカードを描画する（sheetHeader は省略して既定値で計算させる） */
+    function setupSlide(overrides: Partial<CanvasProps> = {}) {
+      return setupCanvas({
+        items: [slideItem],
+        imageUrls,
+        layoutType: "slide",
+        ...overrides,
+      });
+    }
+
+    it("1 列で、左の列に画像と用量、右の列に説明と注意点を置いた横型のカードを描く", () => {
+      setupSlide();
+
+      expect(screen.getByRole("list")).toHaveStyle({
+        gridTemplateColumns: "repeat(1, minmax(0, 1fr))",
+      });
+      const body = screen.getByTestId("slide-card-body");
+      const { header } = resolveProjectSettings(undefined);
+      const { width, height } = getPdfSlideCardSize({ header });
+      expect(body.style.aspectRatio).toBe(String(width / height));
+
+      const left = within(screen.getByTestId("slide-left-column"));
+      expect(left.getByRole("img", { name: "スクワット" })).toBeInTheDocument();
+      expect(left.getByText("10回")).toBeInTheDocument();
+      const right = within(screen.getByTestId("slide-right-column"));
+      expect(right.getByText(slideItem.description)).toBeInTheDocument();
+      expect(right.getByText(/痛みが出たら中止/)).toBeInTheDocument();
+      expect(
+        within(body).getByRole("heading", { level: 3, name: "スクワット" })
+      ).toBeInTheDocument();
+    });
+
+    it("説明と注意点の行数は PDF と同じ計算の結果で切る", () => {
+      setupSlide({ printColorMode: "monochrome" });
+
+      const settings = resolveProjectSettings({ printColorMode: "monochrome" });
+      const { descriptionLines, precautionLines } = getSlideTextLines(
+        slideItem,
+        settings
+      );
+      expect(
+        screen.getByText(slideItem.description).style.getPropertyValue(
+          "--line-clamp"
+        )
+      ).toBe(String(descriptionLines));
+      expect(
+        screen.getByText(/痛みが出たら中止/).style.getPropertyValue(
+          "--line-clamp"
+        )
+      ).toBe(String(precautionLines));
+    });
+
+    it("ヘッダーが高いほどカードの縦横比が横長になる", () => {
+      const header = {
+        ...resolveProjectSettings(undefined).header,
+        facilityName: "○○病院",
+        overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
+      };
+      setupSlide({ sheetHeader: header });
+
+      const { width, height } = getPdfSlideCardSize({ header });
+      const defaultSize = getPdfSlideCardSize(resolveProjectSettings(undefined));
+      const ratio = Number(
+        screen.getByTestId("slide-card-body").style.aspectRatio
+      );
+      expect(ratio).toBeCloseTo(width / height);
+      expect(ratio).toBeGreaterThan(defaultSize.width / defaultSize.height);
+    });
+
+    it("説明が空のときは説明を描かず、注意点だけを出す", () => {
+      setupSlide({ items: [{ ...slideItem, description: "" }] });
+
+      const right = within(screen.getByTestId("slide-right-column"));
+      expect(right.queryByText(slideItem.description)).not.toBeInTheDocument();
+      expect(right.getByText(/痛みが出たら中止/)).toBeInTheDocument();
+    });
+
+    it("モバイルでも改ページの目安の区切り線を出す（PDF も 1 ページ 1 枚のため）", () => {
+      setupSlide({
+        items: [
+          { ...slideItem, id: "a", order: 0, title: "運動A" },
+          { ...slideItem, id: "b", order: 1, title: "運動B" },
+        ],
+        isMobile: true,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 1],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-break")).toHaveTextContent(
+        "ここから2ページ目（目安）"
+      );
+    });
+
+    it("モバイルではタイトルに重ねず、スライドの上の操作バーにドラッグハンドルと編集ボタンを置く", async () => {
+      const user = userEvent.setup();
+      const onSettingsClick = vi.fn();
+      setupSlide({ isMobile: true, onSettingsClick });
+
+      const bar = within(screen.getByTestId("slide-mobile-actions"));
+      const dragHandle = bar.getByRole("button", {
+        name: "ドラッグして並べ替え",
+      });
+      const editButton = bar.getByRole("button", { name: "カードを編集" });
+      expect(dragHandle).not.toHaveClass("absolute");
+      expect(editButton).not.toHaveClass("absolute");
+      expect(
+        within(screen.getByTestId("slide-card-body")).getByRole("heading", {
+          level: 3,
+          name: "スクワット",
+        })
+      ).toBeInTheDocument();
+
+      await user.click(editButton);
+      expect(onSettingsClick).toHaveBeenCalledWith("item-1");
+    });
+
+    it("タイトルと用量をインライン編集できる", async () => {
+      const user = userEvent.setup();
+      const props = setupSlide({
+        selectedItemId: slideItem.id,
+        onItemInlineEdit: vi.fn(),
+      });
+
+      await user.dblClick(screen.getByText("スクワット"));
+      const input = screen.getByLabelText(INLINE_EDIT_TITLE_LABEL);
+      expect(input).toHaveClass("text-left");
+      await user.clear(input);
+      await user.type(input, "ランジ{Enter}");
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(slideItem.id, {
+        title: "ランジ",
+      });
+
+      await user.dblClick(screen.getByText("3セット"));
+      await user.type(
+        screen.getByLabelText(`${LABELS.sets}（カード上で編集）`),
+        "{Backspace}{Backspace}{Backspace}{Enter}"
+      );
+      expect(props.onItemInlineEdit).toHaveBeenLastCalledWith(slideItem.id, {
+        dosages: { reps: "10回", sets: "3", frequency: "1日2回" },
+      });
+    });
+
+    it("複製・左右反転のボタンが使える", async () => {
+      const user = userEvent.setup();
+      const onItemDuplicate = vi.fn();
+      const onItemImageFlip = vi.fn();
+      setupSlide({ onItemDuplicate, onItemImageFlip });
+
+      await user.click(screen.getByRole("button", { name: DUPLICATE_TOOLTIP }));
+      await user.click(screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP }));
+
+      expect(onItemDuplicate).toHaveBeenCalledWith("item-1");
+      expect(onItemImageFlip).toHaveBeenCalledWith("item-1");
+    });
+
+    it("スライド以外では横型のカードを描かない", () => {
+      setupSlide({ layoutType: "grid1" });
+
+      expect(screen.queryByTestId("slide-card-body")).not.toBeInTheDocument();
     });
   });
 

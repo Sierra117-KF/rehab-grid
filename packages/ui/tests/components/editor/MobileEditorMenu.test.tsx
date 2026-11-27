@@ -10,6 +10,7 @@ import {
   REDO_LABEL,
   UNDO_LABEL,
 } from "@rehab-grid/core/lib/constants";
+import { type LayoutType } from "@rehab-grid/core/types";
 import { MobileEditorMenu } from "@rehab-grid/ui/components/editor/EditorHeader/MobileEditorMenu";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -34,14 +35,18 @@ vi.mock("next/link", () => ({
 /**
  * MobileEditorMenu をレンダリングし、コールバックを返す
  */
-function setupMenu({ canUndo = false, canRedo = false } = {}) {
+function setupMenu({
+  canUndo = false,
+  canRedo = false,
+  layoutType = "grid2",
+}: { canUndo?: boolean; canRedo?: boolean; layoutType?: LayoutType } = {}) {
   const props = {
     canUndo,
     canRedo,
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onProjectListClick: vi.fn(),
-    layoutType: "grid2" as const,
+    layoutType,
     onDesignSettingsClick: vi.fn(),
     onTemplateClick: vi.fn(),
     onExerciseCardsClick: vi.fn(),
@@ -130,6 +135,16 @@ describe("MobileEditorMenu", () => {
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
       expect(props.onDesignSettingsClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("スライドのときは「スライド」と表示する（列数ではない）", () => {
+      setupMenu({ layoutType: "slide" });
+
+      const button = screen.getByRole("button", {
+        name: new RegExp(DESIGN_SETTINGS_LABEL),
+      });
+      expect(button).toHaveTextContent("スライド");
+      expect(button).not.toHaveTextContent("1列");
     });
   });
 

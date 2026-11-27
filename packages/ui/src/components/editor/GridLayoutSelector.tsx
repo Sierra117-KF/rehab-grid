@@ -3,8 +3,8 @@
 /**
  * グリッドレイアウト選択コンポーネント
  *
- * カードの表示列数（1列/2列/3列/4列）をカード形式のボタンで選ぶ。
- * デザイン設定ダイアログの「列数」セクションとして使う。
+ * カードのレイアウト（1列/2列/3列/4列/スライド）をカード形式のボタンで選ぶ。
+ * デザイン設定ダイアログの「レイアウト」セクションとして使う。
  */
 
 import { LAYOUT_OPTIONS } from "@rehab-grid/core/lib/constants";
@@ -51,7 +51,7 @@ function GridLayoutCard({
       onClick={handleClick}
       aria-pressed={isSelected}
       className={cn(
-        "group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all",
+        "group relative flex flex-col items-center gap-2 rounded-xl border-2 px-1.5 py-3 transition-all",
         "hover:border-orange-400/50 hover:bg-orange-50/50 dark:hover:bg-orange-950/20",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
         isSelected
@@ -81,7 +81,7 @@ function GridLayoutCard({
       {/* ラベル */}
       <span
         className={cn(
-          "text-sm font-semibold transition-colors",
+          "whitespace-nowrap text-sm font-semibold transition-colors",
           isSelected
             ? "text-orange-700 dark:text-orange-300"
             : "text-foreground"
@@ -110,7 +110,8 @@ export function GridLayoutSelector({
   onLayoutChange,
 }: GridLayoutSelectorProps) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    // スマホ幅では 3＋2 個に折り返す
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
       {LAYOUT_OPTIONS.map((option) => (
         <GridLayoutCard
           key={option.id}

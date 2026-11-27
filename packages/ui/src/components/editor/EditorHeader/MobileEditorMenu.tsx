@@ -10,10 +10,10 @@ import {
   EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_ZIP_LABEL,
+  getLayoutLabel,
   HOME_LINK_TOOLTIP,
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
-  LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
   PROJECT_LIST_LABEL,
   REDO_LABEL,
@@ -302,7 +302,7 @@ export function MobileEditorMenu({
         iconColor="text-orange-500"
       />
 
-      {/* デザイン設定（列数バッジ付き） */}
+      {/* デザイン設定（レイアウトのバッジ付き） */}
       <MenuItem
         icon={Palette}
         label={DESIGN_SETTINGS_LABEL}
@@ -311,7 +311,7 @@ export function MobileEditorMenu({
         rightContent={
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-              {LAYOUT_COLUMNS[layoutType]}列
+              {getLayoutLabel(layoutType)}
             </span>
             <ChevronRight className="size-4" />
           </span>
