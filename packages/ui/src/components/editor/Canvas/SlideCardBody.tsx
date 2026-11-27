@@ -3,6 +3,7 @@
 import {
   FONT_SIZES_SLIDE,
   PDF_CARD_STYLE,
+  PDF_DEFAULT_LINE_HEIGHT,
   PDF_SLIDE,
   PDF_SPACING,
   TEXT_LIMITS,
@@ -38,9 +39,17 @@ const SLIDE_MIN_FONT_PX = {
   precautionText: 8,
 } as const;
 
-/** スライドの各テキストの文字の大きさ（PDF のポイントをカードの幅に比例させる） */
+/**
+ * スライドの各テキストの文字の大きさ（PDF のポイントをカードの幅に比例させる）
+ *
+ * @remarks
+ * 行の高さを指定していない要素は、PDF の既定の行の高さ（Noto Sans JP の自然な行の高さ）に揃える
+ */
 const SLIDE_FONT_STYLE = {
-  title: { fontSize: ptToSlideCqw(FONT_SIZES_SLIDE.title, SLIDE_MIN_FONT_PX.title) },
+  title: {
+    fontSize: ptToSlideCqw(FONT_SIZES_SLIDE.title, SLIDE_MIN_FONT_PX.title),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+  },
   description: {
     fontSize: ptToSlideCqw(
       FONT_SIZES_SLIDE.description,
@@ -53,18 +62,22 @@ const SLIDE_FONT_STYLE = {
       FONT_SIZES_SLIDE.dosageValue,
       SLIDE_MIN_FONT_PX.dosageValue
     ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
   },
   dosageLabel: {
     fontSize: ptToSlideCqw(
       FONT_SIZES_SLIDE.dosageLabel,
       SLIDE_MIN_FONT_PX.dosageLabel
     ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
   },
   precautionTitle: {
     fontSize: ptToSlideCqw(
       FONT_SIZES_SLIDE.precautionTitle,
       SLIDE_MIN_FONT_PX.precautionTitle
     ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+    marginBottom: ptToSlideCqw(PDF_SPACING.precautionTitleMarginBottom),
   },
   precautionText: {
     fontSize: ptToSlideCqw(
@@ -83,6 +96,28 @@ const SLIDE_TITLE_MARGIN_BOTTOM = ptToSlideCqw(PDF_SPACING.cardTitleMarginBottom
 
 /** 左右の列の間隔 */
 const SLIDE_COLUMN_GAP = ptToSlideCqw(PDF_SLIDE.columnGap);
+
+/**
+ * 用量の上下の余白（PDF の用量セクションと用量の行の上余白、用量の項目の上下の余白）
+ */
+const SLIDE_DOSAGE_STYLE: React.CSSProperties = {
+  paddingTop: ptToSlideCqw(
+    PDF_SPACING.dosageContainerMarginTop * 2 + PDF_SPACING.dosagePaddingVertical
+  ),
+  paddingBottom: ptToSlideCqw(PDF_SPACING.dosagePaddingVertical),
+};
+
+/** 用量の項目の間隔 */
+const SLIDE_DOSAGE_ROW_STYLE: React.CSSProperties = {
+  columnGap: ptToSlideCqw(PDF_SPACING.dosageGap),
+};
+
+/** 用量のラベルの区切り線まわりの余白と線の太さ */
+const SLIDE_DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
+  marginTop: ptToSlideCqw(PDF_SPACING.dosageLabelMarginTop),
+  paddingTop: ptToSlideCqw(PDF_SPACING.dosageLabelPaddingTop),
+  borderTopWidth: ptToSlideCqw(PDF_SPACING.dosageBorderWidth),
+};
 
 /** 注意点の枠の内側の余白 */
 const SLIDE_PRECAUTION_PADDING = ptToSlideCqw(PDF_SPACING.precautionPadding);
@@ -174,6 +209,9 @@ export function SlideCardBody({
               touchHandlers={touchHandlers}
               valueStyle={SLIDE_FONT_STYLE.dosageValue}
               labelStyle={SLIDE_FONT_STYLE.dosageLabel}
+              style={SLIDE_DOSAGE_STYLE}
+              rowStyle={SLIDE_DOSAGE_ROW_STYLE}
+              labelDividerStyle={SLIDE_DOSAGE_DIVIDER_STYLE}
             />
           </div>
 
@@ -202,6 +240,8 @@ export function SlideCardBody({
                 precautions={item.precautions ?? []}
                 // ロングプレスは右の列全体で検知している
                 touchHandlers={{}}
+                // PDF の注意点は項目の間隔を取らない（見出しの下の余白だけ）
+                className="space-y-0"
                 style={{
                   padding: SLIDE_PRECAUTION_PADDING,
                   // 説明がないときは右の列の最上部から置く

@@ -22,6 +22,8 @@ type CardPrecautionsProps = {
   precautions: Precaution[];
   /** モバイルのロングプレスを検知するタッチハンドラ */
   touchHandlers: ContentTouchHandlers;
+  /** 枠のクラス（スライドで項目の間隔をなくすなど） */
+  className?: string;
   /** 枠のインラインスタイル（スライドの余白など） */
   style?: React.CSSProperties;
   /** 見出しの文字サイズのクラス */
@@ -42,6 +44,7 @@ type CardPrecautionsProps = {
 export function CardPrecautions({
   precautions,
   touchHandlers,
+  className,
   style,
   titleClassName,
   titleStyle,
@@ -56,7 +59,10 @@ export function CardPrecautions({
 
   return (
     <div
-      className="rounded-lg border bg-precaution-bg p-2.5 space-y-1"
+      className={cn(
+        "rounded-lg border bg-precaution-bg p-2.5 space-y-1",
+        className
+      )}
       style={{ ...PRECAUTION_BORDER_STYLE, ...style }}
       {...touchHandlers}
     >

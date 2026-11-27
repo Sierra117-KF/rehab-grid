@@ -45,6 +45,12 @@ type CardDosagesProps = {
   labelClassName?: string;
   /** ラベルの文字サイズのインラインスタイル（スライドのコンテナクエリ単位） */
   labelStyle?: React.CSSProperties;
+  /** 全体の余白のインラインスタイル（スライドで PDF の余白に合わせる） */
+  style?: React.CSSProperties;
+  /** 行の間隔のインラインスタイル（スライドで PDF の間隔に合わせる） */
+  rowStyle?: React.CSSProperties;
+  /** ラベルの区切り線まわりの余白のインラインスタイル（スライドで PDF の余白に合わせる） */
+  labelDividerStyle?: React.CSSProperties;
 };
 
 /**
@@ -60,12 +66,15 @@ export function CardDosages({
   valueStyle,
   labelClassName,
   labelStyle,
+  style,
+  rowStyle,
+  labelDividerStyle,
 }: CardDosagesProps) {
   const badgeLayout = getDosageBadgeLayout(dosages, layoutType ?? "grid2");
   if (badgeLayout.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 py-2" {...touchHandlers}>
+    <div className="flex flex-col gap-2 py-2" style={style} {...touchHandlers}>
       {badgeLayout.map((row) => {
         const rowKey = row.badges.map((b) => b.type).join("-");
         return (
@@ -82,6 +91,7 @@ export function CardDosages({
                   ? "grid-cols-2"
                   : "grid-cols-3"
             )}
+            style={rowStyle}
           >
             {row.badges.map((badge) => {
               const displayValue = badge.hasValue
@@ -132,7 +142,7 @@ export function CardDosages({
                     containerClassName={labelClassName}
                     containerStyle={labelStyle}
                     textClassName="text-dosage-label border-t pt-1 mt-1"
-                    textStyle={DOSAGE_DIVIDER_STYLE}
+                    textStyle={{ ...DOSAGE_DIVIDER_STYLE, ...labelDividerStyle }}
                   />
                 </div>
               );
