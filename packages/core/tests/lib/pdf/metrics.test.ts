@@ -35,6 +35,11 @@ describe("measurePdfTextWidth", () => {
     expect(measurePdfTextWidth("10", 10, 0.5)).toBe(10);
     expect(measurePdfTextWidth(" ", 10, 0.5)).toBeCloseTo(2.3);
   });
+
+  it("幅の広い半角文字（M/W 等）と英大文字は安全側に広めに見積もる", () => {
+    expect(measurePdfTextWidth("MW", 10, 0.5)).toBe(20);
+    expect(measurePdfTextWidth("AB", 10, 0.5)).toBeCloseTo(15.6);
+  });
 });
 
 describe("countPdfTextLines", () => {
@@ -52,6 +57,11 @@ describe("countPdfTextLines", () => {
   it("日本語を含まない語は途中で折り返さず、空白で区切る", () => {
     // "abcd"（20pt）と "efgh"（20pt）は 30pt の行に並ばない
     expect(countPdfTextLines("abcd efgh", 30, 10, 0.5)).toBe(2);
+  });
+
+  it("1 語だけで行幅を超える長い半角文字列は文字単位で折り返す", () => {
+    // 幅 30pt・1 文字 5pt → 1 行 6 文字、15 文字は 3 行
+    expect(countPdfTextLines("a".repeat(15), 30, 10, 0.5)).toBe(3);
   });
 
   it("行内の空白を詰めて収まる場合は改行しない", () => {
@@ -74,6 +84,13 @@ describe("fitPdfTextToLines", () => {
 
   it("狭すぎて「…」しか入らない場合も 1 文字は残す", () => {
     expect(fitPdfTextToLines("あいう", 1, 5, 10, 0.5)).toBe("あ…");
+  });
+
+  it("空白のない長い半角文字列も指定行数に収まるよう切り詰める", () => {
+    // 幅 30pt・1 文字 5pt → 1 行 6 文字。2 行目は「…」（10pt）を空けて 4 文字残る
+    expect(fitPdfTextToLines("a".repeat(20), 2, 30, 10, 0.5)).toBe(
+      `${"a".repeat(10)}…`
+    );
   });
 });
 
@@ -252,13 +269,20 @@ describe("スライドの寸法", () => {
       });
     });
 
-    it("説明が空なら説明の行数は 0", () => {
+    it("説明が空なら説明の行数は 0（注意点が本体の高さを超えても 0 のまま）", () => {
       const item = createTestItem({
         description: "",
         precautions: precautions(5, fullWidth(50)),
       });
+      const overflowItem = createTestItem({
+        description: "",
+        precautions: precautions(20, fullWidth(50)),
+      });
 
       expect(getSlideTextLines(item, slideSettings()).descriptionLines).toBe(0);
+      expect(
+        getSlideTextLines(overflowItem, slideSettings(TALLEST_HEADER))
+      ).toEqual({ descriptionLines: 0, precautionLines: 1 });
     });
 
     it("説明が 3 行に届かないときは、注意点 1 件あたりの行数を減らす", () => {

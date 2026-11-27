@@ -187,33 +187,8 @@ const VERY_WIDE_HALF_WIDTH_CHAR_PATTERN = /^[MWmw@%&]$/;
 /** 近似値よりやや幅が広い半角英大文字（0.78em 相当として見積もる） */
 const UPPERCASE_HALF_WIDTH_CHAR_PATTERN = /^[A-Z]$/;
 
-/** 半角英大文字の 1 行フィット用幅比率 */
+/** 半角英大文字の幅比率 */
 const PDF_UPPERCASE_CHAR_RATIO = 0.78;
-
-/**
- * 1 行フィット用にテキストの描画幅を安全側に見積もる
- *
- * @param text - テキスト
- * @param fontSize - フォントサイズ（ポイント単位）
- * @param halfWidthRatio - 半角 1 文字の基本幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
- * @returns 安全側に見積もった幅（ポイント単位）
- */
-function measureSingleLineTextWidth(
-  text: string,
-  fontSize: number,
-  halfWidthRatio: number
-): number {
-  return Array.from(text).reduce((sum, char) => {
-    if (char === " ") return sum + fontSize * PDF_SPACE_WIDTH_RATIO;
-    if (VERY_WIDE_HALF_WIDTH_CHAR_PATTERN.test(char)) return sum + fontSize;
-    if (UPPERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
-      return sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO);
-    }
-    return (
-      sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
-    );
-  }, 0);
-}
 
 /**
  * 用量の 1 項目分の幅を求める
@@ -253,7 +228,7 @@ export function fitPdfFontSizeToSingleLine(
 ): number {
   if (text === "" || maxWidth <= 0) return baseFontSize;
 
-  const unitWidth = measureSingleLineTextWidth(text, 1, halfWidthRatio);
+  const unitWidth = measurePdfTextWidth(text, 1, halfWidthRatio);
   if (unitWidth <= 0) return baseFontSize;
 
   const safeWidth = maxWidth * PDF_SINGLE_LINE_FIT_SAFETY_RATIO;
@@ -266,9 +241,13 @@ export function fitPdfFontSizeToSingleLine(
 /**
  * テキストの描画幅を見積もる
  *
+ * @remarks
+ * 全角文字は 1em、半角の空白は約 0.23em、幅の広い半角文字（M/W/m/w/@/%/&）は 1em、
+ * その他の半角英大文字は 0.78em、残りの半角文字は halfWidthRatio として安全側に見積もる。
+ *
  * @param text - テキスト
  * @param fontSize - フォントサイズ（ポイント単位）
- * @param halfWidthRatio - 半角 1 文字の幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @param halfWidthRatio - 半角 1 文字の基本幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
  * @returns 幅（ポイント単位）
  */
 export function measurePdfTextWidth(
@@ -278,6 +257,12 @@ export function measurePdfTextWidth(
 ): number {
   return Array.from(text).reduce((sum, char) => {
     if (char === " ") return sum + fontSize * PDF_SPACE_WIDTH_RATIO;
+    if (VERY_WIDE_HALF_WIDTH_CHAR_PATTERN.test(char)) return sum + fontSize;
+    if (UPPERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
+      return (
+        sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO)
+      );
+    }
     return (
       sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
     );
@@ -352,6 +337,23 @@ function wrapPdfText(
       } else {
         line = { ...line, end: offset, width: line.width + unitWidth };
         if (isSpace) shrink += unitWidth * PDF_SPACE_SHRINK_RATIO;
+      }
+      // 1 語だけで行幅を超える長い半角文字列（URL 等）は、react-pdf と同じく文字単位で折り返す
+      if (!isSpace && unitWidth > width) {
+        let charOffset = line.start;
+        line = { start: charOffset, end: charOffset, width: 0 };
+        for (const char of Array.from(unit)) {
+          const charWidth = measurePdfTextWidth(char, fontSize, halfWidthRatio);
+          const charStart = charOffset;
+          charOffset += char.length;
+          if (line.end > line.start && line.width + charWidth > width) {
+            lines.push(line);
+            line = { start: charStart, end: charOffset, width: charWidth };
+          } else {
+            line = { ...line, end: charOffset, width: line.width + charWidth };
+          }
+        }
+        shrink = 0;
       }
     }
     lines.push(line);
@@ -838,7 +840,7 @@ export function getSlideTextLines(
     }
   }
   return {
-    descriptionLines: Math.max(1, getDescriptionLines(1)),
+    descriptionLines: hasDescription ? Math.max(1, getDescriptionLines(1)) : 0,
     precautionLines: 1,
   };
 }

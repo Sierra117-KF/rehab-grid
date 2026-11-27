@@ -380,23 +380,33 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
           overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
         },
       });
-      const longItem = (i: number, precautionText: string) =>
+      const longItem = (
+        i: number,
+        precautionText: string,
+        description = SAMPLE_TEXT.repeat(3).slice(0, 200)
+      ) =>
         createTestItem({
           id: `worst-${String(i)}`,
           order: i,
           title: `カード${String(i + 1)}ブリッジ運動と体幹の安定性向上`,
-          description: SAMPLE_TEXT.repeat(3).slice(0, 200),
+          description,
           dosages: { reps: "左右各１０回ずつ", sets: "３〜５セット", frequency: "毎日朝昼晩３回" },
           precautions: Array.from({ length: 5 }, (_p, j) => ({
             id: `p-${String(i)}-${String(j)}`,
             value: precautionText,
           })),
         });
-      // 全角 50 文字と、半角を含む 50 文字の注意点
+      // 全角・半角混在・改行入り・空白なし長文半角・幅広半角英大文字のパターン
       const items = [
         longItem(0, "あ".repeat(50)),
         longItem(1, SAMPLE_TEXT.slice(0, 50)),
         longItem(2, "痛み\nしびれ\nめまいが出たら中止"),
+        longItem(3, "W".repeat(50), "a".repeat(200)),
+        longItem(
+          4,
+          "ROM MMT ADL SLR TUG ".repeat(3).slice(0, 50),
+          "WWWWW ".repeat(34).slice(0, 200)
+        ),
       ];
 
       const layout = await computePdfLayoutTree(items, settings);

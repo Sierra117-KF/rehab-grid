@@ -636,6 +636,10 @@ describe("createSlideCard", () => {
       marginTop: 0,
       justifyContent: "flex-start",
     });
+    const titleText = findElementsByType(card, "Text").find(
+      (el) => el.props?.children === "スクワット"
+    );
+    expect(getStyle(titleText)).toMatchObject({ textAlign: "left" });
   });
 
   it("番号バッジなしのタイトルも上の余白なしで左寄せにする", () => {

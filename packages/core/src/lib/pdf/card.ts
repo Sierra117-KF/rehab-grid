@@ -748,6 +748,7 @@ function createTitleWithNumber(
           marginBottom: 0,
           fontSize: titleFontSize,
           maxWidth: titleWidth,
+          ...(align === "left" ? { textAlign: "left" } : {}),
         },
       },
       displayTitle
