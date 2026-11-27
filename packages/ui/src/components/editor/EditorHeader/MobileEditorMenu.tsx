@@ -12,6 +12,7 @@ import {
   getLayoutLabel,
   HOME_LINK_TOOLTIP,
   IMPORT_LOADING_LABEL,
+  IMPORT_OPEN_DESCRIPTION,
   IMPORT_OPEN_LABEL,
   PROJECT_DELETE_TOOLTIP,
   PROJECT_LIST_LABEL,
@@ -30,6 +31,7 @@ import {
   FileJson,
   Files,
   FolderArchive,
+  FolderOpen,
   Home,
   LayoutTemplate,
   Loader2,
@@ -38,7 +40,6 @@ import {
   Redo2,
   Trash2,
   Undo2,
-  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -87,12 +88,16 @@ type MobileEditorMenuProps = {
 type MenuItemProps = {
   icon: React.ElementType;
   label: string;
+  /** ラベルの下に表示する補足テキスト */
+  description?: string;
   onClick: () => void;
   disabled?: boolean;
   variant?: "default" | "destructive";
   rightContent?: React.ReactNode;
   /** アイコンのカラークラス（例: text-sky-500） */
   iconColor?: string;
+  /** アイコンに追加するクラス（例: animate-spin） */
+  iconClassName?: string;
 };
 
 /**
@@ -102,11 +107,13 @@ function MenuItem(props: MenuItemProps) {
   const {
     icon,
     label,
+    description,
     onClick,
     disabled = false,
     variant = "default",
     rightContent,
     iconColor,
+    iconClassName,
   } = props;
 
   // Reactコンポーネントとして使用するためPascalCaseで別名定義
@@ -131,10 +138,18 @@ function MenuItem(props: MenuItemProps) {
           "size-5 shrink-0",
           variant === "destructive"
             ? "text-destructive"
-            : (iconColor ?? "text-muted-foreground")
+            : (iconColor ?? "text-muted-foreground"),
+          iconClassName
         )}
       />
-      <span className="flex-1">{label}</span>
+      <span className="flex flex-1 flex-col">
+        <span>{label}</span>
+        {description !== undefined && description !== "" ? (
+          <span className="text-xs font-normal text-muted-foreground">
+            {description}
+          </span>
+        ) : null}
+      </span>
       {rightContent}
     </button>
   );
@@ -323,11 +338,13 @@ export function MobileEditorMenu({
 
       {/* 読み込み（指導箋ファイル・バックアップ ZIP を中身で自動判別） */}
       <MenuItem
-        icon={isImporting ? Loader2 : Upload}
+        icon={isImporting ? Loader2 : FolderOpen}
         label={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+        description={IMPORT_OPEN_DESCRIPTION}
         onClick={handleOpenClick}
         disabled={isImporting}
         iconColor="text-emerald-500"
+        iconClassName={isImporting ? "animate-spin" : undefined}
       />
 
       {/* 書き出し（アコーディオン） */}
@@ -338,6 +355,7 @@ export function MobileEditorMenu({
           "text-foreground hover:bg-accent"
         )}
         onClick={toggleExportExpanded}
+        aria-expanded={isExportExpanded}
       >
         <Download className="size-5 shrink-0 text-amber-500" />
         <span className="flex-1">{EXPORT_MENU_LABEL}</span>

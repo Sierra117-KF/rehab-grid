@@ -10,9 +10,9 @@ export const UNKNOWN_ERROR_MESSAGE = "不明なエラーが発生しました";
 /** 画像処理失敗時のメッセージ */
 export const IMAGE_PROCESSING_ERROR_MESSAGE = "画像の処理に失敗しました";
 
-// インポート関連メッセージ
-/** インポート成功メッセージ */
-export const IMPORT_SUCCESS_MESSAGE = "プロジェクトをインポートしました";
+// 読み込み（インポート）関連メッセージ
+/** 読み込み成功メッセージ */
+export const IMPORT_SUCCESS_MESSAGE = "指導箋を読み込みました";
 
 /** 対応していないファイル形式 */
 export const IMPORT_ERROR_INVALID_FORMAT = "対応していないファイル形式です";
@@ -23,9 +23,9 @@ export const IMPORT_ERROR_VALIDATION = "ファイル形式が正しくありま�
 /** 破損したZIPファイル */
 export const IMPORT_ERROR_CORRUPTED_ZIP = "ZIPファイルが破損しています";
 
-/** ZIPにプロジェクトデータがない */
+/** ZIPに指導箋またはバックアップのデータがない */
 export const IMPORT_ERROR_NO_PROJECT =
-  "ZIPファイルにプロジェクトデータがありません";
+  "ZIPファイルに指導箋またはバックアップのデータがありません";
 
 /** 上書き確認ダイアログのタイトル */
 export const IMPORT_CONFIRM_TITLE = "指導箋を開きますか？";
@@ -225,7 +225,7 @@ export const PROJECT_DELETE_CONFIRM_TITLE = "指導箋を削除";
 
 /** プロジェクト削除確認ダイアログの説明 */
 export const PROJECT_DELETE_CONFIRM_DESCRIPTION =
-  "現在表示されている指導箋を削除します。この操作は元に戻せません。保存する場合は事前にバックアップをダウンロードしてください。";
+  "現在表示されている指導箋を削除します。この操作は元に戻せません。保存する場合は事前に「書き出し」から保存してください。";
 
 /** プロジェクト削除成功メッセージ */
 export const PROJECT_DELETE_SUCCESS_MESSAGE = "指導箋を削除しました";
@@ -237,7 +237,7 @@ export const PROJECT_DELETE_SUCCESS_MESSAGE = "指導箋を削除しました";
  * @returns ダイアログ説明文
  */
 export function createProjectDeleteConfirmDescription(title: string): string {
-  return `「${title}」を削除します。この操作は元に戻せません。保存する場合は事前に開いてバックアップをダウンロードしてください。`;
+  return `「${title}」を削除します。この操作は元に戻せません。保存する場合は事前に開いて「書き出し」から保存してください。`;
 }
 
 // 指導箋一覧（複数プロジェクト保存）関連メッセージ
@@ -310,8 +310,8 @@ export const PDF_GENERATE_FAILED = "PDF 生成に失敗しました";
 /** Workerエラー時のデフォルトメッセージ */
 export const WORKER_ERROR_MESSAGE = "Worker でエラーが発生しました";
 
-/** インポート失敗メッセージ */
-export const IMPORT_FAILED_MESSAGE = "インポートに失敗しました";
+/** ファイル読み込み失敗メッセージ */
+export const IMPORT_FAILED_MESSAGE = "ファイルの読み込みに失敗しました";
 
 // PDFメニューのラベル
 /** PDFプレビューのラベル */
@@ -336,19 +336,22 @@ export const PDF_PREVIEW_GENERATING = "プレビューを生成中...";
 /** キャンセルボタンのラベル */
 export const BUTTON_CANCEL = "キャンセル";
 
-// エクスポートメニューのラベル
-/** 軽量JSONエクスポートのラベル */
-export const EXPORT_JSON_LABEL = "テキストのみ";
+// 書き出しメニューのラベル
+/** 軽量JSON書き出しのラベル */
+export const EXPORT_JSON_LABEL = "テキストのみ（JSON）";
 
-/** 完全バックアップ（ZIP）エクスポートのラベル */
-export const EXPORT_ZIP_LABEL = "画像付き";
+/** 画像付きZIP書き出しのラベル */
+export const EXPORT_ZIP_LABEL = "画像付き（ZIP）";
 
-// インポートボタンのラベル
+// 読み込みボタンのラベル
 /** ファイル読み込み中のラベル */
 export const IMPORT_LOADING_LABEL = "読み込み中...";
 
 /** 読み込みボタンのラベル（指導箋ファイル・一括バックアップ ZIP を中身で自動判別する） */
 export const IMPORT_OPEN_LABEL = "読み込み";
+
+/** モバイルメニューの読み込み項目に添える補足テキスト */
+export const IMPORT_OPEN_DESCRIPTION = "指導箋・バックアップ（ZIP）";
 
 /** 読み込みボタンのツールチップ（復元もここから行えることを示す） */
 export const IMPORT_OPEN_TOOLTIP =
@@ -360,6 +363,12 @@ export const LABEL_PROJECT_TITLE = "タイトル：";
 
 /** 書き出しメニューボタンのラベル */
 export const EXPORT_MENU_LABEL = "書き出し";
+
+/** 書き出しメニューボタンのツールチップ（一括バックアップもここから行えることを示す） */
+export const EXPORT_MENU_TOOLTIP = "指導箋の書き出し・まとめてバックアップ";
+
+/** 単一指導箋の書き出し失敗メッセージ */
+export const EXPORT_FAILED_MESSAGE = "書き出しに失敗しました";
 
 /** PDFメニューボタンのラベル */
 export const PDF_MENU_LABEL = "PDF";

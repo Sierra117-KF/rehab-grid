@@ -7,10 +7,12 @@ import {
   DESIGN_SETTINGS_LABEL,
   EXPORT_JSON_LABEL,
   EXPORT_MENU_LABEL,
+  EXPORT_MENU_TOOLTIP,
   EXPORT_ZIP_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_CONFIRM_DESCRIPTION,
   IMPORT_CONFIRM_TITLE,
+  IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
   OPEN_AS_NEW_PROJECT_LABEL,
   OVERWRITE_CURRENT_PROJECT_LABEL,
@@ -55,6 +57,8 @@ const {
   mockToastSuccess,
   mockToastError,
   mockToastInfo,
+  mockToastLoading,
+  mockToastDismiss,
   mockOpenImportResult,
   mockRestoreBackup,
   mockDeleteProject,
@@ -79,6 +83,8 @@ const {
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
+  mockToastLoading: vi.fn().mockReturnValue("loading-toast-id"),
+  mockToastDismiss: vi.fn(),
   mockOpenImportResult: vi.fn().mockResolvedValue(undefined),
   mockRestoreBackup: vi.fn().mockResolvedValue({
     projects: 1,
@@ -163,6 +169,8 @@ vi.mock("sonner", () => ({
     success: mockToastSuccess,
     error: mockToastError,
     info: mockToastInfo,
+    loading: mockToastLoading,
+    dismiss: mockToastDismiss,
   },
 }));
 
@@ -495,12 +503,14 @@ describe("ExportMenu", () => {
     return props;
   }
 
-  it("書き出しボタンが表示される", () => {
+  it("書き出しボタンが表示され、一括バックアップを含むツールチップを持つ", () => {
     setupExportMenu();
 
-    expect(
-      screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
-    ).toBeInTheDocument();
+    const button = screen.getByRole("button", {
+      name: new RegExp(EXPORT_MENU_LABEL),
+    });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute("title", EXPORT_MENU_TOOLTIP);
   });
 
   it("書き出しボタンをクリックするとドロップダウンが表示される", async () => {
@@ -516,7 +526,7 @@ describe("ExportMenu", () => {
     expect(screen.getByText(EXPORT_ZIP_LABEL)).toBeInTheDocument();
   });
 
-  it("「テキストのみ」クリックで onExportJSON が呼ばれる", async () => {
+  it("「テキストのみ（JSON）」クリックで onExportJSON が呼ばれる", async () => {
     const user = userEvent.setup();
     const props = setupExportMenu();
 
@@ -529,7 +539,7 @@ describe("ExportMenu", () => {
     expect(props.onExportJSON).toHaveBeenCalledTimes(1);
   });
 
-  it("「画像付き」クリックで onExportZIP が呼ばれる", async () => {
+  it("「画像付き（ZIP）」クリックで onExportZIP が呼ばれる", async () => {
     const user = userEvent.setup();
     const props = setupExportMenu();
 
@@ -1146,6 +1156,8 @@ describe("EditorHeader", () => {
         );
       });
       expect(mockInspectImportFile).toHaveBeenCalledWith(file);
+      expect(mockToastLoading).toHaveBeenCalledWith(IMPORT_LOADING_LABEL);
+      expect(mockToastDismiss).toHaveBeenCalledWith("loading-toast-id");
       expect(screen.queryByText(IMPORT_CONFIRM_TITLE)).not.toBeInTheDocument();
     });
 
@@ -1221,6 +1233,23 @@ describe("EditorHeader", () => {
       expect(mockToastSuccess).toHaveBeenCalledWith(
         BACKUP_EXPORT_SUCCESS_MESSAGE
       );
+    });
+
+    it("画像付きZIPの書き出しに失敗したらエラーを通知する", async () => {
+      mockDownloadProjectAsZIP.mockRejectedValueOnce(
+        new Error("ZIP生成エラー")
+      );
+      const user = userEvent.setup();
+      render(<EditorHeader />);
+
+      await user.click(
+        screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
+      );
+      await user.click(screen.getByText(EXPORT_ZIP_LABEL));
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith("ZIP生成エラー");
+      });
     });
   });
 

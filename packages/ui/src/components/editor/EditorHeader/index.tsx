@@ -11,6 +11,7 @@ import {
   BUTTON_DELETE,
   createBackupRestoreSuccessMessage,
   DESIGN_SETTINGS_LABEL,
+  EXPORT_FAILED_MESSAGE,
   HOME_LINK_TOOLTIP,
   IMPORT_FAILED_MESSAGE,
   IMPORT_LOADING_LABEL,
@@ -91,6 +92,7 @@ import {
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
   Files,
+  FolderOpen,
   LayoutTemplate,
   Loader2,
   Menu,
@@ -98,7 +100,6 @@ import {
   Redo2,
   Trash2,
   Undo2,
-  Upload,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -159,6 +160,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     useState<ImportResult | null>(null);
 
   // 一括バックアップ・復元関連の状態
+  const isPreparingBackupRef = useRef(false);
   const [showBackupExportDialog, setShowBackupExportDialog] = useState(false);
   const [showBackupRestoreDialog, setShowBackupRestoreDialog] = useState(false);
   const [backupCounts, setBackupCounts] = useState<BackupSummaryCounts | null>(
@@ -209,8 +211,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   /**
    * 完全バックアップ（ZIP）としてエクスポート
    */
-  const handleExportZIP = useCallback(() => {
-    void downloadProjectAsZIP(stateToProjectFile({ meta, settings, items }));
+  const handleExportZIP = useCallback(async () => {
+    try {
+      await downloadProjectAsZIP(stateToProjectFile({ meta, settings, items }));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : EXPORT_FAILED_MESSAGE;
+      toast.error(message);
+    }
   }, [meta, settings, items]);
 
   /**
@@ -298,6 +306,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * まとめてバックアップダイアログを開く
    */
   const handleOpenBackupExport = useCallback(async () => {
+    if (isPreparingBackupRef.current) return;
+    isPreparingBackupRef.current = true;
     try {
       const counts = await collectCurrentBackupCounts();
       setBackupCounts(counts);
@@ -306,6 +316,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       const message =
         error instanceof Error ? error.message : BACKUP_EXPORT_FAILED_MESSAGE;
       toast.error(message);
+    } finally {
+      isPreparingBackupRef.current = false;
     }
   }, []);
 
@@ -379,6 +391,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const applySingleImportResult = useCallback(
     async (result: ImportResult, mode: ImportOpenMode) => {
       setIsImporting(true);
+      const loadingToastId = toast.loading(IMPORT_LOADING_LABEL);
       try {
         await openImportResult(result, mode);
         toast.success(IMPORT_SUCCESS_MESSAGE);
@@ -387,6 +400,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
           error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE;
         toast.error(message);
       } finally {
+        toast.dismiss(loadingToastId);
         setIsImporting(false);
         setPendingImportResult(null);
       }
@@ -406,6 +420,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       event.target.value = "";
 
       setIsImporting(true);
+      // モバイルではメニュー閉鎖後に処理が走るため、トーストでも読み込み中を通知する
+      const loadingToastId = toast.loading(IMPORT_LOADING_LABEL);
       try {
         const inspected = await inspectImportFile(file);
 
@@ -431,6 +447,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
           error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE;
         toast.error(message);
       } finally {
+        toast.dismiss(loadingToastId);
         setIsImporting(false);
       }
     },
@@ -677,7 +694,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               onOpenClick={handleOpenClick}
               isImporting={isImporting}
               onExportJSON={handleExportJSON}
-              onExportZIP={handleExportZIP}
+              onExportZIP={() => void handleExportZIP()}
               onExportBackup={() => void handleOpenBackupExport()}
               onDeleteProject={handleOpenDeleteProjectDialog}
               onClose={handleCloseMobileMenu}
@@ -804,7 +821,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 {isImporting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Upload className="size-4 text-emerald-500" />
+                  <FolderOpen className="size-4 text-emerald-500" />
                 )}
                 <span className="hidden xl:inline">
                   {isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
@@ -814,7 +831,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               {/* 書き出しドロップダウンメニュー */}
               <ExportMenu
                 onExportJSON={handleExportJSON}
-                onExportZIP={handleExportZIP}
+                onExportZIP={() => void handleExportZIP()}
                 onExportBackup={() => void handleOpenBackupExport()}
               />
 

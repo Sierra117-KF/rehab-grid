@@ -5,6 +5,8 @@ import {
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_MENU_LABEL,
+  IMPORT_LOADING_LABEL,
+  IMPORT_OPEN_DESCRIPTION,
   IMPORT_OPEN_LABEL,
   PROJECT_LIST_LABEL,
   REDO_LABEL,
@@ -39,7 +41,13 @@ function setupMenu({
   canUndo = false,
   canRedo = false,
   layoutType = "grid2",
-}: { canUndo?: boolean; canRedo?: boolean; layoutType?: LayoutType } = {}) {
+  isImporting = false,
+}: {
+  canUndo?: boolean;
+  canRedo?: boolean;
+  layoutType?: LayoutType;
+  isImporting?: boolean;
+} = {}) {
   const props = {
     canUndo,
     canRedo,
@@ -51,7 +59,7 @@ function setupMenu({
     onTemplateClick: vi.fn(),
     onExerciseCardsClick: vi.fn(),
     onOpenClick: vi.fn(),
-    isImporting: false,
+    isImporting,
     onExportJSON: vi.fn(),
     onExportZIP: vi.fn(),
     onExportBackup: vi.fn(),
@@ -148,12 +156,18 @@ describe("MobileEditorMenu", () => {
   });
 
   describe("書き出し・読み込み", () => {
-    it("書き出しを展開すると「この指導箋」と「全データ」の見出しを表示する", async () => {
+    it("書き出しを展開すると「この指導箋」と「全データ」の見出しを表示し aria-expanded が切り替わる", async () => {
       const user = userEvent.setup();
       setupMenu();
 
-      await user.click(screen.getByRole("button", { name: EXPORT_MENU_LABEL }));
+      const exportButton = screen.getByRole("button", {
+        name: EXPORT_MENU_LABEL,
+      });
+      expect(exportButton).toHaveAttribute("aria-expanded", "false");
 
+      await user.click(exportButton);
+
+      expect(exportButton).toHaveAttribute("aria-expanded", "true");
       expect(screen.getByText(BACKUP_MENU_CURRENT_SECTION)).toBeInTheDocument();
       expect(screen.getByText(BACKUP_MENU_ALL_SECTION)).toBeInTheDocument();
     });
@@ -180,14 +194,26 @@ describe("MobileEditorMenu", () => {
       expect(screen.queryByText(/復元/)).not.toBeInTheDocument();
     });
 
-    it("「読み込み」を押すとメニューを閉じて onOpenClick を呼ぶ", async () => {
+    it("「読み込み」に補足テキストが表示され、押すとメニューを閉じて onOpenClick を呼ぶ", async () => {
       const user = userEvent.setup();
       const props = setupMenu();
 
-      await user.click(screen.getByRole("button", { name: IMPORT_OPEN_LABEL }));
+      const openButton = screen.getByRole("button", {
+        name: new RegExp(IMPORT_OPEN_LABEL),
+      });
+      expect(openButton).toHaveTextContent(IMPORT_OPEN_DESCRIPTION);
+      await user.click(openButton);
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
       expect(props.onOpenClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("読み込み中は「読み込み中...」を表示して無効化される", () => {
+      setupMenu({ isImporting: true });
+
+      expect(
+        screen.getByRole("button", { name: new RegExp(IMPORT_LOADING_LABEL) })
+      ).toBeDisabled();
     });
   });
 });

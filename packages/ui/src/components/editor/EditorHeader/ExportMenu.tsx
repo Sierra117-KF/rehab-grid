@@ -6,6 +6,7 @@ import {
   BACKUP_MENU_CURRENT_SECTION,
   EXPORT_JSON_LABEL,
   EXPORT_MENU_LABEL,
+  EXPORT_MENU_TOOLTIP,
   EXPORT_ZIP_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
@@ -17,7 +18,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@rehab-grid/ui/components/wrapped/DropdownMenu";
-import { Download, FileJson, FolderArchive, Package } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  FileJson,
+  FolderArchive,
+  Package,
+} from "lucide-react";
 
 /**
  * ExportMenuコンポーネントのProps
@@ -48,13 +55,17 @@ export function ExportMenu({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground"
-          title={EXPORT_MENU_LABEL}
+          className="group gap-1.5 text-muted-foreground hover:text-foreground"
+          title={EXPORT_MENU_TOOLTIP}
           aria-label={EXPORT_MENU_LABEL}
         >
           <Download className="size-4 text-amber-500" />
           {/* ヘッダーに余裕のない幅（xl 未満）ではアイコンのみ */}
           <span className="hidden xl:inline">{EXPORT_MENU_LABEL}</span>
+          <ChevronDown
+            className="size-3.5 text-muted-foreground/80 transition-transform duration-200 group-data-[state=open]:rotate-180"
+            aria-hidden="true"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

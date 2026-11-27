@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@rehab-grid/ui/components/wrapped/DropdownMenu";
-import { Download, Eye, FileDown, Loader2 } from "lucide-react";
+import { ChevronDown, Download, Eye, FileDown, Loader2 } from "lucide-react";
 
 /**
  * PdfMenuコンポーネントのProps
@@ -45,8 +45,10 @@ export function PdfMenu({
         <Button
           variant="default"
           size="sm"
-          className="gap-2"
+          className="group gap-1.5"
           disabled={disabled || isGenerating}
+          title={isGenerating ? PDF_GENERATING_SHORT : PDF_MENU_LABEL}
+          aria-label={isGenerating ? PDF_GENERATING_SHORT : PDF_MENU_LABEL}
         >
           {isGenerating ? (
             <Loader2 className="size-4 animate-spin" />
@@ -56,6 +58,10 @@ export function PdfMenu({
           <span className="hidden desktop:inline">
             {isGenerating ? PDF_GENERATING_SHORT : PDF_MENU_LABEL}
           </span>
+          <ChevronDown
+            className="size-3.5 opacity-80 transition-transform duration-200 group-data-[state=open]:rotate-180"
+            aria-hidden="true"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[70]">
