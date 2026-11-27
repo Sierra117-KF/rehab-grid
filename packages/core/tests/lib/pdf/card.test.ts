@@ -21,7 +21,7 @@ import {
 
 vi.mock("@react-pdf/renderer", async () => (await import("./pdfTestUtils")).reactPdfMock);
 
-import { createCard } from "@/lib/pdf/card";
+import { createCard, createSlideCard } from "@/lib/pdf/card";
 
 /**
  * テスト用の設定を生成（未指定の項目はデフォルト値）
@@ -578,5 +578,147 @@ describe("createCard", () => {
       );
       expect(getStyle(label)).toMatchObject({ color: "#475569" });
     });
+  });
+});
+
+describe("createSlideCard", () => {
+  const slideSettings = (overrides: Partial<ResolvedProjectSettings> = {}) =>
+    createSettings({ layoutType: "slide", ...overrides });
+
+  /** 最も内側の、指定したテキストを持つ View の style */
+  const getBoxStyle = (card: unknown, text: string) =>
+    getStyle(findInnermostViewWithText(card, text));
+
+  it("A4 横のコンテンツ幅 × ヘッダーから決まる高さの、ページをまたがないカードになる", () => {
+    const card = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
+
+    expect(card).toMatchObject({ props: { wrap: false } });
+    const style = getStyle(card);
+    expect(style?.width).toBeCloseTo(761.89, 6);
+    expect(style?.height).toBeCloseTo(460.28, 6);
+    expect(style?.marginBottom).toBe(0);
+  });
+
+  it("画像がなければ左の列の幅 × 5:3 の空白の枠を置く", () => {
+    const card = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
+
+    expect(findElementsByType(card, "Image")).toHaveLength(0);
+    const placeholder = findElementsByType(card, "View").find(
+      (el) => (el as { key?: string }).key === "imagePlaceholder"
+    );
+    expect(getStyle(placeholder)?.width).toBeCloseTo(422.1762, 6);
+    expect(getStyle(placeholder)?.height).toBeCloseTo(253.30572, 6);
+  });
+
+  it("対応形式の画像は Image として左の列の幅で表示される", () => {
+    const imageUrl = `${PDF_SUPPORTED_IMAGE_PREFIXES[0]};base64,test`;
+    const card = createSlideCard(FULL_ITEM, imageUrl, slideSettings(), 1);
+
+    const images = findElementsByType(card, "Image");
+    expect(images).toHaveLength(1);
+    expect(images[0]?.props?.src).toBe(imageUrl);
+  });
+
+  it("タイトルは上の余白なしで左寄せにし、番号バッジを左に置く", () => {
+    const card = createSlideCard(
+      FULL_ITEM,
+      undefined,
+      slideSettings({ showCardNumbers: true }),
+      3
+    );
+
+    const texts = extractTextContent(card);
+    expect(texts.indexOf("3")).toBe(texts.indexOf("スクワット") - 1);
+    const titleRow = findElementsByType(card, "View").find(
+      (el) => (el as { key?: string }).key === "title"
+    );
+    expect(getStyle(titleRow)).toMatchObject({
+      marginTop: 0,
+      justifyContent: "flex-start",
+    });
+  });
+
+  it("番号バッジなしのタイトルも上の余白なしで左寄せにする", () => {
+    const card = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
+
+    const title = findElementsByType(card, "Text").find(
+      (el) => el.props?.children === "スクワット"
+    );
+    expect(getStyle(title)).toMatchObject({
+      marginTop: 0,
+      textAlign: "left",
+      fontSize: 24,
+    });
+  });
+
+  it("右の列に収まらない説明は「…」で切り詰め、注意点は全件出す", () => {
+    const item = createTestItem({
+      title: "スクワット",
+      description: "あ".repeat(TEXT_LIMITS.description),
+      // 50 文字の注意点（3 行）が 5 件あると、説明は 5 行（全角 105 文字）までになる
+      precautions: Array.from({ length: 5 }, (_, i) => ({
+        id: `p${String(i)}`,
+        value: "い".repeat(TEXT_LIMITS.precaution),
+      })),
+    });
+    const card = createSlideCard(item, undefined, slideSettings(), 1);
+
+    const texts = extractTextContent(card);
+    const description = texts.find((t) => t.startsWith("あ"));
+    expect(description).toMatch(/^あ+…$/);
+    expect(description!.length).toBeLessThanOrEqual(105);
+    // 注意点は 3 行に収まるため切り詰めない
+    expect(texts.filter((t) => t === `• ${"い".repeat(50)}`)).toHaveLength(5);
+  });
+
+  it("説明があれば注意点の枠の上に余白を取り、説明がなければ余白なしで右の列の最上部に置く", () => {
+    const withDescription = createSlideCard(
+      createTestItem({ ...FULL_ITEM, description: "膝を曲げる" }),
+      undefined,
+      slideSettings(),
+      1
+    );
+    const withoutDescription = createSlideCard(
+      FULL_ITEM,
+      undefined,
+      slideSettings(),
+      1
+    );
+
+    expect(
+      getBoxStyle(withDescription, LABELS.precautionTitle)?.marginTop
+    ).toBe(6);
+    expect(
+      getBoxStyle(withoutDescription, LABELS.precautionTitle)?.marginTop
+    ).toBe(0);
+  });
+
+  it("白黒では注意点を白背景に濃い枠線で囲む", () => {
+    const card = createSlideCard(
+      FULL_ITEM,
+      undefined,
+      slideSettings({ printColorMode: "monochrome" }),
+      1
+    );
+
+    expect(getBoxStyle(card, LABELS.precautionTitle)).toMatchObject({
+      backgroundColor: "#ffffff",
+      borderWidth: 1,
+      borderColor: "#334155",
+    });
+  });
+
+  it("用量は左の列に 3 列で並べる", () => {
+    const card = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
+
+    const texts = extractTextContent(card);
+    expect(texts).toEqual(
+      expect.arrayContaining(["10回", "3セット", "1日2回", LABELS.reps])
+    );
+    expect(
+      findElementsByType(card, "View").filter(
+        (el) => (el as { key?: string }).key === "dosages"
+      )
+    ).toHaveLength(1);
   });
 });

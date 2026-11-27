@@ -11,6 +11,7 @@ import {
   PDF_COLORS,
   PDF_DOSAGE_COLORS,
   PDF_HALF_WIDTH_CHAR_RATIO,
+  PDF_SLIDE,
   PDF_SPACING,
   PDF_SUPPORTED_IMAGE_PREFIXES,
   TEXT_LIMITS,
@@ -37,7 +38,13 @@ import {
   getPdfCardPrecautionText,
   getPdfCardTitleText,
   getPdfDosageItemWidth,
+  getPdfPrecautionTextWidth,
+  getPdfSlideCardSize,
+  getPdfSlideColumns,
+  getPdfSlideDescriptionText,
+  getPdfSlidePrecautionText,
   getPdfTitleWidth,
+  getSlideTextLines,
   type PdfCardFontSizes,
 } from "./metrics";
 import { pdfStyles as styles } from "./styles";
@@ -270,6 +277,106 @@ function createDosageSection(
 }
 
 /**
+ * カードの画像要素を生成する
+ *
+ * 未設定・非対応形式は、印刷後に手書きできるよう空白の枠にする
+ *
+ * @param imageUrl - 画像のBase64 data URL（省略可）
+ * @param width - 画像の幅（ポイント単位）
+ * @param height - 画像の高さ（ポイント単位）
+ * @returns 画像または空白の枠の要素
+ */
+function createImageElement(
+  imageUrl: string | undefined,
+  width: number,
+  height: number
+): ReactElement {
+  // 非対応形式をガード（将来の経路からWebP等が混入した場合の安全策）
+  const isSupportedFormat =
+    imageUrl !== undefined &&
+    imageUrl !== "" &&
+    PDF_SUPPORTED_IMAGE_PREFIXES.some((prefix) => imageUrl.startsWith(prefix));
+
+  if (isSupportedFormat) {
+    return createElement(Image, {
+      key: "image",
+      src: imageUrl,
+      style: { ...styles.cardImage, width, height },
+    });
+  }
+  return createElement(View, {
+    key: "imagePlaceholder",
+    style: { ...styles.cardImagePlaceholder, width, height },
+  });
+}
+
+/**
+ * 注意点の枠を生成する
+ *
+ * @param precautionTexts - 表示する注意点（行頭の「•」付き・切り詰め済み）と React の key
+ * @param boxWidth - 枠の幅（ポイント単位）
+ * @param fontSizes - カード内のフォントサイズ
+ * @param colors - カードの描画に使う色
+ * @param marginTop - 枠の上の余白（省略時は既定の余白）
+ * @returns 注意点の枠の要素
+ */
+function createPrecautionBox(
+  precautionTexts: { key: string; text: string }[],
+  boxWidth: number,
+  fontSizes: PdfCardFontSizes,
+  colors: PdfCardColors,
+  marginTop: number = PDF_SPACING.precautionMarginTop
+): ReactElement {
+  const precautionItems = precautionTexts.map(({ key, text }) =>
+    createElement(
+      Text,
+      {
+        key,
+        style: {
+          ...styles.precautionText,
+          fontSize: fontSizes.precautionText,
+          color: colors.precautionText,
+        },
+      },
+      text
+    )
+  );
+  // 白黒モードは塗りつぶしの代わりに濃い枠線で囲む
+  const precautionBorderStyle =
+    colors.precautionBorder === undefined
+      ? {}
+      : {
+          borderWidth: PDF_SPACING.precautionBorderWidth,
+          borderColor: colors.precautionBorder,
+        };
+  return createElement(
+    View,
+    {
+      key: "precautions",
+      style: {
+        ...styles.precautionContainer,
+        width: boxWidth,
+        marginTop,
+        backgroundColor: colors.precautionBackground,
+        ...precautionBorderStyle,
+      },
+    },
+    createElement(
+      Text,
+      {
+        style: {
+          ...styles.precautionTitle,
+          fontSize: fontSizes.precautionTitle,
+          color: colors.precautionTitle,
+        },
+      },
+      LABELS.precautionTitle
+    ),
+    ...precautionItems
+  );
+}
+
+/**
  * エディタアイテムからPDFカードの要素を生成する
  *
  * @param item - カードに表示するエディタアイテム
@@ -298,36 +405,9 @@ export function createCard(
   const fontSizes = getPdfCardFontSizes(layoutType, textScale);
   const colors = getPdfCardColors(themeColor, printColorMode);
 
-  const children: ReactElement[] = [];
-
-  // 非対応形式をガード（将来の経路からWebP等が混入した場合の安全策）
-  const isSupportedFormat =
-    imageUrl !== undefined &&
-    imageUrl !== "" &&
-    PDF_SUPPORTED_IMAGE_PREFIXES.some((prefix) => imageUrl.startsWith(prefix));
-  const safeImageUrl = isSupportedFormat ? imageUrl : undefined;
-
-  // 画像（未設定・非対応形式は印刷後に手書きできるよう空白の枠にする）
-  if (safeImageUrl !== undefined) {
-    children.push(
-      createElement(Image, {
-        key: "image",
-        src: safeImageUrl,
-        style: { ...styles.cardImage, width: imageWidth, height: imageHeight },
-      })
-    );
-  } else {
-    children.push(
-      createElement(View, {
-        key: "imagePlaceholder",
-        style: {
-          ...styles.cardImagePlaceholder,
-          width: imageWidth,
-          height: imageHeight,
-        },
-      })
-    );
-  }
+  const children: ReactElement[] = [
+    createImageElement(imageUrl, imageWidth, imageHeight),
+  ];
 
   // タイトル（1行制限 + 中央寄せ。カード番号バッジがあればその幅を引いて切り詰める）
   const displayTitle = getPdfCardTitleText(
@@ -335,34 +415,16 @@ export function createCard(
     getPdfTitleWidth(imageWidth, fontSizes.title, showCardNumbers),
     fontSizes.title
   );
-  if (showCardNumbers) {
-    children.push(
-      createTitleWithNumber(
-        displayTitle,
-        cardNumber,
-        fontSizes.title,
-        imageWidth,
-        colors.cardNumberBackground
-      )
-    );
-  } else {
-    children.push(
-      createElement(
-        Text,
-        {
-          key: "title",
-          style: {
-            ...styles.cardTitle,
-            width: imageWidth,
-            alignSelf: "stretch",
-            fontSize: fontSizes.title,
-            marginBottom: PDF_SPACING.cardTitleMarginBottom,
-          },
-        },
-        displayTitle
-      )
-    );
-  }
+  children.push(
+    createCardTitle(
+      displayTitle,
+      showCardNumbers ? cardNumber : null,
+      fontSizes.title,
+      imageWidth,
+      colors.cardNumberBackground,
+      "center"
+    )
+  );
 
   // 説明（行数制限 + 幅制限で折り返し）
   if (item.description) {
@@ -399,52 +461,19 @@ export function createCard(
 
   // 注意点（行数制限 + 幅制限で折り返し）
   if (item.precautions && item.precautions.length > 0) {
-    const precautionItems = item.precautions.map((p) =>
-      createElement(
-        Text,
-        {
-          key: p.id,
-          style: {
-            ...styles.precautionText,
-            fontSize: fontSizes.precautionText,
-            color: colors.precautionText,
-          },
-        },
-        getPdfCardPrecautionText(p.value, imageWidth, fontSizes.precautionText)
-      )
-    );
-    // 白黒モードは塗りつぶしの代わりに濃い枠線で囲む
-    const precautionBorderStyle =
-      colors.precautionBorder === undefined
-        ? {}
-        : {
-            borderWidth: PDF_SPACING.precautionBorderWidth,
-            borderColor: colors.precautionBorder,
-          };
     children.push(
-      createElement(
-        View,
-        {
-          key: "precautions",
-          style: {
-            ...styles.precautionContainer,
-            width: imageWidth,
-            backgroundColor: colors.precautionBackground,
-            ...precautionBorderStyle,
-          },
-        },
-        createElement(
-          Text,
-          {
-            style: {
-              ...styles.precautionTitle,
-              fontSize: fontSizes.precautionTitle,
-              color: colors.precautionTitle,
-            },
-          },
-          LABELS.precautionTitle
-        ),
-        ...precautionItems
+      createPrecautionBox(
+        item.precautions.map((p) => ({
+          key: p.id,
+          text: getPdfCardPrecautionText(
+            p.value,
+            imageWidth,
+            fontSizes.precautionText
+          ),
+        })),
+        imageWidth,
+        fontSizes,
+        colors
       )
     );
   }
@@ -461,15 +490,204 @@ export function createCard(
 }
 
 /**
+ * エディタアイテムからスライド（A4 横・1 ページ 1 運動）のカードの要素を生成する
+ *
+ * 1 行目に左寄せのタイトル、その下の左の列に画像と用量、右の列に説明と注意点を置く。
+ * カードの大きさはヘッダーの設定から決まる固定値（getPdfSlideCardSize）で、
+ * 説明・注意点は右の列に収まる行数（getSlideTextLines）で切り詰める。
+ *
+ * @param item - カードに表示するエディタアイテム
+ * @param imageUrl - 画像のBase64 data URL（省略可）
+ * @param settings - プロジェクト設定（ヘッダー・色・カード番号・用量ラベル）
+ * @param cardNumber - カード番号バッジに表示する番号
+ * @returns カード要素
+ */
+export function createSlideCard(
+  item: EditorItem,
+  imageUrl: string | undefined,
+  settings: ResolvedProjectSettings,
+  cardNumber: number
+): ReactElement {
+  const { themeColor, printColorMode, showCardNumbers, dosageLabels } =
+    settings;
+  const cardSize = getPdfSlideCardSize(settings);
+  const { innerWidth, leftColumnWidth, imageHeight, rightColumnWidth } =
+    getPdfSlideColumns(cardSize);
+  const { descriptionLines, precautionLines } = getSlideTextLines(
+    item,
+    settings
+  );
+  const fontSizes = getPdfCardFontSizes("slide");
+  const colors = getPdfCardColors(themeColor, printColorMode);
+
+  const displayTitle = getPdfCardTitleText(
+    item.title,
+    getPdfTitleWidth(innerWidth, fontSizes.title, showCardNumbers),
+    fontSizes.title
+  );
+  const title = createCardTitle(
+    displayTitle,
+    showCardNumbers ? cardNumber : null,
+    fontSizes.title,
+    innerWidth,
+    colors.cardNumberBackground,
+    "left"
+  );
+
+  // 左の列：画像と用量
+  const leftChildren: ReactElement[] = [
+    createImageElement(imageUrl, leftColumnWidth, imageHeight),
+  ];
+  const dosageSection = createDosageSection(item, "slide", leftColumnWidth, {
+    fontSizes,
+    colors,
+    labels: dosageLabels,
+  });
+  if (dosageSection) {
+    leftChildren.push(dosageSection);
+  }
+
+  // 右の列：説明と注意点
+  const rightChildren: ReactElement[] = [];
+  if (descriptionLines > 0) {
+    rightChildren.push(
+      createElement(
+        Text,
+        {
+          key: "description",
+          style: {
+            ...styles.cardDescription,
+            width: rightColumnWidth,
+            fontSize: fontSizes.description,
+          },
+        },
+        getPdfSlideDescriptionText(
+          item.description,
+          descriptionLines,
+          rightColumnWidth
+        )
+      )
+    );
+  }
+  if (item.precautions && item.precautions.length > 0) {
+    const textWidth = getPdfPrecautionTextWidth(
+      rightColumnWidth,
+      printColorMode
+    );
+    rightChildren.push(
+      createPrecautionBox(
+        item.precautions.map((p) => ({
+          key: p.id,
+          text: getPdfSlidePrecautionText(p.value, precautionLines, textWidth),
+        })),
+        rightColumnWidth,
+        fontSizes,
+        colors,
+        // 説明がないときは右の列の最上部から置く
+        descriptionLines > 0 ? PDF_SPACING.precautionMarginTop : 0
+      )
+    );
+  }
+
+  return createElement(
+    View,
+    {
+      key: item.id,
+      wrap: false,
+      style: {
+        ...styles.card,
+        width: cardSize.width,
+        height: cardSize.height,
+        marginBottom: 0,
+        borderColor: colors.border,
+      },
+    },
+    title,
+    createElement(
+      View,
+      {
+        key: "body",
+        style: { flexDirection: "row", gap: PDF_SLIDE.columnGap },
+      },
+      createElement(
+        View,
+        { key: "left", style: { width: leftColumnWidth } },
+        ...leftChildren
+      ),
+      createElement(
+        View,
+        { key: "right", style: { width: rightColumnWidth } },
+        ...rightChildren
+      )
+    )
+  );
+}
+
+/**
+ * タイトルの揃え方
+ *
+ * - center: 縦型カード（画像の下に中央寄せ）
+ * - left: スライド（カードの最上部に左寄せ。上の余白なし）
+ */
+type CardTitleAlign = "center" | "left";
+
+/**
+ * カードのタイトル（カード番号バッジ付きなら行）を生成する
+ *
+ * @param displayTitle - 切り詰め済みのタイトル
+ * @param cardNumber - 表示する番号（バッジを出さないときは null）
+ * @param titleFontSize - タイトルのフォントサイズ（バッジの大きさもここから決める）
+ * @param contentWidth - カード内コンテンツの幅
+ * @param badgeColor - バッジの背景色
+ * @param align - 揃え方
+ * @returns タイトルの要素
+ */
+function createCardTitle(
+  displayTitle: string,
+  cardNumber: number | null,
+  titleFontSize: number,
+  contentWidth: number,
+  badgeColor: string,
+  align: CardTitleAlign
+): ReactElement {
+  if (cardNumber !== null) {
+    return createTitleWithNumber(
+      displayTitle,
+      cardNumber,
+      titleFontSize,
+      contentWidth,
+      badgeColor,
+      align
+    );
+  }
+  return createElement(
+    Text,
+    {
+      key: "title",
+      style: {
+        ...styles.cardTitle,
+        width: contentWidth,
+        alignSelf: "stretch",
+        fontSize: titleFontSize,
+        marginBottom: PDF_SPACING.cardTitleMarginBottom,
+        ...(align === "left" ? { marginTop: 0, textAlign: "left" } : {}),
+      },
+    },
+    displayTitle
+  );
+}
+
+/**
  * カード番号バッジ付きのタイトル行を生成する
  *
- * 丸数字のバッジをタイトルの左に置き、バッジとタイトルをまとめて中央に寄せる
+ * 丸数字のバッジをタイトルの左に置き、バッジとタイトルをまとめて中央（スライドは左）に寄せる
  *
  * @param displayTitle - 切り詰め済みのタイトル
  * @param cardNumber - 表示する番号
  * @param titleFontSize - タイトルのフォントサイズ（バッジの大きさもここから決める）
  * @param contentWidth - カード内コンテンツの幅
  * @param badgeColor - バッジの背景色
+ * @param align - 揃え方
  * @returns タイトル行の要素
  */
 function createTitleWithNumber(
@@ -477,7 +695,8 @@ function createTitleWithNumber(
   cardNumber: number,
   titleFontSize: number,
   contentWidth: number,
-  badgeColor: string
+  badgeColor: string,
+  align: CardTitleAlign
 ): ReactElement {
   const badgeSize = getPdfCardNumberBadgeSize(titleFontSize);
   // 横並びの行では Text の幅が決まらずカードからはみ出すため、バッジを除いた幅を上限にする
@@ -491,6 +710,9 @@ function createTitleWithNumber(
         ...styles.cardTitleRow,
         width: contentWidth,
         marginBottom: PDF_SPACING.cardTitleMarginBottom,
+        ...(align === "left"
+          ? { marginTop: 0, justifyContent: "flex-start" }
+          : {}),
       },
     },
     createElement(

@@ -459,3 +459,103 @@ describe("buildPdfDocument のヘッダー・フッター・実施チェック�
     expect(texts).toContain("次回：12月1日");
   });
 });
+
+describe("buildPdfDocument のスライド（1 ページ 1 運動）", () => {
+  const threeItems = Array.from({ length: 3 }, (_, i) =>
+    createTestItem({ id: `item-${String(i)}`, order: i, title: `運動${String(i + 1)}` })
+  );
+
+  function slideData(
+    extra: Partial<ResolvedProjectSettings> = {},
+    items = threeItems
+  ): PdfGenerationData {
+    return createTestData({
+      settings: createSettings("slide", DEFAULT_THEME_COLOR, extra),
+      items,
+    });
+  }
+
+  const LANDSCAPE = [PDF_PAGE_SIZE_LANDSCAPE.width, PDF_PAGE_SIZE_LANDSCAPE.height];
+
+  it("カードと同じ数の A4 横のページを作り、各ページにヘッダー・カード 1 枚・フッターを置く", () => {
+    const doc = buildPdfDocument(slideData());
+
+    const pages = findElementsByType(doc, "Page");
+    expect(pages).toHaveLength(3);
+    pages.forEach((page, index) => {
+      expect(page.props?.size).toEqual(LANDSCAPE);
+      const texts = extractTextContent(page);
+      expect(texts).toContain("テストプロジェクト");
+      expect(texts).toContain(PDF_LABELS.patientLabel);
+      expect(texts.filter((t) => t.startsWith("運動"))).toEqual([
+        `運動${String(index + 1)}`,
+      ]);
+      expect(
+        findElementsByType(page, "Text").filter((el) => el.props?.fixed === true)
+      ).toHaveLength(1);
+    });
+  });
+
+  it("縦向きを指定していても A4 横になる", () => {
+    const doc = buildPdfDocument(slideData({ pageOrientation: "portrait" }));
+
+    expect(getPageSize(doc)).toEqual(LANDSCAPE);
+  });
+
+  it("カードが 0 枚でもヘッダーだけの A4 横のページを 1 枚作る", () => {
+    const doc = buildPdfDocument(slideData({}, []));
+
+    const pages = findElementsByType(doc, "Page");
+    expect(pages).toHaveLength(1);
+    expect(pages[0]?.props?.size).toEqual(LANDSCAPE);
+    const visibleTexts = extractTextContent(doc).filter((t) => t.trim() !== "");
+    expect(visibleTexts).toEqual(["テストプロジェクト", PDF_LABELS.patientLabel]);
+  });
+
+  it("1週間のチェック表は最後にヘッダー付きの別ページとして置く", () => {
+    const doc = buildPdfDocument(slideData({ checkTable: "weekly" }));
+
+    const pages = findElementsByType(doc, "Page");
+    expect(pages).toHaveLength(4);
+    const lastTexts = extractTextContent(pages[3]);
+    expect(lastTexts).toContain("テストプロジェクト");
+    expect(lastTexts).toContain(PDF_LABELS.weeklyCheckTableTitle);
+    // スライドのページにはチェック表を置かない
+    expect(extractTextContent(pages[2])).not.toContain(
+      PDF_LABELS.weeklyCheckTableTitle
+    );
+  });
+
+  it("1か月のチェック表は今と同じくヘッダーなしの A4 横の別ページに置く", () => {
+    const doc = buildPdfDocument(slideData({ checkTable: "monthly" }));
+
+    const pages = findElementsByType(doc, "Page");
+    expect(pages).toHaveLength(4);
+    expect(pages[3]?.props?.size).toEqual(LANDSCAPE);
+    const lastTexts = extractTextContent(pages[3]);
+    expect(lastTexts).toContain(PDF_LABELS.monthlyCheckTableTitle);
+    expect(lastTexts).not.toContain("テストプロジェクト");
+  });
+
+  it("カード番号は並び順の連番になる", () => {
+    const doc = buildPdfDocument(
+      createTestData({
+        settings: createSettings("slide", DEFAULT_THEME_COLOR, {
+          showCardNumbers: true,
+        }),
+        items: [
+          createTestItem({ id: "b", order: 5, title: "運動B" }),
+          createTestItem({ id: "a", order: 2, title: "運動A" }),
+        ],
+      })
+    );
+
+    const pages = findElementsByType(doc, "Page");
+    expect(extractTextContent(pages[0])).toEqual(
+      expect.arrayContaining(["1", "運動A"])
+    );
+    expect(extractTextContent(pages[1])).toEqual(
+      expect.arrayContaining(["2", "運動B"])
+    );
+  });
+});

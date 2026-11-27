@@ -242,6 +242,32 @@ function estimateWeeklyCheckTableHeight(itemCount: number): number {
 }
 
 /**
+ * スライド（1 ページ 1 運動）のページ数を求める
+ *
+ * カードの大きさは固定のため、文字数によらずカード 1 枚が 1 ページになる（カードがなければヘッダーだけの 1 ページ）。
+ * 実施チェック表は 1週間・1か月とも最後の別ページに置く（document.ts の buildSlidePages）。
+ *
+ * @param itemCount - カードの枚数
+ * @param checkTable - 実施チェック表の種類
+ * @returns ページ収容の見積もり
+ */
+function estimateSlideLayout(
+  itemCount: number,
+  checkTable: ResolvedProjectSettings["checkTable"]
+): PdfLayoutEstimate {
+  const cardPageCount = Math.max(1, itemCount);
+  const checkTablePage = checkTable === "none" ? null : cardPageCount + 1;
+  return {
+    pageCount: checkTablePage ?? cardPageCount,
+    firstCardIndexByPage: Array.from(
+      { length: cardPageCount },
+      (_, index) => index
+    ),
+    checkTablePage,
+  };
+}
+
+/**
  * PDF が何ページになるかを見積もる
  *
  * @remarks
@@ -260,6 +286,10 @@ export function estimatePdfLayout(
   settings: ResolvedProjectSettings
 ): PdfLayoutEstimate {
   const { layoutType, pageOrientation, checkTable } = settings;
+  if (layoutType === "slide") {
+    return estimateSlideLayout(items.length, checkTable);
+  }
+
   const columns = LAYOUT_COLUMNS[layoutType];
   const cardWidth = calculatePdfCardWidth(layoutType, pageOrientation);
   const contentHeight = getPdfContentSize(layoutType, pageOrientation).height;

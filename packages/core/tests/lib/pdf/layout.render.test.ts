@@ -40,7 +40,7 @@ type LayoutNode = {
   value?: string;
   props?: { wrap?: boolean };
   style?: { borderTopLeftRadius?: number };
-  box?: { height: number };
+  box?: { top: number; height: number };
   lines?: unknown[];
   children?: LayoutNode[];
 };
@@ -222,6 +222,26 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
     name: "3列 × 1か月",
     settings: { layoutType: "grid3", checkTable: "monthly" },
   },
+  { name: "スライド", settings: { layoutType: "slide" } },
+  {
+    name: "スライド × ヘッダー最大 × 白黒 × 番号 × 1週間",
+    settings: {
+      layoutType: "slide",
+      printColorMode: "monochrome",
+      showCardNumbers: true,
+      checkTable: "weekly",
+      header: {
+        dateMode: "blank",
+        facilityName: "○○病院 リハビリテーション科",
+        therapistName: "山田",
+        overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
+      },
+    },
+  },
+  {
+    name: "スライド × 1か月",
+    settings: { layoutType: "slide", checkTable: "monthly" },
+  },
 ];
 
 /** 指定した文字列を含む TEXT ノードを集める */
@@ -323,6 +343,73 @@ describe("用量の自動縮小（実際の PDF レンダリングで 1 行に�
       expect(nodes).toHaveLength(12);
       for (const node of nodes) {
         expect(node.lines?.length).toBe(1);
+      }
+    }
+  );
+});
+
+/**
+ * ノードの上端から、子孫のうち最も下にある要素の下端までの高さ
+ *
+ * box.top は親の上端からの位置
+ */
+function measureContentBottom(node: LayoutNode): number {
+  return Math.max(
+    0,
+    ...(node.children ?? []).map(
+      (child) =>
+        (child.box?.top ?? 0) +
+        Math.max(child.box?.height ?? 0, measureContentBottom(child))
+    )
+  );
+}
+
+describe("スライドの最悪の入力（実際の PDF レンダリングでカードからはみ出さないこと）", () => {
+  it(
+    "ヘッダー最大・白黒・番号・用量・説明 200 文字・長い注意点 5 件でも、1 カード 1 ページでカードの中に収まる",
+    { timeout: 60_000 },
+    async () => {
+      const settings = resolveProjectSettings({
+        layoutType: "slide",
+        printColorMode: "monochrome",
+        showCardNumbers: true,
+        header: {
+          dateMode: "printed",
+          facilityName: "○○病院 リハビリテーション科",
+          therapistName: "山田",
+          overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
+        },
+      });
+      const longItem = (i: number, precautionText: string) =>
+        createTestItem({
+          id: `worst-${String(i)}`,
+          order: i,
+          title: `カード${String(i + 1)}ブリッジ運動と体幹の安定性向上`,
+          description: SAMPLE_TEXT.repeat(3).slice(0, 200),
+          dosages: { reps: "左右各１０回ずつ", sets: "３〜５セット", frequency: "毎日朝昼晩３回" },
+          precautions: Array.from({ length: 5 }, (_p, j) => ({
+            id: `p-${String(i)}-${String(j)}`,
+            value: precautionText,
+          })),
+        });
+      // 全角 50 文字と、半角を含む 50 文字の注意点
+      const items = [
+        longItem(0, "あ".repeat(50)),
+        longItem(1, SAMPLE_TEXT.slice(0, 50)),
+        longItem(2, "痛み\nしびれ\nめまいが出たら中止"),
+      ];
+
+      const layout = await computePdfLayoutTree(items, settings);
+
+      expect(layout.children).toHaveLength(items.length);
+      for (const page of layout.children) {
+        const cards = collectCards(page);
+        expect(cards).toHaveLength(1);
+        const card = cards[0]!;
+        // 枠線 1 + 余白 8 の内側に収まる
+        expect(measureContentBottom(card)).toBeLessThanOrEqual(
+          (card.box?.height ?? 0) - 9
+        );
       }
     }
   );

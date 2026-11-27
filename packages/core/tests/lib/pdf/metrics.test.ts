@@ -4,8 +4,11 @@
 
 import {
   FONT_SIZES_SINGLE_COLUMN,
+  FONT_SIZES_SLIDE,
   PDF_TEXT_STYLE,
 } from "@rehab-grid/core/lib/constants";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
+import { type ProjectSettings } from "@rehab-grid/core/types";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,9 +19,15 @@ import {
   getPdfCardFontSizes,
   getPdfCardImageSize,
   getPdfDosageItemWidth,
+  getPdfPrecautionTextWidth,
+  getPdfSlideCardSize,
+  getPdfSlideColumns,
   getPdfTitleWidth,
+  getSlideTextLines,
   measurePdfTextWidth,
 } from "@/lib/pdf/metrics";
+
+import { createTestItem } from "./pdfTestUtils";
 
 describe("measurePdfTextWidth", () => {
   it("日本語・全角記号は 1 文字 1em、半角英数字は指定の比率、空白は約 0.23em で数える", () => {
@@ -120,6 +129,165 @@ describe("getPdfCardFontSizes（文字サイズ「大きめ」）", () => {
     expect(getPdfCardFontSizes("grid1", "large").title).toBe(
       FONT_SIZES_SINGLE_COLUMN.title
     );
+  });
+
+  it("スライドでは「大きめ」でもスライド用のサイズを返す", () => {
+    expect(getPdfCardFontSizes("slide", "large")).toEqual({
+      title: 24,
+      description: 14,
+      dosageValue: 28,
+      dosageLabel: 12,
+      precautionTitle: 13,
+      precautionText: 13,
+    });
+    expect(getPdfCardFontSizes("slide")).toEqual(FONT_SIZES_SLIDE);
+  });
+});
+
+describe("スライドの寸法", () => {
+  /** 施設名・担当者名と 5 行の全体メモを出す（ヘッダーが最も高くなる）設定 */
+  const TALLEST_HEADER: Partial<ProjectSettings> = {
+    header: {
+      showPatientNameBox: true,
+      dateMode: "blank",
+      facilityName: "○○病院 リハビリテーション科",
+      therapistName: "山田",
+      overallNote: "メモ1\nメモ2\nメモ3\nメモ4\nメモ5",
+    },
+  };
+
+  /** 説明・注意点の行数の計算に使う設定 */
+  function slideSettings(overrides: Partial<ProjectSettings> = {}) {
+    return resolveProjectSettings({ layoutType: "slide", ...overrides });
+  }
+
+  describe("getPdfSlideCardSize", () => {
+    it("既定のヘッダー（35pt）では A4 横のコンテンツ幅 × 460.28pt になる", () => {
+      // 515.28 − ヘッダー 35 − 間隔 12 − 下端の余裕 8 = 460.28
+      const size = getPdfSlideCardSize(slideSettings());
+      expect(size.width).toBeCloseTo(761.89, 6);
+      expect(size.height).toBeCloseTo(460.28, 6);
+    });
+
+    it("ヘッダーが高いほどカードが低くなる（施設名＋全体メモ 5 行で 366.68pt）", () => {
+      // ヘッダー 35 + 施設名の行 16.6 + 全体メモ 77 = 128.6
+      const size = getPdfSlideCardSize(slideSettings(TALLEST_HEADER));
+      expect(size.height).toBeCloseTo(366.68, 6);
+    });
+  });
+
+  describe("getPdfSlideColumns", () => {
+    it("既定のヘッダーでは左の列を基本の比率（58%）の幅にし、5:3 の画像を置く", () => {
+      const columns = getPdfSlideColumns({ width: 761.89, height: 460.28 });
+
+      expect(columns.innerWidth).toBeCloseTo(743.89, 6);
+      // 内側 442.28 − タイトル行 42.752
+      expect(columns.bodyHeight).toBeCloseTo(399.528, 6);
+      // (743.89 − 16) × 0.58
+      expect(columns.leftColumnWidth).toBeCloseTo(422.1762, 6);
+      expect(columns.imageHeight).toBeCloseTo(253.30572, 6);
+      expect(columns.rightColumnWidth).toBeCloseTo(305.7138, 6);
+    });
+
+    it("ヘッダーが高いと画像を本体に収まる高さに抑え、左の列を細く・右の列を広くする", () => {
+      const columns = getPdfSlideColumns({ width: 761.89, height: 366.68 });
+
+      expect(columns.bodyHeight).toBeCloseTo(305.928, 6);
+      // 本体 305.928 − 用量の確保高さ 82.92
+      expect(columns.imageHeight).toBeCloseTo(223.008, 6);
+      expect(columns.leftColumnWidth).toBeCloseTo(371.68, 6);
+      expect(columns.rightColumnWidth).toBeCloseTo(356.21, 6);
+      // 画像と用量の確保高さを足しても本体に収まる
+      expect(columns.imageHeight + 82.92).toBeLessThanOrEqual(
+        columns.bodyHeight + 1e-9
+      );
+    });
+  });
+
+  describe("getPdfPrecautionTextWidth", () => {
+    it("カラーは内側の余白だけ、白黒は枠線の分も引く", () => {
+      expect(getPdfPrecautionTextWidth(300, "color")).toBe(288);
+      expect(getPdfPrecautionTextWidth(300, "monochrome")).toBe(286);
+    });
+  });
+
+  describe("getSlideTextLines", () => {
+    /** 全角 n 文字の文字列 */
+    const fullWidth = (n: number) => "あ".repeat(n);
+    /** 注意点を n 件作る */
+    const precautions = (count: number, value: string) =>
+      Array.from({ length: count }, (_, i) => ({ id: `p${String(i)}`, value }));
+
+    it("説明 100 文字・注意点 3 件 × 2 行はそのまま出る", () => {
+      // 右の列 305.7pt は 14pt の全角 21 文字 → 説明 5 行。注意点 30 文字は 2 行
+      const item = createTestItem({
+        description: fullWidth(100),
+        precautions: precautions(3, fullWidth(30)),
+      });
+
+      expect(getSlideTextLines(item, slideSettings())).toEqual({
+        descriptionLines: 5,
+        precautionLines: 3,
+      });
+    });
+
+    it("説明 200 文字・注意点なしは最大の 10 行がそのまま出る", () => {
+      const item = createTestItem({ description: fullWidth(200) });
+
+      expect(getSlideTextLines(item, slideSettings())).toEqual({
+        descriptionLines: 10,
+        precautionLines: 3,
+      });
+    });
+
+    it("説明 200 文字・注意点 5 件 × 3 行は、説明を残りの高さの 5 行に短縮する", () => {
+      const item = createTestItem({
+        description: fullWidth(200),
+        precautions: precautions(5, fullWidth(50)),
+      });
+
+      expect(getSlideTextLines(item, slideSettings())).toEqual({
+        descriptionLines: 5,
+        precautionLines: 3,
+      });
+    });
+
+    it("説明が空なら説明の行数は 0", () => {
+      const item = createTestItem({
+        description: "",
+        precautions: precautions(5, fullWidth(50)),
+      });
+
+      expect(getSlideTextLines(item, slideSettings()).descriptionLines).toBe(0);
+    });
+
+    it("説明が 3 行に届かないときは、注意点 1 件あたりの行数を減らす", () => {
+      // ヘッダーが最も高い本体 305.9pt に 3 行 × 5 件の注意点（292.3pt）を置くと説明が入らないため 2 行にする
+      const item = createTestItem({
+        description: fullWidth(200),
+        precautions: precautions(5, "痛み\nしびれ\nめまい"),
+      });
+
+      expect(getSlideTextLines(item, slideSettings(TALLEST_HEADER))).toEqual({
+        descriptionLines: 5,
+        precautionLines: 2,
+      });
+    });
+
+    it("ヘッダー最大・白黒・説明 200 文字・長い注意点 5 件でも説明を 3 行以上残す", () => {
+      // 右の列が 356.2pt に広がるため、注意点 50 文字は 2 行に収まり、説明は残りの 4 行になる
+      const item = createTestItem({
+        description: fullWidth(200),
+        precautions: precautions(5, fullWidth(50)),
+      });
+
+      expect(
+        getSlideTextLines(
+          item,
+          slideSettings({ ...TALLEST_HEADER, printColorMode: "monochrome" })
+        )
+      ).toEqual({ descriptionLines: 4, precautionLines: 3 });
+    });
   });
 });
 
