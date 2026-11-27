@@ -15,6 +15,7 @@ import {
   IMPORT_FAILED_MESSAGE,
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
+  IMPORT_OPEN_TOOLTIP,
   IMPORT_SUCCESS_MESSAGE,
   LIBRARY_SAVE_FAILED_MESSAGE,
   PDF_DOWNLOAD_SUCCESS,
@@ -90,7 +91,6 @@ import {
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
   Files,
-  FolderOpen,
   LayoutTemplate,
   Loader2,
   Menu,
@@ -98,6 +98,7 @@ import {
   Redo2,
   Trash2,
   Undo2,
+  Upload,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -152,7 +153,6 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   // インポート関連の状態
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const backupFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingImportResult, setPendingImportResult] =
@@ -326,13 +326,6 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     },
     []
   );
-
-  /**
-   * バックアップから復元ファイル選択ダイアログを開く
-   */
-  const handleRestoreBackupClick = useCallback(() => {
-    backupFileInputRef.current?.click();
-  }, []);
 
   /**
    * バックアップ復元を実行
@@ -628,22 +621,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   return (
     <>
-      {/* 隠しファイル入力（共通） */}
+      {/* 隠しファイル入力（指導箋ファイル・一括バックアップ ZIP 共通。中身で自動判別する） */}
       <input
         ref={fileInputRef}
         type="file"
         accept=".json,.zip"
         onChange={(event) => void handleFileSelect(event)}
         className="hidden"
-        aria-label="プロジェクトファイルを選択"
-      />
-      <input
-        ref={backupFileInputRef}
-        type="file"
-        accept=".zip"
-        onChange={(event) => void handleFileSelect(event)}
-        className="hidden"
-        aria-label="バックアップファイルを選択"
+        aria-label="読み込むファイルを選択"
       />
 
       {/* モバイル/デスクトップ版ヘッダーの条件分岐 */}
@@ -694,7 +679,6 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               onExportJSON={handleExportJSON}
               onExportZIP={handleExportZIP}
               onExportBackup={() => void handleOpenBackupExport()}
-              onRestoreBackup={handleRestoreBackupClick}
               onDeleteProject={handleOpenDeleteProjectDialog}
               onClose={handleCloseMobileMenu}
             />
@@ -805,14 +789,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 <span className="hidden xl:inline">{TEMPLATE_BUTTON_LABEL}</span>
               </Button>
 
-              {/* 開くボタン */}
+              {/* 読み込みボタン（指導箋ファイル・バックアップ ZIP を中身で自動判別） */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenClick}
                 disabled={isImporting}
-                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_TOOLTIP}
                 aria-label={
                   isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL
                 }
@@ -820,20 +804,18 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 {isImporting ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <FolderOpen className="size-4 text-emerald-500" />
+                  <Upload className="size-4 text-emerald-500" />
                 )}
                 <span className="hidden xl:inline">
                   {isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
                 </span>
               </Button>
 
-              {/* エクスポートドロップダウンメニュー */}
+              {/* 書き出しドロップダウンメニュー */}
               <ExportMenu
                 onExportJSON={handleExportJSON}
                 onExportZIP={handleExportZIP}
                 onExportBackup={() => void handleOpenBackupExport()}
-                onRestoreBackup={handleRestoreBackupClick}
-                isImporting={isImporting}
               />
 
               {/* PDFドロップダウンメニュー */}

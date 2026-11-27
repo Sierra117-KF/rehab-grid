@@ -289,7 +289,7 @@ pnpm --filter @rehab-grid/core test
 <details>
 <summary>開発者向け: 公式プリセットテンプレートの追加手順</summary>
 
-1. `/training` エディタで運動メニューを作成し、ヘッダーの「バックアップ」から ZIP（または JSON）をエクスポート
+1. `/training` エディタで運動メニューを作成し、ヘッダーの「書き出し」から ZIP（または JSON）をエクスポート
 2. `packages/assets/templates/{template-id}/` を作成し、`project.json`（独自画像を使う場合は `images/` も）を配置（ディレクトリ名は英数字とハイフンのみ。サンプル画像は ID 参照を推奨）
 3. `packages/core/src/lib/templates/index.ts` の `TEMPLATES` 配列にメタデータを追加
 4. `pnpm dev:web` を起動し、テンプレート選択モーダルで表示・読み込みを確認

@@ -1,13 +1,12 @@
 import {
   BACKUP_EXPORT_ALL_LABEL,
   BACKUP_EXPORT_SUCCESS_MESSAGE,
-  BACKUP_RESTORE_LABEL,
-  BUTTON_BACKUP,
   BUTTON_CANCEL,
   BUTTON_DELETE,
   DEFAULT_PROJECT_TITLE,
   DESIGN_SETTINGS_LABEL,
   EXPORT_JSON_LABEL,
+  EXPORT_MENU_LABEL,
   EXPORT_ZIP_LABEL,
   HOME_LINK_TOOLTIP,
   IMPORT_CONFIRM_DESCRIPTION,
@@ -482,7 +481,6 @@ describe("ExportMenu", () => {
       onExportJSON: vi.fn(),
       onExportZIP: vi.fn(),
       onExportBackup: vi.fn(),
-      onRestoreBackup: vi.fn(),
     };
   }
 
@@ -497,20 +495,20 @@ describe("ExportMenu", () => {
     return props;
   }
 
-  it("バックアップボタンが表示される", () => {
+  it("書き出しボタンが表示される", () => {
     setupExportMenu();
 
     expect(
-      screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+      screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
     ).toBeInTheDocument();
   });
 
-  it("バックアップボタンをクリックするとドロップダウンが表示される", async () => {
+  it("書き出しボタンをクリックするとドロップダウンが表示される", async () => {
     const user = userEvent.setup();
     setupExportMenu();
 
     const button = screen.getByRole("button", {
-      name: new RegExp(BUTTON_BACKUP),
+      name: new RegExp(EXPORT_MENU_LABEL),
     });
     await user.click(button);
 
@@ -523,7 +521,7 @@ describe("ExportMenu", () => {
     const props = setupExportMenu();
 
     const button = screen.getByRole("button", {
-      name: new RegExp(BUTTON_BACKUP),
+      name: new RegExp(EXPORT_MENU_LABEL),
     });
     await user.click(button);
     await user.click(screen.getByText(EXPORT_JSON_LABEL));
@@ -536,7 +534,7 @@ describe("ExportMenu", () => {
     const props = setupExportMenu();
 
     const button = screen.getByRole("button", {
-      name: new RegExp(BUTTON_BACKUP),
+      name: new RegExp(EXPORT_MENU_LABEL),
     });
     await user.click(button);
     await user.click(screen.getByText(EXPORT_ZIP_LABEL));
@@ -549,23 +547,22 @@ describe("ExportMenu", () => {
     const props = setupExportMenu();
 
     await user.click(
-      screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+      screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
     );
     await user.click(screen.getByText(BACKUP_EXPORT_ALL_LABEL));
 
     expect(props.onExportBackup).toHaveBeenCalledTimes(1);
   });
 
-  it("「バックアップから復元」クリックで onRestoreBackup が呼ばれる", async () => {
+  it("書き出しメニューには復元（読み込み）の項目を置かない", async () => {
     const user = userEvent.setup();
-    const props = setupExportMenu();
+    setupExportMenu();
 
     await user.click(
-      screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+      screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
     );
-    await user.click(screen.getByText(BACKUP_RESTORE_LABEL));
 
-    expect(props.onRestoreBackup).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/復元/)).not.toBeInTheDocument();
   });
 });
 
@@ -938,7 +935,7 @@ describe("EditorHeader", () => {
       ).toBeInTheDocument();
     });
 
-    it("開くボタンが表示される", () => {
+    it("読み込みボタンが表示される", () => {
       render(<EditorHeader />);
 
       expect(
@@ -946,11 +943,11 @@ describe("EditorHeader", () => {
       ).toBeInTheDocument();
     });
 
-    it("バックアップボタンが表示される", () => {
+    it("書き出しボタンが表示される", () => {
       render(<EditorHeader />);
 
       expect(
-        screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+        screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
       ).toBeInTheDocument();
     });
 
@@ -1123,14 +1120,14 @@ describe("EditorHeader", () => {
     });
   });
 
-  describe("インポート（指導箋を開く）", () => {
+  describe("インポート（読み込み）", () => {
     /** 隠しファイル入力にファイルを選ばせる */
     const selectFile = async (user: ReturnType<typeof userEvent.setup>) => {
       const file = new File(["{}"], "project.json", {
         type: "application/json",
       });
       await user.upload(
-        screen.getByLabelText("プロジェクトファイルを選択"),
+        screen.getByLabelText("読み込むファイルを選択"),
         file
       );
       return file;
@@ -1207,7 +1204,7 @@ describe("EditorHeader", () => {
       render(<EditorHeader />);
 
       await user.click(
-        screen.getByRole("button", { name: new RegExp(BUTTON_BACKUP) })
+        screen.getByRole("button", { name: new RegExp(EXPORT_MENU_LABEL) })
       );
       await user.click(screen.getByText(BACKUP_EXPORT_ALL_LABEL));
 

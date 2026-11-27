@@ -2,10 +2,10 @@ import {
   BACKUP_EXPORT_ALL_LABEL,
   BACKUP_MENU_ALL_SECTION,
   BACKUP_MENU_CURRENT_SECTION,
-  BACKUP_RESTORE_LABEL,
-  BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
+  EXPORT_MENU_LABEL,
+  IMPORT_OPEN_LABEL,
   PROJECT_LIST_LABEL,
   REDO_LABEL,
   UNDO_LABEL,
@@ -55,7 +55,6 @@ function setupMenu({
     onExportJSON: vi.fn(),
     onExportZIP: vi.fn(),
     onExportBackup: vi.fn(),
-    onRestoreBackup: vi.fn(),
     onDeleteProject: vi.fn(),
     onClose: vi.fn(),
   };
@@ -148,22 +147,22 @@ describe("MobileEditorMenu", () => {
     });
   });
 
-  describe("まとめてバックアップ・復元", () => {
-    it("バックアップを展開すると「この指導箋」と「全データ」の見出しを表示する", async () => {
+  describe("書き出し・読み込み", () => {
+    it("書き出しを展開すると「この指導箋」と「全データ」の見出しを表示する", async () => {
       const user = userEvent.setup();
       setupMenu();
 
-      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+      await user.click(screen.getByRole("button", { name: EXPORT_MENU_LABEL }));
 
       expect(screen.getByText(BACKUP_MENU_CURRENT_SECTION)).toBeInTheDocument();
       expect(screen.getByText(BACKUP_MENU_ALL_SECTION)).toBeInTheDocument();
     });
 
-    it("バックアップを展開して「まとめてバックアップ（ZIP）」を押すと onExportBackup を呼ぶ", async () => {
+    it("書き出しを展開して「まとめてバックアップ（ZIP）」を押すと onExportBackup を呼ぶ", async () => {
       const user = userEvent.setup();
       const props = setupMenu();
 
-      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
+      await user.click(screen.getByRole("button", { name: EXPORT_MENU_LABEL }));
       await user.click(
         screen.getByRole("button", { name: BACKUP_EXPORT_ALL_LABEL })
       );
@@ -172,17 +171,23 @@ describe("MobileEditorMenu", () => {
       expect(props.onExportBackup).toHaveBeenCalledTimes(1);
     });
 
-    it("バックアップを展開して「バックアップから復元」を押すと onRestoreBackup を呼ぶ", async () => {
+    it("書き出しを展開しても復元（読み込み）の項目は表示しない", async () => {
+      const user = userEvent.setup();
+      setupMenu();
+
+      await user.click(screen.getByRole("button", { name: EXPORT_MENU_LABEL }));
+
+      expect(screen.queryByText(/復元/)).not.toBeInTheDocument();
+    });
+
+    it("「読み込み」を押すとメニューを閉じて onOpenClick を呼ぶ", async () => {
       const user = userEvent.setup();
       const props = setupMenu();
 
-      await user.click(screen.getByRole("button", { name: BUTTON_BACKUP }));
-      await user.click(
-        screen.getByRole("button", { name: BACKUP_RESTORE_LABEL })
-      );
+      await user.click(screen.getByRole("button", { name: IMPORT_OPEN_LABEL }));
 
       expect(props.onClose).toHaveBeenCalledTimes(1);
-      expect(props.onRestoreBackup).toHaveBeenCalledTimes(1);
+      expect(props.onOpenClick).toHaveBeenCalledTimes(1);
     });
   });
 });

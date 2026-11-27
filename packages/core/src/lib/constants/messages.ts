@@ -274,7 +274,7 @@ export const PROJECT_LIST_DELETE_LABEL = "削除";
 
 /** 指導箋一覧に置くバックアップの案内 */
 export const PROJECT_LIST_BACKUP_NOTICE =
-  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切なデータは「バックアップ」の「まとめてバックアップ（ZIP）」で保存してください。";
+  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切なデータは「書き出し」の「まとめてバックアップ（ZIP）」で保存してください（「読み込み」から復元できます）。";
 
 /** 新しい指導箋を作ったときのメッセージ */
 export const PROJECT_CREATE_SUCCESS_MESSAGE = "新しい指導箋を作成しました";
@@ -347,15 +347,19 @@ export const EXPORT_ZIP_LABEL = "画像付き";
 /** ファイル読み込み中のラベル */
 export const IMPORT_LOADING_LABEL = "読み込み中...";
 
-/** ファイルを開くボタンのラベル */
-export const IMPORT_OPEN_LABEL = "指導箋を開く";
+/** 読み込みボタンのラベル（指導箋ファイル・一括バックアップ ZIP を中身で自動判別する） */
+export const IMPORT_OPEN_LABEL = "読み込み";
+
+/** 読み込みボタンのツールチップ（復元もここから行えることを示す） */
+export const IMPORT_OPEN_TOOLTIP =
+  "指導箋ファイル・バックアップ（ZIP）を読み込み";
 
 // EditorHeader関連ラベル
 /** プロジェクトタイトルラベル */
 export const LABEL_PROJECT_TITLE = "タイトル：";
 
-/** バックアップボタンのラベル */
-export const BUTTON_BACKUP = "バックアップ";
+/** 書き出しメニューボタンのラベル */
+export const EXPORT_MENU_LABEL = "書き出し";
 
 /** PDFメニューボタンのラベル */
 export const PDF_MENU_LABEL = "PDF";
@@ -883,17 +887,14 @@ export const CTA_BUTTON_LABEL_RESUME = "続きから再開";
 export const CTA_BUTTON_LABEL_TRY = "使ってみる";
 
 // 一括バックアップ・復元関連メッセージ
-/** バックアップメニューの見出し（現在の指導箋） */
+/** 書き出しメニューの見出し（現在の指導箋） */
 export const BACKUP_MENU_CURRENT_SECTION = "この指導箋";
 
-/** バックアップメニューの見出し（端末の全データ・マイライブラリ） */
+/** 書き出しメニューの見出し（端末の全データ・マイライブラリ） */
 export const BACKUP_MENU_ALL_SECTION = "全データ・マイライブラリ";
 
 /** まとめてバックアップメニュー項目のラベル */
 export const BACKUP_EXPORT_ALL_LABEL = "まとめてバックアップ（ZIP）";
-
-/** バックアップから復元メニュー項目のラベル */
-export const BACKUP_RESTORE_LABEL = "バックアップから復元";
 
 /** まとめてバックアップダイアログのタイトル */
 export const BACKUP_EXPORT_DIALOG_TITLE = "まとめてバックアップ";

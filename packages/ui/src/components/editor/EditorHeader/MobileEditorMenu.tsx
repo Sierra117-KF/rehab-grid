@@ -4,11 +4,10 @@ import {
   BACKUP_EXPORT_ALL_LABEL,
   BACKUP_MENU_ALL_SECTION,
   BACKUP_MENU_CURRENT_SECTION,
-  BACKUP_RESTORE_LABEL,
-  BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_JSON_LABEL,
+  EXPORT_MENU_LABEL,
   EXPORT_ZIP_LABEL,
   getLayoutLabel,
   HOME_LINK_TOOLTIP,
@@ -24,7 +23,6 @@ import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
-  ArchiveRestore,
   Bookmark,
   ChevronDown,
   ChevronRight,
@@ -32,7 +30,6 @@ import {
   FileJson,
   Files,
   FolderArchive,
-  FolderOpen,
   Home,
   LayoutTemplate,
   Loader2,
@@ -41,6 +38,7 @@ import {
   Redo2,
   Trash2,
   Undo2,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -67,7 +65,7 @@ type MobileEditorMenuProps = {
   onTemplateClick: () => void;
   /** マイ運動モーダルを開く */
   onExerciseCardsClick: () => void;
-  /** ファイルを開くダイアログを開く */
+  /** 読み込むファイルの選択ダイアログを開く（指導箋ファイル・バックアップ ZIP 共通） */
   onOpenClick: () => void;
   /** インポート中かどうか */
   isImporting: boolean;
@@ -77,8 +75,6 @@ type MobileEditorMenuProps = {
   onExportZIP: () => void;
   /** 全データまとめてバックアップダイアログを開く */
   onExportBackup: () => void;
-  /** バックアップから復元ファイル選択を開く */
-  onRestoreBackup: () => void;
   /** プロジェクト削除ダイアログを開く */
   onDeleteProject: () => void;
   /** メニューを閉じる */
@@ -165,7 +161,6 @@ export function MobileEditorMenu({
   onExportJSON,
   onExportZIP,
   onExportBackup,
-  onRestoreBackup,
   onDeleteProject,
   onClose,
 }: MobileEditorMenuProps) {
@@ -253,14 +248,6 @@ export function MobileEditorMenu({
   }, [onClose, onExportBackup]);
 
   /**
-   * バックアップから復元クリックハンドラ
-   */
-  const handleRestoreBackup = useCallback(() => {
-    onClose();
-    onRestoreBackup();
-  }, [onClose, onRestoreBackup]);
-
-  /**
    * プロジェクト削除クリックハンドラ
    */
   const handleDeleteProject = useCallback(() => {
@@ -334,16 +321,16 @@ export function MobileEditorMenu({
         iconColor="text-teal-600"
       />
 
-      {/* ファイルを開く */}
+      {/* 読み込み（指導箋ファイル・バックアップ ZIP を中身で自動判別） */}
       <MenuItem
-        icon={isImporting ? Loader2 : FolderOpen}
+        icon={isImporting ? Loader2 : Upload}
         label={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
         onClick={handleOpenClick}
         disabled={isImporting}
         iconColor="text-emerald-500"
       />
 
-      {/* エクスポート（アコーディオン） */}
+      {/* 書き出し（アコーディオン） */}
       <Button
         variant="ghost"
         className={cn(
@@ -353,7 +340,7 @@ export function MobileEditorMenu({
         onClick={toggleExportExpanded}
       >
         <Download className="size-5 shrink-0 text-amber-500" />
-        <span className="flex-1">{BUTTON_BACKUP}</span>
+        <span className="flex-1">{EXPORT_MENU_LABEL}</span>
         <ChevronDown
           className={cn(
             "size-4 text-muted-foreground transition-transform duration-200",
@@ -395,18 +382,6 @@ export function MobileEditorMenu({
           >
             <Package className="size-4 text-amber-600" />
             <span>{BACKUP_EXPORT_ALL_LABEL}</span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent",
-              isImporting && "pointer-events-none opacity-50"
-            )}
-            onClick={handleRestoreBackup}
-            disabled={isImporting}
-          >
-            <ArchiveRestore className="size-4 text-emerald-600" />
-            <span>{BACKUP_RESTORE_LABEL}</span>
           </button>
         </div>
       ) : null}
