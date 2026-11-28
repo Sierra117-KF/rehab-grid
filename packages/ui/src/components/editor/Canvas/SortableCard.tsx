@@ -105,7 +105,7 @@ export type SortableCardProps = {
   isMobile?: boolean;
 
   // レイアウト設定
-  /** レイアウトタイプ（4列時のバッジレイアウト変更用） */
+  /** レイアウトタイプ（スライド表示の切り替え・1列拡大・4列時の用量レイアウト・PDF 注意点省略位置の計算に使用） */
   layoutType?: LayoutType;
   /** 文字サイズの設定（省略時は標準） */
   textScale?: TextScale;

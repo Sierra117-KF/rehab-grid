@@ -698,7 +698,7 @@ describe("createSlideCard", () => {
     const item = createTestItem({
       title: "スクワット",
       description: "あ".repeat(TEXT_LIMITS.description),
-      // 50 文字の注意点（3 行）が 5 件あると、説明は 5 行（全角 105 文字）までになる
+      // 50 文字の注意点（3 行）が 5 件あると、説明は 3 行（全角 60 文字）までになる
       precautions: Array.from({ length: 5 }, (_, i) => ({
         id: `p${String(i)}`,
         value: "い".repeat(TEXT_LIMITS.precaution),
@@ -708,8 +708,7 @@ describe("createSlideCard", () => {
 
     const texts = extractTextContent(card);
     const description = texts.find((t) => t.startsWith("あ"));
-    expect(description).toMatch(/^あ+…$/);
-    expect(description!.length).toBeLessThanOrEqual(105);
+    expect(description).toBe(`${"あ".repeat(59)}…`);
     // 注意点は 3 行に収まるため切り詰めない
     expect(texts.filter((t) => t === `• ${"い".repeat(50)}`)).toHaveLength(5);
   });

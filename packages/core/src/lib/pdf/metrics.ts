@@ -293,8 +293,9 @@ type PdfTextLine = {
 /**
  * 1 段落を折り返しの単位に分ける正規表現
  *
- * react-pdf（textkit）と同じく、CJK・全角文字は 1 文字ずつ、
- * 空白のまとまりと非 CJK の半角語はそれぞれのまとまりとして切り出す。
+ * CJK・全角文字は 1 文字ずつ、空白のまとまりと非 CJK の半角語はそれぞれのまとまりとして切り出す。
+ * 実際の PDF 生成（Worker のハイフネーション設定）では CJK を含む語全体を文字単位で分割するため、
+ * 半角文字と CJK が空白なしで隣接する箇所では見積もりが安全側（多め）に倒れる。
  */
 const BREAK_UNIT_PATTERN =
   /[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]| +|[^\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF ]+/g;
@@ -302,7 +303,6 @@ const BREAK_UNIT_PATTERN =
 /**
  * 1 段落を折り返しの単位に分ける
  *
- * Worker のハイフネーション設定および react-pdf の単語境界と同じく、
  * 日本語・全角文字は 1 文字ずつ、半角語と空白はそれぞれのまとまりで区切る。
  *
  * @param paragraph - 改行を含まないテキスト
@@ -354,7 +354,7 @@ function wrapPdfText(
         line = { ...line, end: offset, width: line.width + unitWidth };
         if (isSpace) shrink += unitWidth * PDF_SPACE_SHRINK_RATIO;
       }
-      // 1 語だけで行幅を超える長い半角文字列（URL 等）は、react-pdf と同じく文字単位で折り返す
+      // 1 語だけで行幅を超える長い半角文字列（URL 等）は、描画前に breakPdfOverflowWords で分割する前提に合わせて文字単位で折り返す
       if (!isSpace && unitWidth > width) {
         let charOffset = line.start;
         line = { start: charOffset, end: charOffset, width: 0 };
@@ -612,21 +612,6 @@ const PDF_SLIDE_TITLE_ROW_HEIGHT =
     FONT_SIZES_SLIDE.title * CARD_NUMBER_BADGE_RATIO.size
   ) + PDF_SLIDE.titleMarginBottom;
 
-/**
- * スライドの用量セクションに確保する高さ
- *
- * 用量の有無で左右の比率が変わらないよう、常にこの高さを確保する。
- * createDosageSection の外側の上余白と行の上余白、数値とラベルの 1 項目分の高さの和
- */
-const PDF_SLIDE_DOSAGE_RESERVE_HEIGHT =
-  PDF_SPACING.dosageContainerMarginTop * 2 +
-  PDF_SPACING.dosagePaddingVertical * 2 +
-  FONT_SIZES_SLIDE.dosageValue * PDF_DEFAULT_LINE_HEIGHT +
-  PDF_SPACING.dosageLabelMarginTop +
-  PDF_SPACING.dosageLabelPaddingTop +
-  PDF_SPACING.dosageBorderWidth +
-  FONT_SIZES_SLIDE.dosageLabel * PDF_DEFAULT_LINE_HEIGHT;
-
 /** スライドで注意点の行数を減らすときの順（最初は縦型カードと同じ上限） */
 const PDF_SLIDE_PRECAUTION_LINE_STEPS = [LINE_CLAMP.precaution, 2, 1] as const;
 
@@ -652,28 +637,21 @@ export function getPdfSlideCardSize(): PdfSlideCardSize {
 }
 
 /**
- * スライドのカードの大きさから、左右の列の幅と画像の大きさを求める
+ * スライドのカード内の左右の列の幅と画像の大きさを求める
  *
  * @remarks
- * 左の列（画像＋用量）は基本の比率の幅で 5:3 の画像を置く。本体に収まらないときは、
- * 画像の高さを「本体の高さ − 用量の確保高さ」に抑え、5:3 のまま左の列を細くする（その分右の列が広がる）。
+ * 左の列（画像＋用量）は基本の比率の幅で 5:3 の画像を置く。
  *
- * @param cardSize - カードの大きさ（getPdfSlideCardSize）
  * @returns カード内の寸法（ポイント単位）
  */
-export function getPdfSlideColumns(
-  cardSize: PdfSlideCardSize
-): PdfSlideColumns {
+export function getPdfSlideColumns(): PdfSlideColumns {
+  const cardSize = getPdfSlideCardSize();
   const innerWidth = cardSize.width - PDF_SLIDE_CARD_INSET * 2;
   const bodyHeight =
     cardSize.height - PDF_SLIDE_CARD_INSET * 2 - PDF_SLIDE_TITLE_ROW_HEIGHT;
-  const baseLeftWidth =
+  const leftColumnWidth =
     (innerWidth - PDF_SLIDE.columnGap) * PDF_SLIDE.imageColumnRatio;
-  const imageHeight = Math.min(
-    baseLeftWidth / PDF_IMAGE_ASPECT_RATIO,
-    bodyHeight - PDF_SLIDE_DOSAGE_RESERVE_HEIGHT
-  );
-  const leftColumnWidth = imageHeight * PDF_IMAGE_ASPECT_RATIO;
+  const imageHeight = leftColumnWidth / PDF_IMAGE_ASPECT_RATIO;
   return {
     innerWidth,
     bodyHeight,
@@ -729,9 +707,7 @@ export function getSlideTextLines(
   item: Pick<EditorItem, "description" | "precautions">,
   settings: Pick<ResolvedProjectSettings, "printColorMode">
 ): PdfSlideTextLines {
-  const { bodyHeight, rightColumnWidth } = getPdfSlideColumns(
-    getPdfSlideCardSize()
-  );
+  const { bodyHeight, rightColumnWidth } = getPdfSlideColumns();
   const fontSizes = FONT_SIZES_SLIDE;
   const descriptionLineHeight =
     fontSizes.description * PDF_SPACING.descriptionLineHeight;

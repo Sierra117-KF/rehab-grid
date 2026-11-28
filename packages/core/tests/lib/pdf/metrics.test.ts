@@ -230,8 +230,8 @@ describe("スライドの寸法", () => {
   });
 
   describe("getPdfSlideColumns", () => {
-    it("既定のサイズでは左の列を基本の比率（60%）の幅にし、5:3 の画像を置く", () => {
-      const columns = getPdfSlideColumns({ width: 761.89, height: 460.28 });
+    it("左の列を基本の比率（60%）の幅にし、5:3 の画像を置く", () => {
+      const columns = getPdfSlideColumns();
 
       // 761.89 − (枠線 1 + 余白 16) × 2
       expect(columns.innerWidth).toBeCloseTo(727.89, 6);
@@ -241,20 +241,6 @@ describe("スライドの寸法", () => {
       expect(columns.leftColumnWidth).toBeCloseTo(424.734, 6);
       expect(columns.imageHeight).toBeCloseTo(254.8404, 6);
       expect(columns.rightColumnWidth).toBeCloseTo(283.156, 6);
-    });
-
-    it("本体に収まらない高さのカードでは画像を抑え、左の列を細く・右の列を広くする", () => {
-      const columns = getPdfSlideColumns({ width: 761.89, height: 366.68 });
-
-      expect(columns.bodyHeight).toBeCloseTo(285.928, 6);
-      // 本体 285.928 − 用量の確保高さ 82.92
-      expect(columns.imageHeight).toBeCloseTo(203.008, 6);
-      expect(columns.leftColumnWidth).toBeCloseTo(338.346667, 5);
-      expect(columns.rightColumnWidth).toBeCloseTo(369.543333, 5);
-      // 画像と用量の確保高さを足しても本体に収まる
-      expect(columns.imageHeight + 82.92).toBeLessThanOrEqual(
-        columns.bodyHeight + 1e-9
-      );
     });
   });
 

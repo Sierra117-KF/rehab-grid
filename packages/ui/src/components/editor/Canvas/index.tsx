@@ -46,12 +46,16 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
 import { Fragment, useCallback, useState } from "react";
 
-import { type CssVariableStyle } from "./cardStyles";
 import { type InlineEditUpdates } from "./cardTypes";
 import { EmptyState } from "./EmptyState";
 import { PageEstimateBadge } from "./PageEstimateBadge";
 import { SheetSummary } from "./SheetSummary";
 import { SortableCard } from "./SortableCard";
+
+/**
+ * CSS 変数（--xxx）を含められる style の型
+ */
+type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
  * カードの間に出す改ページの目安（グリッドの行の切れ目に、横幅いっぱいで置く）
@@ -550,7 +554,6 @@ export function Canvas({
                   {slideCardSize !== null ? (
                     // スライドは横長のカードと同じ比率の箱にする
                     <div
-                      data-testid="drag-overlay-slide"
                       className="flex flex-col gap-3 p-4"
                       style={{
                         aspectRatio: slideCardSize.width / slideCardSize.height,

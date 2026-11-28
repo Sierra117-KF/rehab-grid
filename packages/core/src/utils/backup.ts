@@ -44,6 +44,7 @@ import {
   BACKUP_SCHEMA_VERSION,
   backupManifestSchema,
 } from "@rehab-grid/core/lib/schemas";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { flushRegisteredAutosave } from "@rehab-grid/core/lib/store/autosaveFlusher";
 import {
   type BackupCategorySelection,
@@ -250,7 +251,11 @@ function convertImageSourceForExport(
 }
 
 /**
- * ProjectFile 内のアイテムの画像参照をバックアップ用パスへ変換する
+ * ProjectFile をバックアップ書き出し用に正規化し、画像参照を相対パスへ変換する
+ *
+ * @remarks
+ * IndexedDB に旧バージョンの廃止済み設定項目（ヘッダーの施設名・担当者名・全体メモ等）が
+ * 残っていても書き出し先に漏れないよう、settings を現在のスキーマに合わせて正規化する。
  */
 function convertProjectForExport(
   project: ProjectFile,
@@ -258,6 +263,7 @@ function convertProjectForExport(
 ): ProjectFile {
   return {
     ...project,
+    settings: resolveProjectSettings(project.settings),
     items: project.items.map((item) => ({
       ...item,
       imageSource: convertImageSourceForExport(item.imageSource, imageIdToPath),

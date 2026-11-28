@@ -20,7 +20,7 @@ export type InlineEditField = "title" | BadgeType;
 /**
  * ダブルクリックで編集を始めるための props（編集できないときは空）
  */
-export type InlineEditTriggerProps = {
+type InlineEditTriggerProps = {
   /** 編集の案内（ツールチップ） */
   title?: string;
   /** 編集を始めるハンドラ */

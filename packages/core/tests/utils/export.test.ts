@@ -264,6 +264,34 @@ describe("export.ts", () => {
 
       expect(parsed.items).toHaveLength(0);
     });
+
+    it("旧バージョンの廃止済みヘッダー項目（施設名・担当者名・全体メモ）は書き出し時に取り除かれる", () => {
+      const legacyHeader = {
+        showPatientNameBox: true,
+        dateMode: "blank" as const,
+        facilityName: "テスト病院",
+        therapistName: "山田太郎",
+        overallNote: "全体メモ",
+      };
+      const project = createTestProject({
+        settings: {
+          layoutType: "grid2",
+          themeColor: "#3b82f6",
+          header: legacyHeader,
+        },
+      });
+
+      const result = exportToJSON(project);
+
+      expect(result).not.toContain("facilityName");
+      expect(result).not.toContain("therapistName");
+      expect(result).not.toContain("overallNote");
+      const parsed = JSON.parse(result) as ProjectFile;
+      expect(parsed.settings.header).toEqual({
+        showPatientNameBox: true,
+        dateMode: "blank",
+      });
+    });
   });
 
   // --------------------------------------------------------------------------

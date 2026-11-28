@@ -561,7 +561,7 @@ export function createSlideCard(
     settings;
   const cardSize = getPdfSlideCardSize();
   const { innerWidth, leftColumnWidth, imageHeight, rightColumnWidth } =
-    getPdfSlideColumns(cardSize);
+    getPdfSlideColumns();
   const { descriptionLines, precautionLines } = getSlideTextLines(
     item,
     settings

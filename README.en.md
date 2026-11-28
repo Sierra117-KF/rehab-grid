@@ -58,7 +58,7 @@ Built as a **100% client-side, local-first application**, Rehab-Grid processes a
 
 | Pain Point | Word / PowerPoint | Rehab-Grid |
 | ---------- | ----------------- | ---------- |
-| Layout alignment | Manually resizing images, borders, and text boxes | Automatic 1–4 column grid layout as you add cards |
+| Layout alignment | Manually resizing images, borders, and text boxes | Automatic 1–4 column grid or slide layout as you add cards |
 | Reusing frequent exercises | Digging through old files to copy and paste | Built-in My Sheets, My Templates, My Exercises, and My Snippets |
 | Print & accessibility tweaks | Reformatting every document for monochrome or older adults | One-click presets (Standard Color, Monochrome / Ink-Saver, Large Text for Seniors) |
 | Data security | Cloud sync or external upload concerns | Strictly local-only execution enforced by a restrictive CSP |
@@ -70,7 +70,7 @@ Built as a **100% client-side, local-first application**, Rehab-Grid processes a
 ### Card-Based Editor & Layout
 
 - **Structured Exercise Cards**: Manage up to 10 cards per sheet and reorder effortlessly via drag and drop
-- **Responsive Grid & Auto-Fit Typography**: Switch between 1, 2, 3, or 4 columns; long dosage labels/values automatically scale down to stay cleanly on a single line in both the editor and PDF
+- **Responsive Grid, Slide Layout & Auto-Fit Typography**: Switch between 1–4 columns or Slide layout (one large exercise per landscape A4 page); long dosage labels/values automatically scale down to stay cleanly on a single line in both the editor and PDF
 - **Fast Editing Workflow**: Double-click inline editing on desktop cards, one-click card duplication, and "Apply to All Cards" for dosages and precautions
 - **Undo / Redo History**: Up to 50 history steps with keyboard shortcuts (`Ctrl+Z` / `Ctrl+Shift+Z` / `Ctrl+Y`)
 
@@ -78,9 +78,7 @@ Built as a **100% client-side, local-first application**, Rehab-Grid processes a
 
 - **Built-In Exercise Library**: 42 two-panel sample exercise illustrations (10 standing, 12 sitting, 20 lying) with lightweight thumbnails for fast browsing and forgiving keyword search (ignoring kana/width variations)
 - **Flexible Image Import**: Local file upload, drag and drop (JPEG / PNG / GIF / WebP, up to 20 MB), or direct clipboard paste (`Ctrl+V` / `Cmd+V`), with automatic client-side compression
-- **Built-In Image Editing**:
-  - **Quick Horizontal Flip**: Preserves the left-to-right sequence on two-panel sample images by flipping each panel individually
-  - **Image Editor Modal**: Full or per-panel horizontal flip, 90° rotation, 5:3 cropping, and arrow/circle/rectangle annotations (saves as a new image while keeping the original intact)
+- **Image Editor Modal**: Full or per-panel horizontal flip, 90° rotation, 5:3 cropping, and arrow/circle/rectangle annotations (saves as a new image while keeping the original intact)
 
 ### Print Styling & PDF Generation
 
@@ -289,7 +287,7 @@ pnpm --filter @rehab-grid/core test
 <details>
 <summary>For Developers: Adding an Official Preset Template</summary>
 
-1. Create an exercise sheet in `/training` and export it as ZIP (or JSON) from the header Backup menu
+1. Create an exercise sheet in `/training` and export it as ZIP (or JSON) from the header Export menu
 2. Create `packages/assets/templates/{template-id}/` and place `project.json` (plus `images/` if custom images are needed; alphanumeric and hyphens only, referencing built-in sample image IDs where possible)
 3. Register the template metadata in the `TEMPLATES` array in `packages/core/src/lib/templates/index.ts`
 4. Run `pnpm dev:web` and verify the template in the template selection modal

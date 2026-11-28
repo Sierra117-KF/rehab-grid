@@ -60,9 +60,9 @@ type VerticalCardBodyProps = CardBodyProps & {
   /** 文字サイズの設定 */
   textScale: TextScale;
   /** 用紙の向きの設定（PDF の注意点省略位置の計算に使う） */
-  pageOrientation?: PageOrientation;
+  pageOrientation: PageOrientation;
   /** 印刷の色づかい（白黒モードの注意点枠線幅を含めた省略位置の計算に使う） */
-  printColorMode?: PrintColorMode;
+  printColorMode: PrintColorMode;
 };
 
 /**
@@ -76,8 +76,8 @@ export function VerticalCardBody({
   onImageAreaClick,
   layoutType,
   textScale,
-  pageOrientation = "auto",
-  printColorMode = "color",
+  pageOrientation,
+  printColorMode,
   cardNumber,
   dosageLabels,
   inlineEdit,

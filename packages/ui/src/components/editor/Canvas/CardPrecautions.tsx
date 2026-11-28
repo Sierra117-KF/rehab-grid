@@ -1,20 +1,10 @@
 "use client";
 
-import { LABELS, TEXT_LIMITS } from "@rehab-grid/core/lib/constants";
+import { LABELS } from "@rehab-grid/core/lib/constants";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type { Precaution } from "@rehab-grid/core/types";
 
 import { type ContentTouchHandlers } from "./cardTypes";
-
-/**
- * 注意点 1 件の既定の表示（行頭の「•」付き、最大文字数で切る）
- *
- * @param value - 注意点
- * @returns 表示する文字列
- */
-function formatPrecautionLine(value: string): string {
-  return `• ${value.slice(0, TEXT_LIMITS.precaution)}`;
-}
 
 /**
  * 注意点ボックスの枠線の色（白黒モードのみ Canvas が濃い色に上書きする。既定は透明）
@@ -45,8 +35,8 @@ type CardPrecautionsProps = {
   textStyle?: React.CSSProperties;
   /** 2 件目以降の項目の上の間隔（スライドで PDF の間隔に合わせる） */
   itemGap?: string;
-  /** 注意点 1 件の表示を作る（PDF と同じ位置で切り詰める。省略時は「• 注意点」） */
-  formatText?: (value: string) => string;
+  /** 注意点 1 件の表示を作る（PDF と同じ位置で切り詰める） */
+  formatText: (value: string) => string;
 };
 
 /**
@@ -62,7 +52,7 @@ export function CardPrecautions({
   textClassName,
   textStyle,
   itemGap,
-  formatText = formatPrecautionLine,
+  formatText,
 }: CardPrecautionsProps) {
   return (
     <div

@@ -411,6 +411,53 @@ describe("backup.ts", () => {
       expect(manifest.images[0]?.fileName).toBe("共有画像");
     });
 
+    it("旧バージョンの廃止済みヘッダー項目（施設名・担当者名・全体メモ）は書き出し時に取り除かれる", async () => {
+      const source = createFullSourceData();
+      const legacyHeader = {
+        showPatientNameBox: false,
+        dateMode: "printed" as const,
+        facilityName: "テスト病院",
+        therapistName: "山田太郎",
+        overallNote: "次回来院日までに毎日実施してください",
+      };
+      source.projects[0]!.data.settings = {
+        ...source.projects[0]!.data.settings,
+        header: legacyHeader,
+      };
+      source.userTemplates[0]!.data.settings = {
+        ...source.userTemplates[0]!.data.settings,
+        header: legacyHeader,
+      };
+
+      const blob = await createBackupZIP(
+        source,
+        ALL_BACKUP_CATEGORIES_SELECTED
+      );
+      const zip = await JSZip.loadAsync(blob);
+      const manifestText = await zip
+        .file(BACKUP_MANIFEST_FILENAME)
+        ?.async("string");
+      expect(manifestText).toBeDefined();
+
+      // 自由記述や廃止キーが JSON 文字列自体に残っていないことを確認
+      expect(manifestText).not.toContain("テスト病院");
+      expect(manifestText).not.toContain("山田太郎");
+      expect(manifestText).not.toContain("次回来院日までに毎日実施してください");
+      expect(manifestText).not.toContain("facilityName");
+      expect(manifestText).not.toContain("therapistName");
+      expect(manifestText).not.toContain("overallNote");
+
+      const manifest = JSON.parse(manifestText!) as BackupManifest;
+      expect(manifest.projects[0]?.data.settings.header).toEqual({
+        showPatientNameBox: false,
+        dateMode: "printed",
+      });
+      expect(manifest.userTemplates[0]?.data.settings.header).toEqual({
+        showPatientNameBox: false,
+        dateMode: "printed",
+      });
+    });
+
     it("未知の sample_* ID は空文字に正規化される", async () => {
       const source = createFullSourceData();
       source.projects = [
