@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-28
+
 ### Added
 
 - デザイン設定のレイアウトに「スライド」形式を追加。A4 横の 1 ページに運動を 1 つずつ大きく載せる形式で、左の列に画像と用量、右の列に説明と注意点を配置する（用紙の向きは常に横、ヘッダーを全ページに表示）。説明と注意点は右の列に収まる行数へ自動調整し、編集画面のキャンバス上でも PDF と同じ縦横比・省略位置でプレビューできる
@@ -158,7 +160,8 @@
 - クライアントサイドPDF生成（@react-pdf/renderer）
 - Web版（PWA対応）およびDesktop版（Tauri）のマルチプラットフォーム対応
 
-[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/Sierra117-KF/rehab-grid/compare/v1.3.1...v1.3.2
