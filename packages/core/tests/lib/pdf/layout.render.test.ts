@@ -206,15 +206,12 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
     settings: { layoutType: "grid4", pageOrientation: "portrait", textScale: "large" },
   },
   {
-    name: "2列 × ヘッダー 3 段 × 1週間",
+    name: "2列 × 日付記入欄 × 1週間",
     settings: {
       layoutType: "grid2",
       checkTable: "weekly",
       header: {
         dateMode: "blank",
-        facilityName: "○○病院 リハビリテーション科",
-        therapistName: "山田",
-        overallNote: "目標：自宅の階段を手すりなしで上れるようになる\n次回来院日：12月1日",
       },
     },
   },
@@ -224,7 +221,7 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
   },
   { name: "スライド", settings: { layoutType: "slide" } },
   {
-    name: "スライド × ヘッダー最大 × 白黒 × 番号 × 1週間",
+    name: "スライド × 日付記入欄 × 白黒 × 番号 × 1週間",
     settings: {
       layoutType: "slide",
       printColorMode: "monochrome",
@@ -232,9 +229,6 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
       checkTable: "weekly",
       header: {
         dateMode: "blank",
-        facilityName: "○○病院 リハビリテーション科",
-        therapistName: "山田",
-        overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
       },
     },
   },
@@ -366,7 +360,7 @@ function measureContentBottom(node: LayoutNode): number {
 
 describe("スライドの最悪の入力（実際の PDF レンダリングでカードからはみ出さないこと）", () => {
   it(
-    "ヘッダー最大・白黒・番号・用量・説明 200 文字・長い注意点 5 件でも、1 カード 1 ページでカードの中に収まる",
+    "日付印字・白黒・番号・用量・説明 200 文字・長い注意点 5 件でも、1 カード 1 ページでカードの中に収まる",
     { timeout: 60_000 },
     async () => {
       const settings = resolveProjectSettings({
@@ -375,9 +369,6 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
         showCardNumbers: true,
         header: {
           dateMode: "printed",
-          facilityName: "○○病院 リハビリテーション科",
-          therapistName: "山田",
-          overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
         },
       });
       const longItem = (

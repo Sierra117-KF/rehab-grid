@@ -18,7 +18,7 @@ import {
   DESIGN_SETTINGS_LABEL,
   LABELS,
   PATIENT_NAME_BOX_TOGGLE_LABEL,
-  SHEET_FACILITY_NAME_LABEL,
+  SHEET_DATE_MODE_LABEL,
   SHEET_SUMMARY_BUTTON_LABEL,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
@@ -437,9 +437,10 @@ describe("デザイン設定（browser）", () => {
     });
     await expect.element(patientNameToggle).toHaveFocus();
 
-    await userEvent.fill(
-      page.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
-      "○○病院"
+    await userEvent.click(
+      page
+        .getByRole("group", { name: SHEET_DATE_MODE_LABEL })
+        .getByRole("button", { name: "記入欄" })
     );
     await userEvent.click(
       page.getByRole("group", { name: CHECK_TABLE_LABEL }).getByRole("button", {
@@ -448,7 +449,7 @@ describe("デザイン設定（browser）", () => {
     );
 
     expect(useEditorStore.getState().settings).toMatchObject({
-      header: { facilityName: "○○病院" },
+      header: { dateMode: "blank" },
       checkTable: "weekly",
     });
 
@@ -456,6 +457,6 @@ describe("デザイン設定（browser）", () => {
     await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
     await expect
       .element(page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL))
-      .toHaveTextContent("ヘッダー：病院・施設名・氏名欄／チェック表：1週間");
+      .toHaveTextContent("ヘッダー：日付欄・氏名欄／チェック表：1週間");
   });
 });

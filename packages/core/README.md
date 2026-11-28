@@ -513,7 +513,7 @@ type ProjectSettings = {
   pageOrientation?: PageOrientation;     // "auto" | "portrait" | "landscape"
   showCardNumbers?: boolean;
   dosageLabels?: Partial<DosageLabels>;  // { reps, sets, frequency }
-  header?: Partial<SheetHeaderSettings>; // 氏名欄・日付欄・施設名・担当者名・全体メモ
+  header?: Partial<SheetHeaderSettings>; // 氏名欄・日付欄
   checkTable?: CheckTableType;           // "none" | "weekly" | "monthly"
 };
 
@@ -534,10 +534,10 @@ lib/pdf/
 ├── index.ts      # buildPdfDocument を export
 ├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる。スライドはカード 1 枚ごとに Page を作る）
 ├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）、createSlideCard（スライドの横長カード。左に画像と用量、右に説明と注意点）
-├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ。スライドは全ページ）
+├── header.ts     # createHeader（タイトル・日付欄・氏名欄。1ページ目のみ。スライドは全ページ）
 ├── footer.ts     # createFooter（2ページ以上のときのページ番号。fixed で全ページに描画）
 ├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ（スライドはヘッダー付きの別ページ）、1か月は A4 横の別ページ）
-├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・ヘッダーの高さ・スライドのカード寸法と説明／注意点の行数（getPdfSlideCardSize / getPdfSlideColumns / getSlideTextLines）の計算
+├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・スライドのカード寸法と説明／注意点の行数（getPdfSlideCardSize / getPdfSlideColumns / getSlideTextLines）の計算
 ├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード。スライドは 1 カード 1 ページ）
 └── styles.ts     # StyleSheet 定義
 ```

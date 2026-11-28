@@ -117,7 +117,7 @@ Dexie の version 2 で `userTemplates`（`ProjectFile` を名前付きで保存
 
 `@react-pdf/renderer` でクライアントサイド生成。A4 サイズ、Noto Sans JP 埋め込み。キャンバス UI のレイアウト・PDF プレビュー・PDF 出力の 3 者が一致すること。生成は Web Worker で行う。
 
-スライド（`layoutType: "slide"`）は用紙の向きの設定に関わらず A4 横で、カード 1 枚ごとに 1 ページを作り、全ページにヘッダー（全体メモを含む）を出す。カードの大きさはヘッダーの高さから決まる固定値で、説明・注意点の行数は PDF とキャンバスで共通の関数（`getSlideTextLines`）で決める。1 週間のチェック表はヘッダー付きの別ページに出す。
+スライド（`layoutType: "slide"`）は用紙の向きの設定に関わらず A4 横で、カード 1 枚ごとに 1 ページを作り、全ページにヘッダーを出す。カードの大きさは固定値で、説明・注意点の行数は PDF とキャンバスで共通の関数（`getSlideTextLines`）で決める。1 週間のチェック表はヘッダー付きの別ページに出す。
 
 CJK ハイフネーション問題は [react-pdf-renderer-hyphenation.md](./react-pdf-renderer-hyphenation.md) を参照。
 

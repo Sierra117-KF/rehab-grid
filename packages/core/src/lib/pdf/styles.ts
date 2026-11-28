@@ -31,8 +31,6 @@ export const pdfStyles = StyleSheet.create({
     backgroundColor: PDF_COLORS.background,
   },
   header: {
-    // 表示する項目に応じた高さを生成時に上書きする（header.ts）。
-    // 文字が見積もりより多く折り返してもカードに重ならないよう、height ではなく minHeight にしている
     minHeight: PDF_HEADER_HEIGHT,
     marginBottom: 0,
     borderBottomWidth: 1,
@@ -75,25 +73,6 @@ export const pdfStyles = StyleSheet.create({
   },
   dateText: {
     fontSize: PDF_SPACING.dateFontSize,
-    color: PDF_COLORS.textPrimary,
-  },
-  headerSubText: {
-    marginTop: PDF_SPACING.headerRowGap,
-    fontSize: PDF_SPACING.headerSubTextFontSize,
-    lineHeight: PDF_SPACING.headerSubLineHeight,
-    color: PDF_COLORS.textSecondary,
-  },
-  overallNote: {
-    marginTop: PDF_SPACING.headerRowGap,
-    padding: PDF_SPACING.overallNotePadding,
-    borderWidth: PDF_SPACING.overallNoteBorderWidth,
-    borderColor: PDF_COLORS.border,
-    borderRadius: PDF_SPACING.patientNameBoxBorderRadius,
-    backgroundColor: PDF_COLORS.cardBackground,
-  },
-  overallNoteText: {
-    fontSize: PDF_SPACING.overallNoteFontSize,
-    lineHeight: PDF_SPACING.headerSubLineHeight,
     color: PDF_COLORS.textPrimary,
   },
   footer: {

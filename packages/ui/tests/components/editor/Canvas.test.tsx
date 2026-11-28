@@ -597,21 +597,19 @@ describe("Canvas", () => {
       );
     });
 
-    it("入力した項目と選んだチェック表を並べて表示する", () => {
+    it("選んだヘッダー項目とチェック表を並べて表示する", () => {
       setupCanvas({
         items: [createTestItem()],
         sheetHeader: {
           ...defaultHeader,
-          facilityName: "○○病院",
           dateMode: "blank",
-          overallNote: "次回：12月1日",
         },
         checkTable: "weekly",
         onSheetSettingsClick: vi.fn(),
       });
 
       expect(getSummaryButton()).toHaveTextContent(
-        "ヘッダー：病院・施設名・日付欄・氏名欄・メモ／チェック表：1週間"
+        "ヘッダー：日付欄・氏名欄／チェック表：1週間"
       );
     });
 
@@ -865,8 +863,7 @@ describe("Canvas", () => {
         gridTemplateColumns: "repeat(1, minmax(0, 1fr))",
       });
       const body = screen.getByTestId("slide-card-body");
-      const { header } = resolveProjectSettings(undefined);
-      const { width, height } = getPdfSlideCardSize({ header });
+      const { width, height } = getPdfSlideCardSize();
       expect(body.style.aspectRatio).toBe(String(width / height));
 
       const left = within(screen.getByTestId("slide-left-column"));
@@ -882,15 +879,11 @@ describe("Canvas", () => {
 
     it("収まらない説明・注意点は、画面の幅によらず PDF と同じ位置で切り詰めて末尾に「…」を付ける", () => {
       const longDescription = "膝を曲げてゆっくり立ち上がる。".repeat(14).slice(0, 200);
-      // 3 行ある注意点を 5 件並べ、ヘッダー最大＋白黒モードで右の列に収まらない状態を作る
-      const multiLinePrecaution = "1行目の注意点\n2行目の注意点\n3行目の注意点";
+      // 4 行ある注意点を 5 件並べ、説明・注意点ともに切り詰められる状態を作る
+      const multiLinePrecaution =
+        "1行目の注意点\n2行目の注意点\n3行目の注意点\n4行目の注意点";
       setupSlide({
         printColorMode: "monochrome",
-        sheetHeader: {
-          ...resolveProjectSettings(undefined).header,
-          facilityName: "○○病院",
-          overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
-        },
         items: [
           {
             ...slideItem,
@@ -909,30 +902,13 @@ describe("Canvas", () => {
       expect(shown.endsWith("…")).toBeTruthy();
       expect(longDescription.startsWith(shown.slice(0, -1))).toBeTruthy();
       expect(shown.length).toBeLessThan(longDescription.length);
-      // 注意点も 2 行に縮められ、行頭の「•」付き＋末尾「…」で切り詰められる
+      // 注意点も 3 行で切り詰められ、行頭の「•」付き＋末尾「…」になる
       const precautions = right.getAllByText(/^• 1行目の注意点/);
       expect(precautions).toHaveLength(5);
       for (const precaution of precautions) {
         expect(precaution.textContent.endsWith("…")).toBeTruthy();
-        expect(precaution.textContent).not.toContain("3行目の注意点");
+        expect(precaution.textContent).not.toContain("4行目の注意点");
       }
-    });
-
-    it("ヘッダーが高いほどカードの縦横比が横長になる", () => {
-      const header = {
-        ...resolveProjectSettings(undefined).header,
-        facilityName: "○○病院",
-        overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
-      };
-      setupSlide({ sheetHeader: header });
-
-      const { width, height } = getPdfSlideCardSize({ header });
-      const defaultSize = getPdfSlideCardSize(resolveProjectSettings(undefined));
-      const ratio = Number(
-        screen.getByTestId("slide-card-body").style.aspectRatio
-      );
-      expect(ratio).toBeCloseTo(width / height);
-      expect(ratio).toBeGreaterThan(defaultSize.width / defaultSize.height);
     });
 
     it("説明が空のときは説明を描かず、注意点だけを出す", () => {

@@ -9,17 +9,14 @@
 
 import {
   CHECK_TABLE_OPTIONS,
-  SHEET_FACILITY_NAME_LABEL,
   SHEET_SUMMARY_BUTTON_LABEL,
   SHEET_SUMMARY_CHECK_TABLE_LABEL,
   SHEET_SUMMARY_DATE_BLANK,
   SHEET_SUMMARY_DATE_PRINTED,
   SHEET_SUMMARY_HEADER_LABEL,
   SHEET_SUMMARY_LABEL,
-  SHEET_SUMMARY_OVERALL_NOTE,
   SHEET_SUMMARY_PATIENT_NAME_BOX,
   SHEET_SUMMARY_TITLE_ONLY,
-  SHEET_THERAPIST_NAME_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import {
   type CheckTableType,
@@ -43,18 +40,13 @@ type SheetSummaryProps = {
  * ヘッダーに出す項目の名前を並べる
  *
  * @param header - ヘッダーの項目
- * @returns 「氏名欄・日付欄・病院・施設名」形式の文字列（何も出さないときは「タイトルのみ」）
+ * @returns 「日付欄・氏名欄」形式の文字列（何も出さないときは「タイトルのみ」）
  */
 function getHeaderSummary(header: SheetHeaderSettings): string {
   const parts: string[] = [];
-  if (header.facilityName.trim() !== "") parts.push(SHEET_FACILITY_NAME_LABEL);
-  if (header.therapistName.trim() !== "") {
-    parts.push(SHEET_THERAPIST_NAME_LABEL);
-  }
   if (header.dateMode === "blank") parts.push(SHEET_SUMMARY_DATE_BLANK);
   if (header.dateMode === "printed") parts.push(SHEET_SUMMARY_DATE_PRINTED);
   if (header.showPatientNameBox) parts.push(SHEET_SUMMARY_PATIENT_NAME_BOX);
-  if (header.overallNote.trim() !== "") parts.push(SHEET_SUMMARY_OVERALL_NOTE);
   return parts.length > 0 ? parts.join("・") : SHEET_SUMMARY_TITLE_ONLY;
 }
 

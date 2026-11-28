@@ -29,7 +29,6 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { type PdfLayoutEstimate } from "@rehab-grid/core/lib/pdf/layout";
 import { getPdfSlideCardSize } from "@rehab-grid/core/lib/pdf/metrics";
-import { resolveSheetHeader } from "@rehab-grid/core/lib/settings";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   CheckTableType,
@@ -351,12 +350,7 @@ export function Canvas({
     ) : null;
 
   const isSlide = layoutType === "slide";
-  // スライドのカードの大きさと行数を決める設定（ヘッダーを省略したときは既定値）
-  const slideSettings = {
-    header: sheetHeader ?? resolveSheetHeader(undefined),
-    printColorMode,
-  };
-  const slideCardSize = isSlide ? getPdfSlideCardSize(slideSettings) : null;
+  const slideCardSize = isSlide ? getPdfSlideCardSize() : null;
 
   // 改ページの目安（各ページの先頭のカードの位置 → ページ番号）。モバイルは常に 1 列表示で
   // グリッドの行の切れ目と PDF の改ページが一致しないため、区切り線を出さない
@@ -543,7 +537,7 @@ export function Canvas({
                       textScale={textScale}
                       cardNumber={showCardNumbers ? index + 1 : undefined}
                       dosageLabels={dosageLabels}
-                      slideSettings={slideSettings}
+                      printColorMode={printColorMode}
                       onInlineEdit={
                         !isMobile && onItemInlineEdit
                           ? (updates) => onItemInlineEdit(item.id, updates)

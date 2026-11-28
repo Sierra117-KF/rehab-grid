@@ -121,17 +121,6 @@ export function resolveDosageLabels(
 }
 
 /**
- * 値が文字列ならそのまま（最大文字数で切り詰めて）、そうでなければ空文字を返す
- *
- * @param value - 判定する値
- * @param maxLength - 最大文字数
- * @returns 文字列
- */
-function pickText(value: unknown, maxLength: number): string {
-  return typeof value === "string" ? value.slice(0, maxLength) : "";
-}
-
-/**
  * PDF ヘッダーの項目の未指定・不正な値をデフォルト値で補う
  *
  * @remarks
@@ -142,8 +131,8 @@ function pickText(value: unknown, maxLength: number): string {
  *
  * @example
  * ```typescript
- * resolveSheetHeader({ facilityName: "○○病院" });
- * // { showPatientNameBox: true, dateMode: "none", facilityName: "○○病院", therapistName: "", overallNote: "" }
+ * resolveSheetHeader({ dateMode: "blank" });
+ * // { showPatientNameBox: true, dateMode: "blank" }
  * ```
  */
 export function resolveSheetHeader(
@@ -152,9 +141,6 @@ export function resolveSheetHeader(
   return {
     showPatientNameBox: header?.showPatientNameBox !== false,
     dateMode: pickOption(header?.dateMode, SHEET_DATE_MODES, "none"),
-    facilityName: pickText(header?.facilityName, TEXT_LIMITS.facilityName),
-    therapistName: pickText(header?.therapistName, TEXT_LIMITS.therapistName),
-    overallNote: pickText(header?.overallNote, TEXT_LIMITS.overallNote),
   };
 }
 

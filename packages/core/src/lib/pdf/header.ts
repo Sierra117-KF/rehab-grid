@@ -3,19 +3,14 @@
  */
 
 import { Text, View } from "@react-pdf/renderer";
-import { getPdfContentSize, PDF_LABELS } from "@rehab-grid/core/lib/constants";
+import { PDF_LABELS } from "@rehab-grid/core/lib/constants";
 import {
-  type ResolvedProjectSettings,
   type SheetDateMode,
+  type SheetHeaderSettings,
 } from "@rehab-grid/core/types";
 import { formatJapaneseDate } from "@rehab-grid/core/utils/date";
 import { createElement, type ReactElement } from "react";
 
-import {
-  calculatePdfHeaderHeight,
-  getPdfHeaderSubText,
-  getPdfOverallNoteLayout,
-} from "./metrics";
 import { pdfStyles as styles } from "./styles";
 
 /**
@@ -56,24 +51,19 @@ function createDateField(
 /**
  * ヘッダー要素を生成する
  *
- * 1 行目にタイトル・日付欄・氏名欄、2 行目に施設名・担当者名、その下に全体メモの枠を置く。
- * 2 行目と全体メモは入力があるときだけ出す。
+ * 1 行にタイトル・日付欄・氏名欄を並べる。
  * 氏名欄・日付の記入欄は印刷後に手書きする前提の空枠で、患者氏名は印字しない。
  *
  * @param title - プロジェクト名（前後の空白は除去して表示）
- * @param settings - プロジェクト設定（ヘッダーの項目と、全体メモの折り返しに使う列数・用紙の向き）
+ * @param header - ヘッダーの項目（氏名欄・日付欄）
  * @param outputDate - 出力日（日付欄を「出力日を印字」にしたときに使う）
  * @returns ヘッダー要素
  */
 export function createHeader(
   title: string,
-  settings: Pick<
-    ResolvedProjectSettings,
-    "header" | "layoutType" | "pageOrientation"
-  >,
+  header: SheetHeaderSettings,
   outputDate: Date
 ): ReactElement {
-  const { header, layoutType, pageOrientation } = settings;
   const displayTitle = title.trim();
 
   // 1 行目のタイトルの後ろに並べる欄（記入欄どうしの間には空白を入れる）
@@ -113,36 +103,9 @@ export function createHeader(
     rowChildren.push(field);
   });
 
-  const headerChildren: ReactElement[] = [
-    createElement(View, { key: "row", style: styles.headerRow }, ...rowChildren),
-  ];
-
-  const subText = getPdfHeaderSubText(header);
-  if (subText !== "") {
-    headerChildren.push(
-      createElement(Text, { key: "sub", style: styles.headerSubText }, subText)
-    );
-  }
-
-  const note = getPdfOverallNoteLayout(
-    header.overallNote,
-    getPdfContentSize(layoutType, pageOrientation).width
-  );
-  if (note.text !== "") {
-    headerChildren.push(
-      createElement(
-        View,
-        { key: "note", style: styles.overallNote },
-        createElement(Text, { style: styles.overallNoteText }, note.text)
-      )
-    );
-  }
-
   return createElement(
     View,
-    {
-      style: { ...styles.header, minHeight: calculatePdfHeaderHeight(settings) },
-    },
-    ...headerChildren
+    { style: styles.header },
+    createElement(View, { key: "row", style: styles.headerRow }, ...rowChildren)
   );
 }

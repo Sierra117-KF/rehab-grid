@@ -88,7 +88,7 @@ Built as a **100% client-side, local-first application**, Rehab-Grid processes a
   - Theme colors (6 print-friendly presets + custom color picker / hex input)
   - Page orientation (Auto / Portrait / Landscape), print color mode (Color / Monochrome Ink-Saver), text scale (Standard / Large), optional card numbers, and customizable dosage labels
   - Quick presets for Standard Color, Monochrome / Ink-Saver, and Senior-Friendly layouts
-- **Sheet Header & Adherence Checklists**: Optional facility name, therapist name, date field (blank line or print date), handwritten patient name box (no patient name input stored), overall note, weekly or monthly adherence check tables, and automatic multi-page numbering
+- **Sheet Header & Adherence Checklists**: Optional date field (blank line or print date), handwritten patient name box (no patient name input stored), weekly or monthly adherence check tables, and automatic multi-page numbering
 - **A4 Page Fit Guide**: Real-time estimated page count and page-break indicators directly inside the editor
 - **Non-Blocking Client-Side PDF**: Embedded local Japanese fonts (Noto Sans JP) rendered inside a Web Worker; precached by the Service Worker so PDF export works even offline
 

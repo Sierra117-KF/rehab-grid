@@ -118,20 +118,16 @@ export function getPdfContentSize(
 export const PDF_GRID_GAP = 12;
 
 /**
- * ヘッダーの基本の高さ（ポイント単位）
+ * ヘッダーの高さ（ポイント単位）
  *
- * タイトル・日付欄・氏名欄の 1 行だけのときの高さ。施設名・担当者名や全体メモを出すと
- * その分だけ高くなる（calculatePdfHeaderHeight）
+ * タイトル・日付欄・氏名欄の 1 行分の高さ
  */
 export const PDF_HEADER_HEIGHT = 35;
-
-/** 全体メモ（PDF ヘッダー）の最大行数。超えた分は「…」で切り詰める */
-export const PDF_OVERALL_NOTE_MAX_LINES = 5;
 
 /**
  * スライド（A4 横・1 ページ 1 運動）のレイアウト（ポイント単位）
  *
- * カードの大きさはヘッダーの高さから決まる固定値（lib/pdf/metrics.ts の getPdfSlideCardSize）
+ * カードの大きさは固定値（lib/pdf/metrics.ts の getPdfSlideCardSize）
  */
 export const PDF_SLIDE = {
   /** ヘッダーとカードの間隔 */
@@ -317,8 +313,6 @@ export const PDF_LABELS = {
   patientLabel: "氏名:",
   /** 日付欄のラベル */
   dateLabel: "日付:",
-  /** 担当者名の前に付けるラベル */
-  therapistLabel: "担当:",
   /** 1週間の実施チェック表の見出し */
   weeklyCheckTableTitle: "自主トレ実施チェック表（1週間）",
   /** 1か月の実施チェック表の見出し（月は手書きしてもらう） */
@@ -383,18 +377,6 @@ export const PDF_SPACING = {
   dateBoxWidth: 90,
   /** 印字した日付のフォントサイズ */
   dateFontSize: 10,
-  /** ヘッダー内の行と行の間隔 */
-  headerRowGap: 4,
-  /** 施設名・担当者名のフォントサイズ */
-  headerSubTextFontSize: 9,
-  /** 全体メモのフォントサイズ */
-  overallNoteFontSize: 9,
-  /** 施設名・担当者名と全体メモの行高 */
-  headerSubLineHeight: 1.4,
-  /** 全体メモの枠の内側の余白 */
-  overallNotePadding: 4,
-  /** 全体メモの枠線の太さ */
-  overallNoteBorderWidth: 1,
   /** ページ番号のページ下端からの距離（下マージンの中に置く） */
   footerBottom: 20,
 } as const;

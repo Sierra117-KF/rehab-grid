@@ -589,7 +589,7 @@ describe("createSlideCard", () => {
   const getBoxStyle = (card: unknown, text: string) =>
     getStyle(findInnermostViewWithText(card, text));
 
-  it("A4 横のコンテンツ幅 × ヘッダーから決まる高さの、ページをまたがないカードになる", () => {
+  it("A4 横のコンテンツ幅 × 固定の高さの、ページをまたがないカードになる", () => {
     const card = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
 
     expect(card).toMatchObject({ props: { wrap: false } });

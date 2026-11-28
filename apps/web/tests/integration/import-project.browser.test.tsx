@@ -422,9 +422,6 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
         header: {
           showPatientNameBox: true,
           dateMode: "none",
-          facilityName: "",
-          therapistName: "",
-          overallNote: "",
         },
         checkTable: "none",
       });
@@ -440,9 +437,6 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
         header: {
           showPatientNameBox: false,
           dateMode: "printed",
-          facilityName: "○○病院",
-          therapistName: "山田",
-          overallNote: "目標：毎日続ける\n次回：12月1日",
         },
         checkTable: "monthly",
       } as const;

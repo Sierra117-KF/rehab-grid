@@ -433,16 +433,13 @@ describe("buildPdfDocument のヘッダー・フッター・実施チェック�
     expect(monthlyTexts).toContain("運動10");
   });
 
-  it("ヘッダーに施設名・担当者名・日付・全体メモを出す", () => {
+  it("ヘッダーに出力日を印字する", () => {
     const doc = buildPdfDocument(
       createTestData({
         settings: createSettings("grid2", DEFAULT_THEME_COLOR, {
           header: {
             showPatientNameBox: true,
             dateMode: "printed",
-            facilityName: "○○病院",
-            therapistName: "山田",
-            overallNote: "次回：12月1日",
           },
         }),
         items: tenItems,
@@ -452,11 +449,7 @@ describe("buildPdfDocument のヘッダー・フッター・実施チェック�
 
     const texts = extractTextContent(doc);
     expect(texts).toContain("2026年11月24日");
-    // 施設名と担当者名の間は全角空白
-    expect(texts).toContain(
-      `○○病院　${PDF_LABELS.therapistLabel} 山田`
-    );
-    expect(texts).toContain("次回：12月1日");
+    expect(texts).toContain(PDF_LABELS.patientLabel);
   });
 });
 

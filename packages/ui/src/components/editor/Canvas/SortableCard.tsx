@@ -10,13 +10,12 @@ import {
   LABELS,
   LONG_PRESS_DURATION,
 } from "@rehab-grid/core/lib/constants";
-import { resolveSheetHeader } from "@rehab-grid/core/lib/settings";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   DosageLabels,
   EditorItem,
   LayoutType,
-  ResolvedProjectSettings,
+  PrintColorMode,
   TextScale,
 } from "@rehab-grid/core/types";
 import { Copy, FlipHorizontal2, GripVertical, Pencil } from "lucide-react";
@@ -31,15 +30,6 @@ import {
 } from "./cardTypes";
 import { SlideCardBody } from "./SlideCardBody";
 import { VerticalCardBody } from "./VerticalCardBody";
-
-/** スライドの設定を省略したときの既定値（ヘッダーの既定値・カラー） */
-const DEFAULT_SLIDE_SETTINGS: Pick<
-  ResolvedProjectSettings,
-  "header" | "printColorMode"
-> = {
-  header: resolveSheetHeader(undefined),
-  printColorMode: "color",
-};
 
 /** モバイルの操作ボタン（ドラッグハンドル・編集）の見た目 */
 const MOBILE_ACTION_BUTTON_CLASS = cn(
@@ -131,12 +121,9 @@ export type SortableCardProps = {
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
   dosageLabels?: DosageLabels;
   /**
-   * スライドのカードの大きさと説明・注意点の行数を決める設定
-   *
-   * @remarks
-   * layoutType が "slide" のときだけ使う（省略時はヘッダーの既定値・カラー）
+   * 印刷の色づかい（スライドの説明・注意点の行数計算に使う。省略時はカラー）
    */
-  slideSettings?: Pick<ResolvedProjectSettings, "header" | "printColorMode">;
+  printColorMode?: PrintColorMode;
   /**
    * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
    *
@@ -171,7 +158,7 @@ export function SortableCard({
   textScale = "standard",
   cardNumber,
   dosageLabels = LABELS,
-  slideSettings = DEFAULT_SLIDE_SETTINGS,
+  printColorMode = "color",
   onInlineEdit,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
@@ -451,7 +438,7 @@ export function SortableCard({
 
       {/* カードコンテンツ */}
       {isSlide ? (
-        <SlideCardBody {...cardBodyProps} slideSettings={slideSettings} />
+        <SlideCardBody {...cardBodyProps} printColorMode={printColorMode} />
       ) : (
         <VerticalCardBody {...cardBodyProps} textScale={textScale} />
       )}

@@ -396,9 +396,7 @@ export function DesignSettingsDialog({
             <SheetSettings
               header={settings.header}
               checkTable={settings.checkTable}
-              onHeaderChange={(header, options) =>
-                onSettingsChange({ header }, options)
-              }
+              onHeaderChange={(header) => onSettingsChange({ header })}
               onCheckTableChange={(checkTable) =>
                 onSettingsChange({ checkTable })
               }

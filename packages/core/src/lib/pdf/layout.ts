@@ -18,6 +18,7 @@ import {
   PDF_DEFAULT_LINE_HEIGHT,
   PDF_GRID_GAP,
   PDF_HALF_WIDTH_CHAR_RATIO,
+  PDF_HEADER_HEIGHT,
   PDF_PAGE_ESTIMATE_MARGIN,
   PDF_SPACING,
   TEXT_LIMITS,
@@ -32,7 +33,6 @@ import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import { calculatePdfCardWidth } from "@rehab-grid/core/utils/pdf";
 
 import {
-  calculatePdfHeaderHeight,
   countPdfTextLines,
   fitPdfFontSizeToSingleLine,
   getPdfCardDescriptionText,
@@ -298,7 +298,7 @@ export function estimatePdfLayout(
 
   const firstCardIndexByPage = [0];
   // 現在のページで使った高さ（1 ページ目はヘッダーの分から始める）
-  let used = calculatePdfHeaderHeight(settings);
+  let used: number = PDF_HEADER_HEIGHT;
   let rowsOnPage = 0;
 
   /**

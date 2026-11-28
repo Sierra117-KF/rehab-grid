@@ -20,8 +20,6 @@ import {
   PDF_HALF_WIDTH_CHAR_RATIO,
   PDF_HEADER_HEIGHT,
   PDF_IMAGE_ASPECT_RATIO,
-  PDF_LABELS,
-  PDF_OVERALL_NOTE_MAX_LINES,
   PDF_SLIDE,
   PDF_SPACING,
   PDF_TEXT_STYLE,
@@ -32,7 +30,6 @@ import {
   type LayoutType,
   type PrintColorMode,
   type ResolvedProjectSettings,
-  type SheetHeaderSettings,
   type TextScale,
 } from "@rehab-grid/core/types";
 import { truncateToLines } from "@rehab-grid/core/utils/pdf";
@@ -486,112 +483,6 @@ export function getPdfCardPrecautionText(
 }
 
 /**
- * 施設名・担当者名の行に出す文字列を作る
- *
- * @param header - ヘッダーの項目
- * @returns 「施設名（全角空白）担当: 担当者名」形式の文字列（どちらも空欄なら空文字）
- */
-export function getPdfHeaderSubText(
-  header: Pick<SheetHeaderSettings, "facilityName" | "therapistName">
-): string {
-  const facilityName = header.facilityName.trim();
-  const therapistName = header.therapistName.trim();
-  return [
-    facilityName,
-    therapistName !== "" ? `${PDF_LABELS.therapistLabel} ${therapistName}` : "",
-  ]
-    .filter((text) => text !== "")
-    .join("　");
-}
-
-/**
- * 全体メモの表示用の文字列と行数を求める
- *
- * @remarks
- * 1 文字を全角幅とみなして行数を多めに見積もる（ヘッダーの高さが足りなくなるのを防ぐ）。
- * 最大行数（PDF_OVERALL_NOTE_MAX_LINES）を超えた分は「…」で切り詰める。
- *
- * @param note - 全体メモ（前後の空白は除く）
- * @param contentWidth - ページのコンテンツ幅（ポイント単位）
- * @returns 表示用の文字列と行数（メモが空欄なら行数 0）
- */
-export function getPdfOverallNoteLayout(
-  note: string,
-  contentWidth: number
-): { text: string; lineCount: number } {
-  const trimmed = note.trim();
-  if (trimmed === "") return { text: "", lineCount: 0 };
-
-  const textWidth =
-    contentWidth -
-    (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) * 2;
-  const charsPerLine = estimateCharsPerLine(
-    textWidth,
-    PDF_SPACING.overallNoteFontSize,
-    PDF_CHAR_WIDTH_RATIO.fullWidth
-  );
-  const text = truncateToLines(
-    trimmed,
-    PDF_OVERALL_NOTE_MAX_LINES,
-    charsPerLine
-  );
-  const lineCount = text
-    .split("\n")
-    .reduce(
-      (sum, line) => sum + (Math.ceil(line.length / charsPerLine) || 1),
-      0
-    );
-  // 切り詰めたときに付く「…」の分で 1 行増えたように数えないよう、最大行数で抑える
-  return {
-    text,
-    lineCount: Math.min(lineCount, PDF_OVERALL_NOTE_MAX_LINES),
-  };
-}
-
-/**
- * 設定に応じた PDF ヘッダーの高さを求める
- *
- * @remarks
- * タイトル・日付欄・氏名欄の 1 行だけなら PDF_HEADER_HEIGHT（既定の設定では従来と同じ高さ）。
- * 施設名・担当者名の行と全体メモの枠を出すと、その分だけ高くなる。
- * A4 収容見積もりでも同じ計算を使う。
- *
- * @param settings - プロジェクト設定（ヘッダーの項目とページのコンテンツ幅に使う列数・用紙の向き）
- * @returns ヘッダーの高さ（ポイント単位）
- */
-export function calculatePdfHeaderHeight(
-  settings: Pick<
-    ResolvedProjectSettings,
-    "header" | "layoutType" | "pageOrientation"
-  >
-): number {
-  const { header, layoutType, pageOrientation } = settings;
-  const lineHeight =
-    PDF_SPACING.headerSubTextFontSize * PDF_SPACING.headerSubLineHeight;
-  let height = PDF_HEADER_HEIGHT;
-
-  if (getPdfHeaderSubText(header) !== "") {
-    height += PDF_SPACING.headerRowGap + lineHeight;
-  }
-
-  const { lineCount } = getPdfOverallNoteLayout(
-    header.overallNote,
-    getPdfContentSize(layoutType, pageOrientation).width
-  );
-  if (lineCount > 0) {
-    height +=
-      PDF_SPACING.headerRowGap +
-      (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) *
-        2 +
-      lineCount *
-        PDF_SPACING.overallNoteFontSize *
-        PDF_SPACING.headerSubLineHeight;
-  }
-
-  return height;
-}
-
-/**
  * スライドのカードの大きさ（ポイント単位）
  */
 export type PdfSlideCardSize = {
@@ -657,29 +548,21 @@ const PDF_SLIDE_DOSAGE_RESERVE_HEIGHT =
 const PDF_SLIDE_PRECAUTION_LINE_STEPS = [LINE_CLAMP.precaution, 2, 1] as const;
 
 /**
- * ヘッダーの設定から、スライドのカードの大きさを求める
+ * スライドのカードの大きさを求める
  *
  * @remarks
- * A4 横のコンテンツ領域から、ヘッダー・ヘッダーとの間隔・ページ下端の余裕を引いた大きさ。
+ * A4 横のコンテンツ領域から、ヘッダー・ヘッダーとの間隔・ページ下端の余裕を引いた固定の大きさ。
  * ヘッダーは全ページに出すため、全ページで同じ大きさになる。キャンバスは縦横比にこの値を使う。
  *
- * @param settings - プロジェクト設定（ヘッダーの項目）
  * @returns カードの大きさ（ポイント単位）
  */
-export function getPdfSlideCardSize(
-  settings: Pick<ResolvedProjectSettings, "header">
-): PdfSlideCardSize {
+export function getPdfSlideCardSize(): PdfSlideCardSize {
   const contentSize = getPdfContentSize("slide");
-  const headerHeight = calculatePdfHeaderHeight({
-    header: settings.header,
-    layoutType: "slide",
-    pageOrientation: "auto",
-  });
   return {
     width: contentSize.width,
     height:
       contentSize.height -
-      headerHeight -
+      PDF_HEADER_HEIGHT -
       PDF_SLIDE.headerGap -
       PDF_SLIDE.pageBottomMargin,
   };
@@ -689,7 +572,7 @@ export function getPdfSlideCardSize(
  * スライドのカードの大きさから、左右の列の幅と画像の大きさを求める
  *
  * @remarks
- * 左の列（画像＋用量）は基本の比率の幅で 5:3 の画像を置く。ヘッダーが高く本体に収まらないときは、
+ * 左の列（画像＋用量）は基本の比率の幅で 5:3 の画像を置く。本体に収まらないときは、
  * 画像の高さを「本体の高さ − 用量の確保高さ」に抑え、5:3 のまま左の列を細くする（その分右の列が広がる）。
  *
  * @param cardSize - カードの大きさ（getPdfSlideCardSize）
@@ -754,15 +637,15 @@ function toPdfPrecautionLine(value: string): string {
  * PDF とキャンバスの両方で同じ結果を使う。
  *
  * @param item - エディタアイテム（説明・注意点）
- * @param settings - プロジェクト設定（ヘッダーの項目と印刷の色づかい）
+ * @param settings - プロジェクト設定（印刷の色づかい）
  * @returns 説明と注意点 1 件あたりの行数
  */
 export function getSlideTextLines(
   item: Pick<EditorItem, "description" | "precautions">,
-  settings: Pick<ResolvedProjectSettings, "header" | "printColorMode">
+  settings: Pick<ResolvedProjectSettings, "printColorMode">
 ): PdfSlideTextLines {
   const { bodyHeight, rightColumnWidth } = getPdfSlideColumns(
-    getPdfSlideCardSize(settings)
+    getPdfSlideCardSize()
   );
   const fontSizes = FONT_SIZES_SLIDE;
   const descriptionLineHeight =

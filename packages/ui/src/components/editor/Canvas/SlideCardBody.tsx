@@ -15,7 +15,7 @@ import {
   getPdfSlidePrecautionText,
   getSlideTextLines,
 } from "@rehab-grid/core/lib/pdf/metrics";
-import type { ResolvedProjectSettings } from "@rehab-grid/core/types";
+import type { PrintColorMode } from "@rehab-grid/core/types";
 
 import { CardDosages } from "./CardDosages";
 import { CardImage } from "./CardImage";
@@ -132,8 +132,8 @@ const SLIDE_PRECAUTION_MARGIN_TOP = ptToSlideCqw(
  * SlideCardBody コンポーネントの Props
  */
 type SlideCardBodyProps = CardBodyProps & {
-  /** カードの大きさと説明・注意点の行数を決める設定（PDF と同じ計算に使う） */
-  slideSettings: Pick<ResolvedProjectSettings, "header" | "printColorMode">;
+  /** 印刷の色づかい（白黒モードの注意点枠線幅を含めた行数計算に使う） */
+  printColorMode: PrintColorMode;
 };
 
 /**
@@ -154,22 +154,21 @@ export function SlideCardBody({
   dosageLabels,
   inlineEdit,
   touchHandlers,
-  slideSettings,
+  printColorMode,
 }: SlideCardBodyProps) {
-  const cardSize = getPdfSlideCardSize(slideSettings);
+  const cardSize = getPdfSlideCardSize();
   const { innerWidth, leftColumnWidth, rightColumnWidth } =
     getPdfSlideColumns(cardSize);
-  const { descriptionLines, precautionLines } = getSlideTextLines(
-    item,
-    slideSettings
-  );
+  const { descriptionLines, precautionLines } = getSlideTextLines(item, {
+    printColorMode,
+  });
   const hasPrecautions =
     item.precautions !== undefined && item.precautions.length > 0;
   // 説明・注意点は PDF と同じ位置で切り詰めた文字列を出す（行数で切ると、文字が下限の大きさで
   // 止まる狭い画面では 1 行の文字数が減り、PDF より手前で切れてしまうため）
   const precautionTextWidth = getPdfPrecautionTextWidth(
     rightColumnWidth,
-    slideSettings.printColorMode
+    printColorMode
   );
   const formatPrecaution = (value: string) =>
     getPdfSlidePrecautionText(value, precautionLines, precautionTextWidth);

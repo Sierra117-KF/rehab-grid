@@ -11,9 +11,6 @@ import { describe, expect, it } from "vitest";
 const DEFAULT_SHEET_HEADER = {
   showPatientNameBox: true,
   dateMode: "none",
-  facilityName: "",
-  therapistName: "",
-  overallNote: "",
 };
 
 /** 2-2・2-3 で追加した項目のデフォルト値（現行の見た目と同じになる値） */
@@ -73,11 +70,8 @@ describe("resolveSheetHeader", () => {
   });
 
   it("指定したキーだけを差し替える", () => {
-    expect(
-      resolveSheetHeader({ facilityName: "○○病院", dateMode: "blank" })
-    ).toEqual({
+    expect(resolveSheetHeader({ dateMode: "blank" })).toEqual({
       ...DEFAULT_SHEET_HEADER,
-      facilityName: "○○病院",
       dateMode: "blank",
     });
   });
@@ -88,15 +82,20 @@ describe("resolveSheetHeader", () => {
     ).toBeFalsy();
   });
 
-  it("最大文字数を超えた分は切り捨てる", () => {
-    const header = resolveSheetHeader({
-      facilityName: "あ".repeat(31),
-      therapistName: "い".repeat(21),
-      overallNote: "う".repeat(151),
+  it("廃止された項目を含む旧データでも余分なキーを含めずに解決する", () => {
+    expect(
+      resolveSheetHeader({
+        showPatientNameBox: true,
+        dateMode: "printed",
+        // @ts-expect-error - 旧バージョンで保存された廃止項目が含まれる場合を想定
+        facilityName: "○○病院",
+        therapistName: "山田",
+        overallNote: "メモ",
+      })
+    ).toEqual({
+      showPatientNameBox: true,
+      dateMode: "printed",
     });
-    expect(header.facilityName).toHaveLength(30);
-    expect(header.therapistName).toHaveLength(20);
-    expect(header.overallNote).toHaveLength(150);
   });
 
   it("不正な値（IndexedDB の破損データ等）はデフォルト値になる", () => {
@@ -106,12 +105,6 @@ describe("resolveSheetHeader", () => {
         showPatientNameBox: "no",
         // @ts-expect-error - 選択肢にない日付欄が入った場合を想定
         dateMode: "today",
-        // @ts-expect-error - 文字列以外の値が入った場合を想定
-        facilityName: 123,
-        // @ts-expect-error - 文字列以外の値が入った場合を想定
-        therapistName: null,
-        // @ts-expect-error - 文字列以外の値が入った場合を想定
-        overallNote: ["メモ"],
       })
     ).toEqual(DEFAULT_SHEET_HEADER);
   });
@@ -146,9 +139,6 @@ describe("resolveProjectSettings", () => {
       header: {
         showPatientNameBox: false,
         dateMode: "printed",
-        facilityName: "○○病院",
-        therapistName: "山田",
-        overallNote: "目標：毎日続ける\n次回：12月1日",
       },
       checkTable: "monthly",
     } as const;
@@ -201,7 +191,7 @@ describe("resolveProjectSettings", () => {
         // @ts-expect-error - オブジェクト以外の値が入った場合を想定
         dosageLabels: "秒数",
         // @ts-expect-error - オブジェクト以外の値が入った場合を想定
-        header: "○○病院",
+        header: "invalid",
         // @ts-expect-error - 選択肢にない実施チェック表が入った場合を想定
         checkTable: "daily",
       })

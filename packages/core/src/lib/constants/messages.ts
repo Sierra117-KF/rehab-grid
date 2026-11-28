@@ -704,7 +704,7 @@ export const TEXT_SCALE_SLIDE_NOTE =
 
 /** スライドのときのヘッダーの扱い */
 export const SHEET_HEADER_SLIDE_NOTE =
-  "スライドではヘッダー（全体メモを含む）が全ページに表示されます。全体メモが長いと、運動カードが小さくなります";
+  "スライドではヘッダーが全ページに表示されます";
 
 /** デザイン設定ダイアログのカード番号セクションの見出し */
 export const DESIGN_SETTINGS_CARD_NUMBER_HEADING = "カード番号";
@@ -742,19 +742,6 @@ export const PATIENT_NAME_BOX_TOGGLE_LABEL =
 /** ヘッダーの日付欄の見出し */
 export const SHEET_DATE_MODE_LABEL = "日付";
 
-/** 病院・施設名の入力欄のラベル */
-export const SHEET_FACILITY_NAME_LABEL = "病院・施設名";
-
-/** 担当者名の入力欄のラベル */
-export const SHEET_THERAPIST_NAME_LABEL = "担当者名";
-
-/** 全体メモの入力欄のラベル */
-export const SHEET_OVERALL_NOTE_LABEL = "全体メモ";
-
-/** 全体メモのプレースホルダー（病名などを書きたくなりやすいため、書かない内容も示す） */
-export const SHEET_OVERALL_NOTE_PLACEHOLDER =
-  "目標・次回来院日など（病名・個人情報は書かない）";
-
 /** 実施チェック表の見出し */
 export const CHECK_TABLE_LABEL = "自主トレ実施チェック表";
 
@@ -782,9 +769,6 @@ export const SHEET_SUMMARY_DATE_BLANK = "日付欄";
 
 /** 要約：出力日の印字 */
 export const SHEET_SUMMARY_DATE_PRINTED = "出力日";
-
-/** 要約：全体メモ */
-export const SHEET_SUMMARY_OVERALL_NOTE = "メモ";
 
 /** 要約ボタンの説明（クリックで設定を開く） */
 export const SHEET_SUMMARY_BUTTON_LABEL =

@@ -493,12 +493,12 @@ export function createCard(
  * エディタアイテムからスライド（A4 横・1 ページ 1 運動）のカードの要素を生成する
  *
  * 1 行目に左寄せのタイトル、その下の左の列に画像と用量、右の列に説明と注意点を置く。
- * カードの大きさはヘッダーの設定から決まる固定値（getPdfSlideCardSize）で、
+ * カードの大きさは固定値（getPdfSlideCardSize）で、
  * 説明・注意点は右の列に収まる行数（getSlideTextLines）で切り詰める。
  *
  * @param item - カードに表示するエディタアイテム
  * @param imageUrl - 画像のBase64 data URL（省略可）
- * @param settings - プロジェクト設定（ヘッダー・色・カード番号・用量ラベル）
+ * @param settings - プロジェクト設定（色・カード番号・用量ラベル）
  * @param cardNumber - カード番号バッジに表示する番号
  * @returns カード要素
  */
@@ -510,7 +510,7 @@ export function createSlideCard(
 ): ReactElement {
   const { themeColor, printColorMode, showCardNumbers, dosageLabels } =
     settings;
-  const cardSize = getPdfSlideCardSize(settings);
+  const cardSize = getPdfSlideCardSize();
   const { innerWidth, leftColumnWidth, imageHeight, rightColumnWidth } =
     getPdfSlideColumns(cardSize);
   const { descriptionLines, precautionLines } = getSlideTextLines(

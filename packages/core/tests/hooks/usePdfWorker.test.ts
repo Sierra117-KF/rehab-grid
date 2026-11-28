@@ -99,9 +99,6 @@ function createTestData(
       header: {
         showPatientNameBox: true,
         dateMode: "none",
-        facilityName: "",
-        therapistName: "",
-        overallNote: "",
       },
       checkTable: "none",
     },

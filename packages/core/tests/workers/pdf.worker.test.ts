@@ -83,9 +83,6 @@ const TEST_DATA: PdfGenerationData = {
     header: {
       showPatientNameBox: true,
       dateMode: "none",
-      facilityName: "",
-      therapistName: "",
-      overallNote: "",
     },
     checkTable: "none",
   },

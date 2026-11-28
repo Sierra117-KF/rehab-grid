@@ -89,7 +89,7 @@ export function buildPdfDocument(
   );
 
   const pageContent = [
-    createHeader(data.meta.title, settings, outputDate),
+    createHeader(data.meta.title, settings.header, outputDate),
     createElement(View, { key: "grid", style: styles.gridContainer }, ...rows),
   ];
   if (checkTable === "weekly") {
@@ -214,7 +214,7 @@ function buildSlidePages(
 ): ReactElement[] {
   const { printColorMode, checkTable } = settings;
   const createHeaderBlock = (): ReactElement[] => [
-    createHeader(data.meta.title, settings, outputDate),
+    createHeader(data.meta.title, settings.header, outputDate),
     createElement(View, {
       key: "headerGap",
       style: { height: PDF_SLIDE.headerGap },

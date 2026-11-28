@@ -162,39 +162,22 @@ describe("getPdfCardFontSizes（文字サイズ「大きめ」）", () => {
 });
 
 describe("スライドの寸法", () => {
-  /** 施設名・担当者名と 5 行の全体メモを出す（ヘッダーが最も高くなる）設定 */
-  const TALLEST_HEADER: Partial<ProjectSettings> = {
-    header: {
-      showPatientNameBox: true,
-      dateMode: "blank",
-      facilityName: "○○病院 リハビリテーション科",
-      therapistName: "山田",
-      overallNote: "メモ1\nメモ2\nメモ3\nメモ4\nメモ5",
-    },
-  };
-
   /** 説明・注意点の行数の計算に使う設定 */
   function slideSettings(overrides: Partial<ProjectSettings> = {}) {
     return resolveProjectSettings({ layoutType: "slide", ...overrides });
   }
 
   describe("getPdfSlideCardSize", () => {
-    it("既定のヘッダー（35pt）では A4 横のコンテンツ幅 × 460.28pt になる", () => {
+    it("A4 横のコンテンツ幅 × 460.28pt の固定サイズになる", () => {
       // 515.28 − ヘッダー 35 − 間隔 12 − 下端の余裕 8 = 460.28
-      const size = getPdfSlideCardSize(slideSettings());
+      const size = getPdfSlideCardSize();
       expect(size.width).toBeCloseTo(761.89, 6);
       expect(size.height).toBeCloseTo(460.28, 6);
-    });
-
-    it("ヘッダーが高いほどカードが低くなる（施設名＋全体メモ 5 行で 366.68pt）", () => {
-      // ヘッダー 35 + 施設名の行 16.6 + 全体メモ 77 = 128.6
-      const size = getPdfSlideCardSize(slideSettings(TALLEST_HEADER));
-      expect(size.height).toBeCloseTo(366.68, 6);
     });
   });
 
   describe("getPdfSlideColumns", () => {
-    it("既定のヘッダーでは左の列を基本の比率（58%）の幅にし、5:3 の画像を置く", () => {
+    it("既定のサイズでは左の列を基本の比率（58%）の幅にし、5:3 の画像を置く", () => {
       const columns = getPdfSlideColumns({ width: 761.89, height: 460.28 });
 
       expect(columns.innerWidth).toBeCloseTo(743.89, 6);
@@ -206,7 +189,7 @@ describe("スライドの寸法", () => {
       expect(columns.rightColumnWidth).toBeCloseTo(305.7138, 6);
     });
 
-    it("ヘッダーが高いと画像を本体に収まる高さに抑え、左の列を細く・右の列を広くする", () => {
+    it("本体に収まらない高さのカードでは画像を抑え、左の列を細く・右の列を広くする", () => {
       const columns = getPdfSlideColumns({ width: 761.89, height: 366.68 });
 
       expect(columns.bodyHeight).toBeCloseTo(305.928, 6);
@@ -280,37 +263,34 @@ describe("スライドの寸法", () => {
       });
 
       expect(getSlideTextLines(item, slideSettings()).descriptionLines).toBe(0);
-      expect(
-        getSlideTextLines(overflowItem, slideSettings(TALLEST_HEADER))
-      ).toEqual({ descriptionLines: 0, precautionLines: 1 });
+      expect(getSlideTextLines(overflowItem, slideSettings())).toEqual({
+        descriptionLines: 0,
+        precautionLines: 1,
+      });
     });
 
     it("説明が 3 行に届かないときは、注意点 1 件あたりの行数を減らす", () => {
-      // ヘッダーが最も高い本体 305.9pt に 3 行 × 5 件の注意点（292.3pt）を置くと説明が入らないため 2 行にする
+      // 本体 399.5pt に 3 行 × 7 件の注意点（393.7pt）を置くと説明が入らないため 2 行にする
       const item = createTestItem({
         description: fullWidth(200),
-        precautions: precautions(5, "痛み\nしびれ\nめまい"),
+        precautions: precautions(7, "痛み\nしびれ\nめまい"),
       });
 
-      expect(getSlideTextLines(item, slideSettings(TALLEST_HEADER))).toEqual({
-        descriptionLines: 5,
+      expect(getSlideTextLines(item, slideSettings())).toEqual({
+        descriptionLines: 6,
         precautionLines: 2,
       });
     });
 
-    it("ヘッダー最大・白黒・説明 200 文字・長い注意点 5 件でも説明を 3 行以上残す", () => {
-      // 右の列が 356.2pt に広がるため、注意点 50 文字は 2 行に収まり、説明は残りの 4 行になる
+    it("白黒モード・説明 200 文字・長い注意点 5 件でも説明を 3 行以上残す", () => {
       const item = createTestItem({
         description: fullWidth(200),
         precautions: precautions(5, fullWidth(50)),
       });
 
       expect(
-        getSlideTextLines(
-          item,
-          slideSettings({ ...TALLEST_HEADER, printColorMode: "monochrome" })
-        )
-      ).toEqual({ descriptionLines: 4, precautionLines: 3 });
+        getSlideTextLines(item, slideSettings({ printColorMode: "monochrome" }))
+      ).toEqual({ descriptionLines: 5, precautionLines: 3 });
     });
   });
 });
