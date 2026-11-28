@@ -5,8 +5,9 @@
  * 実ブラウザ（Vitest Browser Mode）上で、ヘッダーからデザイン設定ダイアログを開き、
  * 以下が成立することを検証する。
  * - ダイアログが表示される
- * - 列数（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
+ * - レイアウト（grid1/grid2/grid3/grid4）を選ぶとストアと Canvas の表示（gridTemplateColumns）が更新され、
  *   ダイアログは開いたまま（「閉じる」で閉じる）
+ * - スライドを選ぶと Canvas が 1 列の横型カードになる
  * - テーマカラーを選ぶと Canvas のカードの枠線と用量の区切り線の色が変わり、元に戻すで戻る
  */
 
@@ -17,7 +18,7 @@ import {
   DESIGN_SETTINGS_LABEL,
   LABELS,
   PATIENT_NAME_BOX_TOGGLE_LABEL,
-  SHEET_FACILITY_NAME_LABEL,
+  SHEET_DATE_MODE_LABEL,
   SHEET_SUMMARY_BUTTON_LABEL,
   UNDO_TOOLTIP,
 } from "@rehab-grid/core/lib/constants";
@@ -241,7 +242,7 @@ describe("デザイン設定（browser）", () => {
       .element(page.getByText(DESIGN_SETTINGS_DESCRIPTION))
       .toBeInTheDocument();
 
-    // 4つのレイアウトオプション（ラベル）を確認
+    // 5つのレイアウトオプション（ラベル）を確認
     await expect
       .element(page.getByRole("button", { name: "1列" }))
       .toBeInTheDocument();
@@ -253,6 +254,37 @@ describe("デザイン設定（browser）", () => {
       .toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: "4列" }))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByRole("button", { name: "スライド" }))
+      .toBeInTheDocument();
+  });
+
+  it("「スライド」に切り替えると、ストアと Canvas（1 列の横型カード）が更新される", async () => {
+    await renderEditor();
+    await expectCanvasColumns(2);
+
+    await userEvent.click(getDesignSettingsButton());
+    await userEvent.click(page.getByRole("button", { name: "スライド" }));
+
+    await expect
+      .poll(() => useEditorStore.getState().settings.layoutType, {
+        timeout: 5000,
+      })
+      .toBe("slide");
+    // 用紙の向きの保存値は書き換えない（ほかのレイアウトに戻したとき元に戻す）
+    expect(useEditorStore.getState().settings.pageOrientation).toBe("auto");
+
+    await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
+    await expectCanvasColumns(1);
+    await expect
+      .element(page.getByTestId("card-item-1").getByTestId("slide-card-body"))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("slide-left-column"))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId("slide-right-column"))
       .toBeInTheDocument();
   });
 
@@ -405,9 +437,10 @@ describe("デザイン設定（browser）", () => {
     });
     await expect.element(patientNameToggle).toHaveFocus();
 
-    await userEvent.fill(
-      page.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
-      "○○病院"
+    await userEvent.click(
+      page
+        .getByRole("group", { name: SHEET_DATE_MODE_LABEL })
+        .getByRole("button", { name: "記入欄" })
     );
     await userEvent.click(
       page.getByRole("group", { name: CHECK_TABLE_LABEL }).getByRole("button", {
@@ -416,7 +449,7 @@ describe("デザイン設定（browser）", () => {
     );
 
     expect(useEditorStore.getState().settings).toMatchObject({
-      header: { facilityName: "○○病院" },
+      header: { dateMode: "blank" },
       checkTable: "weekly",
     });
 
@@ -424,6 +457,6 @@ describe("デザイン設定（browser）", () => {
     await userEvent.click(page.getByRole("button", { name: BUTTON_CLOSE }));
     await expect
       .element(page.getByTitle(SHEET_SUMMARY_BUTTON_LABEL))
-      .toHaveTextContent("ヘッダー：病院・施設名・氏名欄／チェック表：1週間");
+      .toHaveTextContent("ヘッダー：日付欄・氏名欄／チェック表：1週間");
   });
 });

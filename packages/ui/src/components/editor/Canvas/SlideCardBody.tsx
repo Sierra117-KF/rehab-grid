@@ -1,0 +1,317 @@
+"use client";
+
+import {
+  FONT_SIZES_SLIDE,
+  PDF_CARD_STYLE,
+  PDF_CONTENT_SIZE_LANDSCAPE,
+  PDF_DEFAULT_LINE_HEIGHT,
+  PDF_SLIDE,
+  PDF_SPACING,
+} from "@rehab-grid/core/lib/constants";
+import {
+  getPdfPrecautionTextWidth,
+  getPdfSlideCardSize,
+  getPdfSlideColumns,
+  getPdfSlideDescriptionText,
+  getPdfSlidePrecautionText,
+  getSlideTextLines,
+} from "@rehab-grid/core/lib/pdf/metrics";
+import { cn } from "@rehab-grid/core/lib/utils";
+import type { PrintColorMode } from "@rehab-grid/core/types";
+import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
+
+import { CardDosages } from "./CardDosages";
+import { CardImage } from "./CardImage";
+import { CardPrecautions } from "./CardPrecautions";
+import { CardTitle } from "./CardTitle";
+import { type CardBodyProps } from "./cardTypes";
+
+/**
+ * PDF のスライドのカードの幅（ポイント単位）
+ *
+ * キャンバスのスライドは、この幅に対する比率で寸法と文字の大きさを決める
+ */
+const SLIDE_CARD_WIDTH_PT = PDF_CONTENT_SIZE_LANDSCAPE.width;
+
+/**
+ * PDF のスライドでの長さ（ポイント）を、キャンバスのスライドの幅に比例する CSS の長さにする
+ *
+ * @remarks
+ * スライドの外枠（container-type: inline-size）の幅に対するコンテナクエリ単位（cqw）で表す。
+ * 下限を指定すると、狭い画面でも読める大きさを保つ（`max(cqw, px)`）
+ *
+ * @param pt - PDF での長さ（ポイント単位）
+ * @param minPx - 下限（px。省略時は下限なし）
+ * @returns CSS の長さ
+ */
+function ptToSlideCqw(pt: number, minPx?: number): string {
+  const cqw = `${((pt / SLIDE_CARD_WIDTH_PT) * 100).toFixed(3)}cqw`;
+  return minPx === undefined ? cqw : `max(${cqw}, ${String(minPx)}px)`;
+}
+
+/**
+ * スライドの文字の大きさの下限（px）
+ *
+ * @remarks
+ * 広い画面ではカードの幅に比例した PDF と同じ見た目になり、狭い画面（スマホ・狭いデスクトップ）では
+ * この大きさで止めて読みやすさを保つ（その分カードが縦に伸びる）
+ */
+const SLIDE_MIN_FONT_PX = {
+  title: 15,
+  description: 9,
+  dosageValue: 18,
+  dosageLabel: 8,
+  precautionTitle: 8,
+  precautionText: 8,
+} as const;
+
+/**
+ * スライドの各テキストの文字の大きさ（PDF のポイントをカードの幅に比例させる）
+ *
+ * @remarks
+ * 行の高さを指定していない要素は、PDF の既定の行の高さ（Noto Sans JP の自然な行の高さ）に揃える
+ */
+const SLIDE_FONT_STYLE = {
+  title: {
+    fontSize: ptToSlideCqw(FONT_SIZES_SLIDE.title, SLIDE_MIN_FONT_PX.title),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+  },
+  description: {
+    fontSize: ptToSlideCqw(
+      FONT_SIZES_SLIDE.description,
+      SLIDE_MIN_FONT_PX.description
+    ),
+    lineHeight: PDF_SPACING.descriptionLineHeight,
+  },
+  dosageValue: {
+    fontSize: ptToSlideCqw(
+      FONT_SIZES_SLIDE.dosageValue,
+      SLIDE_MIN_FONT_PX.dosageValue
+    ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+  },
+  dosageLabel: {
+    fontSize: ptToSlideCqw(
+      FONT_SIZES_SLIDE.dosageLabel,
+      SLIDE_MIN_FONT_PX.dosageLabel
+    ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+  },
+  precautionTitle: {
+    fontSize: ptToSlideCqw(
+      FONT_SIZES_SLIDE.precautionTitle,
+      SLIDE_MIN_FONT_PX.precautionTitle
+    ),
+    lineHeight: PDF_DEFAULT_LINE_HEIGHT,
+    marginBottom: ptToSlideCqw(PDF_SLIDE.precautionTitleMarginBottom),
+  },
+  precautionText: {
+    fontSize: ptToSlideCqw(
+      FONT_SIZES_SLIDE.precautionText,
+      SLIDE_MIN_FONT_PX.precautionText
+    ),
+    lineHeight: PDF_SPACING.precautionLineHeight,
+  },
+} as const satisfies Record<string, React.CSSProperties>;
+
+/** スライドの外枠の内側の余白（PDF のスライドカードの余白） */
+const SLIDE_PADDING = ptToSlideCqw(PDF_SLIDE.cardPadding);
+
+/** タイトル行の下の余白 */
+const SLIDE_TITLE_MARGIN_BOTTOM = ptToSlideCqw(PDF_SLIDE.titleMarginBottom);
+
+/** 左右の列の間隔 */
+const SLIDE_COLUMN_GAP = ptToSlideCqw(PDF_SLIDE.columnGap);
+
+/**
+ * 用量の上下の余白（画像下の残り領域で上下中央に配置するため、上下均等に揃える）
+ */
+const SLIDE_DOSAGE_STYLE: React.CSSProperties = {
+  paddingTop: ptToSlideCqw(PDF_SPACING.dosagePaddingVertical),
+  paddingBottom: ptToSlideCqw(PDF_SPACING.dosagePaddingVertical),
+};
+
+/** 用量の項目の間隔 */
+const SLIDE_DOSAGE_ROW_STYLE: React.CSSProperties = {
+  columnGap: ptToSlideCqw(PDF_SPACING.dosageGap),
+};
+
+/** 用量のラベルの区切り線まわりの余白と線の太さ */
+const SLIDE_DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
+  marginTop: ptToSlideCqw(PDF_SPACING.dosageLabelMarginTop),
+  paddingTop: ptToSlideCqw(PDF_SPACING.dosageLabelPaddingTop),
+  borderTopWidth: ptToSlideCqw(PDF_SPACING.dosageBorderWidth),
+};
+
+/** 注意点の枠の内側の余白 */
+const SLIDE_PRECAUTION_PADDING = ptToSlideCqw(PDF_SLIDE.precautionPadding);
+
+/** 説明と注意点の枠の間隔 */
+const SLIDE_PRECAUTION_MARGIN_TOP = ptToSlideCqw(
+  PDF_SLIDE.precautionMarginTop
+);
+
+/** 注意点の各項目どうしの間隔 */
+const SLIDE_PRECAUTION_ITEM_GAP = ptToSlideCqw(PDF_SLIDE.precautionItemGap);
+
+/**
+ * SlideCardBody コンポーネントの Props
+ */
+type SlideCardBodyProps = CardBodyProps & {
+  /** 印刷の色づかい（白黒モードの注意点枠線幅を含めた行数計算に使う） */
+  printColorMode: PrintColorMode;
+};
+
+/**
+ * スライド（A4 横・1 ページ 1 運動）の運動カードの中身
+ *
+ * 1 行目に左寄せのタイトル、その下の左の列に画像と用量、右の列に説明と注意点を置く。
+ * 縦横比・左右の列の幅・説明と注意点の行数は PDF と同じ関数で決め、寸法と文字はカードの幅に
+ * 比例させる（コンテナクエリ単位）
+ */
+export function SlideCardBody({
+  item,
+  imageUrl,
+  isImageDragOver,
+  isMobile,
+  onImageAreaClick,
+  layoutType,
+  cardNumber,
+  dosageLabels,
+  inlineEdit,
+  touchHandlers,
+  printColorMode,
+}: SlideCardBodyProps) {
+  const cardSize = getPdfSlideCardSize();
+  const { innerWidth, leftColumnWidth, rightColumnWidth } =
+    getPdfSlideColumns();
+  const minCardContentHeight = ptToSlideCqw(
+    cardSize.height - PDF_CARD_STYLE.borderWidth * 2
+  );
+  const { descriptionLines, precautionLines } = getSlideTextLines(item, {
+    printColorMode,
+  });
+  const hasPrecautions =
+    item.precautions !== undefined && item.precautions.length > 0;
+  const hasDosages =
+    getDosageBadgeLayout(item.dosages, layoutType ?? "slide").length > 0;
+  // 説明・注意点は PDF と同じ位置で切り詰めた文字列を出す（行数で切ると、文字が下限の大きさで
+  // 止まる狭い画面では 1 行の文字数が減り、PDF より手前で切れてしまうため）
+  const precautionTextWidth = getPdfPrecautionTextWidth(
+    rightColumnWidth,
+    printColorMode,
+    PDF_SLIDE.precautionPadding
+  );
+  const formatPrecaution = (value: string) =>
+    getPdfSlidePrecautionText(value, precautionLines, precautionTextWidth);
+
+  return (
+    // 外枠は縦横比だけを決める（文字の下限で中身が溢れたときは縦に伸びる）
+    <div
+      data-testid="slide-card-body"
+      className="@container"
+      style={{ aspectRatio: cardSize.width / cardSize.height }}
+    >
+      <div
+        className="flex flex-col"
+        style={{ padding: SLIDE_PADDING, minHeight: minCardContentHeight }}
+      >
+        {/* タイトル行（左寄せ） */}
+        <div
+          className="shrink-0"
+          style={{ marginBottom: SLIDE_TITLE_MARGIN_BOTTOM }}
+          {...touchHandlers}
+        >
+          <CardTitle
+            title={item.title}
+            cardNumber={cardNumber}
+            inlineEdit={inlineEdit}
+            align="left"
+            style={SLIDE_FONT_STYLE.title}
+          />
+        </div>
+
+        <div
+          className="flex flex-1 items-stretch"
+          style={{ gap: SLIDE_COLUMN_GAP }}
+        >
+          {/* 左の列：画像と用量（用量は画像の下の残り領域で上下中央に配置） */}
+          <div
+            data-testid="slide-left-column"
+            className={cn(
+              "flex shrink-0 flex-col",
+              !hasDosages && "justify-center"
+            )}
+            style={{ width: `${String((leftColumnWidth / innerWidth) * 100)}%` }}
+          >
+            <CardImage
+              itemId={item.id}
+              title={item.title}
+              imageUrl={imageUrl}
+              isDragOver={isImageDragOver}
+              isMobile={isMobile}
+              onImageAreaClick={onImageAreaClick}
+            />
+            {hasDosages ? (
+              <div className="flex flex-1 flex-col justify-center">
+                <CardDosages
+                  dosages={item.dosages}
+                  layoutType={layoutType}
+                  dosageLabels={dosageLabels}
+                  inlineEdit={inlineEdit}
+                  touchHandlers={touchHandlers}
+                  valueStyle={SLIDE_FONT_STYLE.dosageValue}
+                  labelStyle={SLIDE_FONT_STYLE.dosageLabel}
+                  style={SLIDE_DOSAGE_STYLE}
+                  rowStyle={SLIDE_DOSAGE_ROW_STYLE}
+                  labelDividerStyle={SLIDE_DOSAGE_DIVIDER_STYLE}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {/* 右の列：説明と注意点（本体の高さの中で上下中央に配置。長文時は自動的に上下いっぱいに広がる） */}
+          <div
+            data-testid="slide-right-column"
+            className="flex min-w-0 flex-1 flex-col justify-center"
+            {...touchHandlers}
+          >
+            {descriptionLines > 0 ? (
+              <p
+                className="text-muted-foreground whitespace-pre-line wrap-break-word"
+                style={SLIDE_FONT_STYLE.description}
+              >
+                {getPdfSlideDescriptionText(
+                  item.description,
+                  descriptionLines,
+                  rightColumnWidth
+                )}
+              </p>
+            ) : null}
+            {hasPrecautions ? (
+              <CardPrecautions
+                precautions={item.precautions ?? []}
+                // ロングプレスは右の列全体で検知している
+                touchHandlers={{}}
+                // PDF の注意点はスライド専用の間隔（itemGap）で並べる
+                className="space-y-0"
+                style={{
+                  padding: SLIDE_PRECAUTION_PADDING,
+                  // 説明がないときは余白なしで置く
+                  marginTop:
+                    descriptionLines > 0 ? SLIDE_PRECAUTION_MARGIN_TOP : 0,
+                }}
+                // 見出しをブロック要素にし、狭い画面で文字を縮小しても親の line-height（16px）に引っ張られないようにする
+                titleClassName="block"
+                titleStyle={SLIDE_FONT_STYLE.precautionTitle}
+                textStyle={SLIDE_FONT_STYLE.precautionText}
+                itemGap={SLIDE_PRECAUTION_ITEM_GAP}
+                formatText={formatPrecaution}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

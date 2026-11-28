@@ -67,22 +67,13 @@ describe("estimatePdfLayout", () => {
     });
   });
 
-  it("ヘッダーが高くなると 1 ページ目に入る行が減る", () => {
-    const tall = estimate(6, {
-      header: {
-        facilityName: "○○病院",
-        overallNote: "1行目\n2行目\n3行目\n4行目\n5行目",
-      },
-    });
-    expect(tall.firstCardIndexByPage).toEqual([0, 4]);
-  });
-
   it("ページ下端の余裕（8pt）以内に掛かる行は次のページ扱いにする", () => {
-    // ヘッダー = 35 + 施設名の行 16.6 + 全体メモ 4 行 64.4 = 116。3 行目の下端は 757pt で、
-    // コンテンツの高さ 761.89pt には収まるが、余裕 8pt を引いた 753.89pt を超える
-    const nearBottom = estimate(6, {
-      header: { facilityName: "○○病院", overallNote: "1\n2\n3\n4" },
-    });
+    // タイトルのみ 3 行の下端は 675.97pt。2 行分のカードに注意点 1 件（41.98pt）を足すと
+    // 3 行目の下端は 759.94pt で、コンテンツ高 761.89pt には収まるが余裕 8pt を引いた 753.89pt を超える
+    const items = createPlainItems(6).map((item, i) =>
+      i < 4 ? { ...item, precautions: [{ id: `p-${String(i)}`, value: "注意" }] } : item
+    );
+    const nearBottom = estimatePdfLayout(items, resolveProjectSettings({}));
     expect(nearBottom.firstCardIndexByPage).toEqual([0, 4]);
   });
 
@@ -116,5 +107,54 @@ describe("estimatePdfLayout", () => {
 
   it("カードがなければ 1 ページ", () => {
     expect(estimate(0).pageCount).toBe(1);
+  });
+});
+
+describe("estimatePdfLayout（スライド）", () => {
+  it("文字数によらず、カード 1 枚が 1 ページになる", () => {
+    const items = Array.from({ length: 3 }, (_, i) =>
+      createTestItem({
+        id: `item-${String(i)}`,
+        order: i,
+        description: "あ".repeat(200),
+        precautions: Array.from({ length: 5 }, (_p, j) => ({
+          id: `p${String(j)}`,
+          value: "い".repeat(50),
+        })),
+      })
+    );
+    const settings = resolveProjectSettings({
+      layoutType: "slide",
+    });
+
+    expect(estimatePdfLayout(items, settings)).toEqual({
+      pageCount: 3,
+      firstCardIndexByPage: [0, 1, 2],
+      checkTablePage: null,
+    });
+  });
+
+  it.each(["weekly", "monthly"] as const)(
+    "チェック表（%s）はカードの後ろの別ページになる",
+    (checkTable) => {
+      expect(estimate(3, { layoutType: "slide", checkTable })).toEqual({
+        pageCount: 4,
+        firstCardIndexByPage: [0, 1, 2],
+        checkTablePage: 4,
+      });
+    }
+  );
+
+  it("カードがなければヘッダーだけの 1 ページ（チェック表があれば 2 ページ目）", () => {
+    expect(estimate(0, { layoutType: "slide" })).toEqual({
+      pageCount: 1,
+      firstCardIndexByPage: [0],
+      checkTablePage: null,
+    });
+    expect(estimate(0, { layoutType: "slide", checkTable: "weekly" })).toEqual({
+      pageCount: 2,
+      firstCardIndexByPage: [0],
+      checkTablePage: 2,
+    });
   });
 });

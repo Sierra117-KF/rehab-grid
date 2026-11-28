@@ -381,7 +381,7 @@ type TemplateMetadata = {
 | `export.ts` | `exportToJSON()`, `exportToZIP()`, `importProject()` | プロジェクトのエクスポート・インポート |
 | `externalLink.ts` | `isAllowedExternalUrl()` | 外部リンク検証 |
 | `image.ts` | `processAndSaveImage()`, `isValidImageBlob()`, `partitionImageIds()` | 画像処理・検証 |
-| `imageEdit.ts` | `flipAndSaveImage()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
+| `imageEdit.ts` | `loadImageEditSource()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
 | `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()`, `preparePdfGenerationData()` | PDF レイアウト計算・生成データ準備 |
 | `project.ts` | `applyImportResult()` | インポート／テンプレート結果を指定 ID で IndexedDB に保存（ストアへの反映は `openImportResult`） |
 | `search.ts` | `normalizeSearchText()`, `matchesSearchQuery()` | 表記揺れを吸収したキーワード検索 |
@@ -513,12 +513,12 @@ type ProjectSettings = {
   pageOrientation?: PageOrientation;     // "auto" | "portrait" | "landscape"
   showCardNumbers?: boolean;
   dosageLabels?: Partial<DosageLabels>;  // { reps, sets, frequency }
-  header?: Partial<SheetHeaderSettings>; // 氏名欄・日付欄・施設名・担当者名・全体メモ
+  header?: Partial<SheetHeaderSettings>; // 氏名欄・日付欄
   checkTable?: CheckTableType;           // "none" | "weekly" | "monthly"
 };
 
 // ストアと PDF 生成では resolveProjectSettings() でデフォルト値を補った ResolvedProjectSettings を使用
-type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
+type LayoutType = "grid1" | "grid2" | "grid3" | "grid4" | "slide"; // slide: A4 横 1 ページに横長カード 1 枚
 ```
 
 ---
@@ -532,17 +532,17 @@ type LayoutType = "grid1" | "grid2" | "grid3" | "grid4";
 ```
 lib/pdf/
 ├── index.ts      # buildPdfDocument を export
-├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる）
-├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）
-├── header.ts     # createHeader（タイトル・日付欄・氏名欄・施設名／担当者名・全体メモ。1ページ目のみ）
+├── document.ts   # buildPdfDocument（設定の不正値は resolveProjectSettings で補う。カードは列数ごとの行 View（wrap={false}）にまとめる。スライドはカード 1 枚ごとに Page を作る）
+├── card.ts       # createCard（画像・タイトル・説明・用量・注意点。用量の区切り線はテーマカラー）、createSlideCard（スライドの横長カード。左に画像と用量、右に説明と注意点）
+├── header.ts     # createHeader（タイトル・日付欄・氏名欄。1ページ目のみ。スライドは全ページ）
 ├── footer.ts     # createFooter（2ページ以上のときのページ番号。fixed で全ページに描画）
-├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ、1か月は A4 横の別ページ）
-├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・ヘッダーの高さの計算
-├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード）
+├── checkTable.ts # 自主トレ実施チェック表（1週間はカードの後ろ（スライドはヘッダー付きの別ページ）、1か月は A4 横の別ページ）
+├── metrics.ts    # 画像サイズ・フォントサイズ・文字幅による折り返しと切り詰め・スライドのカード寸法と説明／注意点の行数（getPdfSlideCardSize / getPdfSlideColumns / getSlideTextLines）の計算
+├── layout.ts     # estimatePdfLayout（A4 ページ収容の見積もり：ページ数と各ページの先頭のカード。スライドは 1 カード 1 ページ）
 └── styles.ts     # StyleSheet 定義
 ```
 
-`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。ただし `layout.ts`（と `metrics.ts`）は依存しないため、エディタのメインスレッドから `@rehab-grid/core/lib/pdf/layout` で直接読み込む。見積もりと実際の PDF の一致は `tests/lib/pdf/layout.render.test.ts`（実際のフォントで react-pdf のレイアウトを計算する）で確かめている。
+`lib/pdf` は `@react-pdf/renderer` に依存するため、ルートの `index.ts` からは export していない（`@rehab-grid/core/lib/pdf` で読み込む）。ただし `layout.ts`（と `metrics.ts`）は依存しないため、エディタのメインスレッドから `@rehab-grid/core/lib/pdf/layout`（スライドの寸法・行数は `@rehab-grid/core/lib/pdf/metrics`）で直接読み込む。見積もりと実際の PDF の一致は `tests/lib/pdf/layout.render.test.ts`（実際のフォントで react-pdf のレイアウトを計算する）で確かめている。
 
 ```typescript
 // Worker へのメッセージ

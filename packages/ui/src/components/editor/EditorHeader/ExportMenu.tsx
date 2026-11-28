@@ -4,9 +4,9 @@ import {
   BACKUP_EXPORT_ALL_LABEL,
   BACKUP_MENU_ALL_SECTION,
   BACKUP_MENU_CURRENT_SECTION,
-  BACKUP_RESTORE_LABEL,
-  BUTTON_BACKUP,
   EXPORT_JSON_LABEL,
+  EXPORT_MENU_LABEL,
+  EXPORT_MENU_TOOLTIP,
   EXPORT_ZIP_LABEL,
 } from "@rehab-grid/core/lib/constants";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@rehab-grid/ui/components/wrapped/DropdownMenu";
 import {
-  ArchiveRestore,
+  ChevronDown,
   Download,
   FileJson,
   FolderArchive,
@@ -36,24 +36,18 @@ export type ExportMenuProps = {
   onExportZIP: () => void;
   /** 全データ・マイライブラリをまとめてバックアップするダイアログを開く */
   onExportBackup: () => void;
-  /** バックアップZIPから復元するファイル選択を開く */
-  onRestoreBackup: () => void;
-  /** インポート・復元読み込み中か */
-  isImporting?: boolean;
 };
 
 /**
- * エクスポート・バックアップメニューコンポーネント
+ * 書き出しメニューコンポーネント
  *
- * 単一指導箋の JSON / ZIP 書き出しと、
- * 端末内の全データ一括バックアップ・復元のドロップダウンメニューを提供する。
+ * 単一指導箋の JSON / ZIP 書き出しと、端末内の全データ一括バックアップの
+ * ドロップダウンメニューを提供する。読み込み（復元を含む）はヘッダーの「読み込み」ボタンが担う。
  */
 export function ExportMenu({
   onExportJSON: handleExportJSON,
   onExportZIP: handleExportZIP,
   onExportBackup: handleExportBackup,
-  onRestoreBackup: handleRestoreBackup,
-  isImporting = false,
 }: ExportMenuProps) {
   return (
     <DropdownMenu>
@@ -61,13 +55,17 @@ export function ExportMenu({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground"
-          title={BUTTON_BACKUP}
-          aria-label={BUTTON_BACKUP}
+          className="group gap-1.5 text-muted-foreground hover:text-foreground"
+          title={EXPORT_MENU_TOOLTIP}
+          aria-label={EXPORT_MENU_LABEL}
         >
           <Download className="size-4 text-amber-500" />
           {/* ヘッダーに余裕のない幅（xl 未満）ではアイコンのみ */}
-          <span className="hidden xl:inline">{BUTTON_BACKUP}</span>
+          <span className="hidden xl:inline">{EXPORT_MENU_LABEL}</span>
+          <ChevronDown
+            className="size-3.5 text-muted-foreground/80 transition-transform duration-200 group-data-[state=open]:rotate-180"
+            aria-hidden="true"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
@@ -91,13 +89,6 @@ export function ExportMenu({
         <DropdownMenuItem onClick={handleExportBackup}>
           <Package className="mr-2 size-4 text-amber-600" />
           <span>{BACKUP_EXPORT_ALL_LABEL}</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleRestoreBackup}
-          disabled={isImporting}
-        >
-          <ArchiveRestore className="mr-2 size-4 text-emerald-600" />
-          <span>{BACKUP_RESTORE_LABEL}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -4,16 +4,14 @@ import {
   CHECK_TABLE_LABEL,
   DESIGN_SETTINGS_DESCRIPTION,
   DESIGN_SETTINGS_LABEL,
-  DESIGN_SETTINGS_SHEET_HEADING,
   PAGE_ORIENTATION_NARROW_NOTE,
   PAGE_ORIENTATION_SINGLE_COLUMN_NOTE,
+  PAGE_ORIENTATION_SLIDE_NOTE,
   PATIENT_NAME_BOX_TOGGLE_LABEL,
-  PROPERTY_PANEL_WARNING,
   SHEET_DATE_MODE_LABEL,
-  SHEET_FACILITY_NAME_LABEL,
-  SHEET_OVERALL_NOTE_LABEL,
-  SHEET_OVERALL_NOTE_PLACEHOLDER,
+  SHEET_HEADER_SLIDE_NOTE,
   TEXT_SCALE_SINGLE_COLUMN_NOTE,
+  TEXT_SCALE_SLIDE_NOTE,
   THEME_COLOR_HEX_INVALID_MESSAGE,
   THEME_COLOR_HEX_LABEL,
   THEME_COLOR_MONOCHROME_NOTE,
@@ -70,7 +68,9 @@ describe("DesignSettingsDialog", () => {
       screen.getByRole("heading", { name: DESIGN_SETTINGS_LABEL })
     ).toBeInTheDocument();
     expect(screen.getByText(DESIGN_SETTINGS_DESCRIPTION)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "列数" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "レイアウト" })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: "テーマカラー" })
     ).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("DesignSettingsDialog", () => {
     expect(screen.queryByText(DESIGN_SETTINGS_LABEL)).not.toBeInTheDocument();
   });
 
-  describe("列数", () => {
+  describe("レイアウト", () => {
     it("現在の列数が選択状態になり、枠線色のクラスが切り替わる", () => {
       setupDialog({ layoutType: "grid3" });
 
@@ -111,6 +111,59 @@ describe("DesignSettingsDialog", () => {
         layoutType: "grid4",
       });
       expect(props.onOpenChange).not.toHaveBeenCalled();
+    });
+
+    it("「スライド」を選ぶと layoutType に slide が渡される", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog();
+
+      await user.click(getSectionButton("レイアウト", "スライド"));
+
+      expect(props.onSettingsChange).toHaveBeenCalledWith({
+        layoutType: "slide",
+      });
+    });
+  });
+
+  describe("スライド", () => {
+    it("用紙の向きは「横」を選択表示し、「自動」「縦」は選べず、理由を表示する", () => {
+      setupDialog({ layoutType: "slide", pageOrientation: "auto" });
+
+      const landscape = getSectionButton("用紙の向き（PDF）", "横");
+      expect(landscape).toHaveAttribute("aria-pressed", "true");
+      expect(landscape).toBeEnabled();
+      expect(getSectionButton("用紙の向き（PDF）", "自動")).toBeDisabled();
+      expect(getSectionButton("用紙の向き（PDF）", "縦")).toBeDisabled();
+      expect(screen.getByText(PAGE_ORIENTATION_SLIDE_NOTE)).toBeInTheDocument();
+    });
+
+    it("「横」を押しても保存してある向きを書き換えない", async () => {
+      const user = userEvent.setup();
+      const { props } = setupDialog({
+        layoutType: "slide",
+        pageOrientation: "portrait",
+      });
+
+      await user.click(getSectionButton("用紙の向き（PDF）", "横"));
+
+      expect(props.onSettingsChange).not.toHaveBeenCalled();
+    });
+
+    it("文字サイズとヘッダーの扱いの注記を表示する", () => {
+      setupDialog({ layoutType: "slide" });
+
+      expect(screen.getByText(TEXT_SCALE_SLIDE_NOTE)).toBeInTheDocument();
+      expect(screen.getByText(SHEET_HEADER_SLIDE_NOTE)).toBeInTheDocument();
+    });
+
+    it("スライド以外では注記を表示しない", () => {
+      setupDialog({ layoutType: "grid2" });
+
+      expect(
+        screen.queryByText(PAGE_ORIENTATION_SLIDE_NOTE)
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(TEXT_SCALE_SLIDE_NOTE)).not.toBeInTheDocument();
+      expect(screen.queryByText(SHEET_HEADER_SLIDE_NOTE)).not.toBeInTheDocument();
     });
   });
 
@@ -389,16 +442,6 @@ describe("DesignSettingsDialog", () => {
   describe("ヘッダー・チェック表（PDF）", () => {
     const defaultHeader = resolveProjectSettings(undefined).header;
 
-    it("個人情報の入力禁止の注意書きを表示する", () => {
-      setupDialog();
-
-      expect(
-        within(
-          screen.getByRole("region", { name: DESIGN_SETTINGS_SHEET_HEADING })
-        ).getByText(PROPERTY_PANEL_WARNING)
-      ).toBeInTheDocument();
-    });
-
     it("氏名欄のチェックを外すと showPatientNameBox: false のヘッダーが渡される", async () => {
       const user = userEvent.setup();
       const { props } = setupDialog();
@@ -407,10 +450,9 @@ describe("DesignSettingsDialog", () => {
         screen.getByRole("checkbox", { name: PATIENT_NAME_BOX_TOGGLE_LABEL })
       );
 
-      expect(props.onSettingsChange).toHaveBeenCalledWith(
-        { header: { ...defaultHeader, showPatientNameBox: false } },
-        undefined
-      );
+      expect(props.onSettingsChange).toHaveBeenCalledWith({
+        header: { ...defaultHeader, showPatientNameBox: false },
+      });
     });
 
     it("日付欄「記入欄」を選ぶと dateMode が渡される", async () => {
@@ -423,33 +465,9 @@ describe("DesignSettingsDialog", () => {
         ).getByRole("button", { name: "記入欄" })
       );
 
-      expect(props.onSettingsChange).toHaveBeenCalledWith(
-        { header: { ...defaultHeader, dateMode: "blank" } },
-        undefined
-      );
-    });
-
-    it("施設名は入力のたびに、項目ごとの mergeKey 付きで反映する", async () => {
-      const user = userEvent.setup();
-      const { props } = setupDialog();
-
-      await user.type(
-        screen.getByRole("textbox", { name: SHEET_FACILITY_NAME_LABEL }),
-        "A"
-      );
-
-      expect(props.onSettingsChange).toHaveBeenLastCalledWith(
-        { header: { ...defaultHeader, facilityName: "A" } },
-        { mergeKey: "settings:header:facilityName" }
-      );
-    });
-
-    it("全体メモのプレースホルダーで、病名・個人情報を書かないよう案内する", () => {
-      setupDialog();
-
-      expect(
-        screen.getByRole("textbox", { name: SHEET_OVERALL_NOTE_LABEL })
-      ).toHaveAttribute("placeholder", SHEET_OVERALL_NOTE_PLACEHOLDER);
+      expect(props.onSettingsChange).toHaveBeenCalledWith({
+        header: { ...defaultHeader, dateMode: "blank" },
+      });
     });
 
     it("実施チェック表「1か月」を選ぶと checkTable が渡される", async () => {

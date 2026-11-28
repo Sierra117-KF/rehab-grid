@@ -5,7 +5,7 @@ import {
   BUTTON_DELETE,
   createProjectDeleteConfirmDescription,
   DEFAULT_PROJECT_TITLE,
-  LAYOUT_COLUMNS,
+  getLayoutLabel,
   PROJECT_CREATE_SUCCESS_MESSAGE,
   PROJECT_DELETE_CONFIRM_TITLE,
   PROJECT_DELETE_SUCCESS_MESSAGE,
@@ -159,8 +159,7 @@ function ProjectRow({
             </span>{" "}
             <span className="whitespace-nowrap">
               ・ {project.cardCount}
-              {TEMPLATE_CARD_COUNT_LABEL} ・ {LAYOUT_COLUMNS[project.layoutType]}
-              列
+              {TEMPLATE_CARD_COUNT_LABEL} ・ {getLayoutLabel(project.layoutType)}
             </span>
           </span>
         </span>

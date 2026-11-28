@@ -26,9 +26,6 @@ const DEFAULT_PRINT_STYLE = {
   header: {
     showPatientNameBox: true,
     dateMode: "none",
-    facilityName: "",
-    therapistName: "",
-    overallNote: "",
   },
   checkTable: "none",
 } satisfies Partial<ResolvedProjectSettings>;
@@ -898,30 +895,13 @@ describe("useEditorStore", () => {
     it("ヘッダーの項目は中身が同じなら、新しいオブジェクトでも履歴を積まない", () => {
       const header = {
         ...DEFAULT_PRINT_STYLE.header,
-        facilityName: "○○病院",
+        dateMode: "blank" as const,
       };
       useEditorStore.getState().updateSettings({ header });
       useEditorStore.getState().updateSettings({ header: { ...header } });
 
       const state = useEditorStore.getState();
-      expect(state.settings.header.facilityName).toBe("○○病院");
-      expect(state.past).toHaveLength(1);
-    });
-
-    it("ヘッダーの同じ項目への連続入力は mergeKey で 1 件の履歴にまとまる", () => {
-      const { updateSettings } = useEditorStore.getState();
-      const mergeKey = "settings:header:facilityName";
-      updateSettings(
-        { header: { ...DEFAULT_PRINT_STYLE.header, facilityName: "○" } },
-        { mergeKey }
-      );
-      updateSettings(
-        { header: { ...DEFAULT_PRINT_STYLE.header, facilityName: "○○" } },
-        { mergeKey }
-      );
-
-      const state = useEditorStore.getState();
-      expect(state.settings.header.facilityName).toBe("○○");
+      expect(state.settings.header.dateMode).toBe("blank");
       expect(state.past).toHaveLength(1);
     });
 

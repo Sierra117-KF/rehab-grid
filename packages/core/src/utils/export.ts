@@ -20,6 +20,7 @@ import {
 } from "@rehab-grid/core/lib/constants";
 import { getImages } from "@rehab-grid/core/lib/db";
 import { projectFileSchema } from "@rehab-grid/core/lib/schemas";
+import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type ImportResult, type ProjectFile } from "@rehab-grid/core/types";
 import type JSZip from "jszip";
 import { nanoid } from "nanoid";
@@ -60,7 +61,7 @@ export function exportToJSON(project: ProjectFile): string {
       version: APP_VERSION,
       updatedAt: new Date().toISOString(),
     },
-    settings: project.settings,
+    settings: resolveProjectSettings(project.settings),
     items: project.items.map((item) => ({
       ...item,
       // 軽量JSONでは画像を含まない
@@ -159,7 +160,7 @@ export async function exportToZIP(
       version: APP_VERSION,
       updatedAt: new Date().toISOString(),
     },
-    settings: project.settings,
+    settings: resolveProjectSettings(project.settings),
     items: project.items.map((item) => ({
       ...item,
       // 画像IDを相対パスに変換（存在しない場合は空文字列）

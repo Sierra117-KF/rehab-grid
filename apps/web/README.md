@@ -168,7 +168,7 @@ pnpm copy-assets
 | --------------------------------------- | ------------------------ |
 | `db.browser.test.ts`                    | IndexedDB操作            |
 | `delete-project.browser.test.tsx`       | プロジェクト削除         |
-| `design-settings.browser.test.tsx`      | デザイン設定（列数・色等） |
+| `design-settings.browser.test.tsx`      | デザイン設定（レイアウト・色等） |
 | `dnd.browser.test.tsx`                  | ドラッグ&ドロップ        |
 | `export-zip.browser.test.ts`            | ZIPエクスポート          |
 | `image-edit.browser.test.ts`            | 画像編集（反転・回転等） |

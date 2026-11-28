@@ -29,12 +29,6 @@ export const TEXT_LIMITS = {
   frequency: 10,
   /** 用量ラベル（「回数」などの欄の名前）1 つあたりの最大文字数 */
   dosageLabel: 6,
-  /** 病院・施設名（PDF ヘッダー）の最大文字数 */
-  facilityName: 30,
-  /** 担当者名（PDF ヘッダー）の最大文字数 */
-  therapistName: 20,
-  /** 全体メモ（PDF ヘッダー）の最大文字数 */
-  overallNote: 150,
 } as const;
 
 /**
@@ -61,12 +55,15 @@ export const LABELS = {
 
 /**
  * レイアウトタイプに対応するグリッド列数
+ *
+ * スライドは 1 ページに 1 枚のため 1 列として扱う
  */
 export const LAYOUT_COLUMNS: Record<LayoutType, number> = {
   grid1: 1,
   grid2: 2,
   grid3: 3,
   grid4: 4,
+  slide: 1,
 } as const;
 
 /**
@@ -134,6 +131,27 @@ export const FONT_SIZES_SINGLE_COLUMN = {
   precautionTitle: 14,
   /** 注意点テキストのフォントサイズ（8pt → 14pt） */
   precautionText: 14,
+} as const;
+
+/**
+ * スライド用フォントサイズ定義（ポイント単位）
+ *
+ * A4 横 1 ページに横長カード 1 枚を置く slide レイアウト時のみ使用（文字サイズの設定は使わない）。
+ * 説明と注意点は右の列に収めるため、1 列より少し小さくしている
+ */
+export const FONT_SIZES_SLIDE = {
+  /** タイトルのフォントサイズ */
+  title: 24,
+  /** 説明文のフォントサイズ */
+  description: 14,
+  /** 用量数値のフォントサイズ */
+  dosageValue: 28,
+  /** 用量ラベルのフォントサイズ */
+  dosageLabel: 12,
+  /** 注意点タイトルのフォントサイズ */
+  precautionTitle: 13,
+  /** 注意点テキストのフォントサイズ */
+  precautionText: 13,
 } as const;
 
 /**

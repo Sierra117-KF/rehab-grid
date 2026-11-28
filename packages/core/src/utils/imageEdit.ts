@@ -356,22 +356,6 @@ export function isTinyAnnotation(
 }
 
 /**
- * クイック左右反転で使う操作を決める
- *
- * @remarks
- * サンプル画像はすべて「左＝開始肢位、右＝終了肢位」の 2 コマ構成のため、
- * 全体を反転するとコマの順番まで逆になる。サンプル画像は 2 コマずつ、取り込み画像は全体を反転する
- *
- * @param imageId - 画像ID
- * @returns 反転の操作
- */
-export function getQuickFlipOperation(
-  imageId: string
-): Extract<OrientationOperation, "flipWhole" | "flipPanels"> {
-  return isSampleImage(imageId) ? "flipPanels" : "flipWhole";
-}
-
-/**
  * 編集した画像の保存名を作る
  *
  * @remarks
@@ -705,21 +689,4 @@ export async function saveEditedImage(
   const imageId = nanoid();
   await saveImage(imageId, blob, getEditedImageName(displayName));
   return imageId;
-}
-
-/**
- * 画像を左右反転して新しい画像として保存する（クイック左右反転）
- *
- * @remarks
- * 反転の方法は `getQuickFlipOperation` で決める（サンプル画像は 2 コマずつ）
- *
- * @param imageId - 反転する画像のID
- * @returns 新しい画像ID
- * @throws 読み込み・エンコード・保存に失敗した場合
- */
-export async function flipAndSaveImage(imageId: string): Promise<string> {
-  const { image, displayName } = await loadImageEditSource(imageId);
-  const flipped = applyOrientation(image, getQuickFlipOperation(imageId));
-  const blob = await createEditedImageBlob(flipped, null, []);
-  return saveEditedImage(blob, displayName);
 }

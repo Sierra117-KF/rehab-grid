@@ -83,9 +83,6 @@ const TEST_DATA: PdfGenerationData = {
     header: {
       showPatientNameBox: true,
       dateMode: "none",
-      facilityName: "",
-      therapistName: "",
-      overallNote: "",
     },
     checkTable: "none",
   },
@@ -148,7 +145,7 @@ describe("pdf.worker.ts", () => {
       });
     });
 
-    it("CJK文字を含む単語は文字単位で分割され、半角のみの単語は分割されない", async () => {
+    it("CJK文字・全角英数字を含む単語は文字単位で分割され、半角のみの単語は分割されない", async () => {
       await registerFonts();
 
       const callback = mockFontRegisterHyphenationCallback.mock.calls[0]?.[0] as
@@ -156,6 +153,7 @@ describe("pdf.worker.ts", () => {
         | undefined;
       expect(callback).toBeDefined();
       expect(callback!("日本語")).toEqual(["日", "", "本", "", "語", ""]);
+      expect(callback!("ｒｑ")).toEqual(["ｒ", "", "ｑ", ""]);
       expect(callback!("Hello")).toEqual(["Hello"]);
     });
 

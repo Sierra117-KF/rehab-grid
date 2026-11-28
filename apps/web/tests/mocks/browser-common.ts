@@ -201,9 +201,6 @@ const DEFAULT_TEST_SETTINGS: ResolvedProjectSettings = {
   header: {
     showPatientNameBox: true,
     dateMode: "none",
-    facilityName: "",
-    therapistName: "",
-    overallNote: "",
   },
   checkTable: "none",
 };

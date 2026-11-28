@@ -18,6 +18,7 @@ import {
   PDF_DEFAULT_LINE_HEIGHT,
   PDF_GRID_GAP,
   PDF_HALF_WIDTH_CHAR_RATIO,
+  PDF_HEADER_HEIGHT,
   PDF_PAGE_ESTIMATE_MARGIN,
   PDF_SPACING,
   TEXT_LIMITS,
@@ -32,7 +33,6 @@ import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import { calculatePdfCardWidth } from "@rehab-grid/core/utils/pdf";
 
 import {
-  calculatePdfHeaderHeight,
   countPdfTextLines,
   fitPdfFontSizeToSingleLine,
   getPdfCardDescriptionText,
@@ -41,6 +41,7 @@ import {
   getPdfCardNumberBadgeSize,
   getPdfCardPrecautionText,
   getPdfDosageItemWidth,
+  getPdfPrecautionTextWidth,
   type PdfCardFontSizes,
 } from "./metrics";
 
@@ -197,20 +198,18 @@ export function estimatePdfCardHeight(
 
   if (item.precautions && item.precautions.length > 0) {
     // 白黒モードは注意点を枠線で囲む
-    const borderWidth =
-      printColorMode === "monochrome" ? PDF_SPACING.precautionBorderWidth : 0;
-    const textWidth =
-      contentWidth - (PDF_SPACING.precautionPadding + borderWidth) * 2;
+    const textWidth = getPdfPrecautionTextWidth(contentWidth, printColorMode);
+    const boxInset = (contentWidth - textWidth) / 2;
     height +=
       PDF_SPACING.precautionMarginTop +
-      (PDF_SPACING.precautionPadding + borderWidth) * 2 +
+      boxInset * 2 +
       fontSizes.precautionTitle * PDF_DEFAULT_LINE_HEIGHT +
       PDF_SPACING.precautionTitleMarginBottom;
     for (const precaution of item.precautions) {
       const lines = countPdfTextLines(
         getPdfCardPrecautionText(
           precaution.value,
-          contentWidth,
+          textWidth,
           fontSizes.precautionText
         ),
         textWidth,
@@ -242,6 +241,32 @@ function estimateWeeklyCheckTableHeight(itemCount: number): number {
 }
 
 /**
+ * スライド（1 ページ 1 運動）のページ数を求める
+ *
+ * カードの大きさは固定のため、文字数によらずカード 1 枚が 1 ページになる（カードがなければヘッダーだけの 1 ページ）。
+ * 実施チェック表は 1週間・1か月とも最後の別ページに置く（document.ts の buildSlidePages）。
+ *
+ * @param itemCount - カードの枚数
+ * @param checkTable - 実施チェック表の種類
+ * @returns ページ収容の見積もり
+ */
+function estimateSlideLayout(
+  itemCount: number,
+  checkTable: ResolvedProjectSettings["checkTable"]
+): PdfLayoutEstimate {
+  const cardPageCount = Math.max(1, itemCount);
+  const checkTablePage = checkTable === "none" ? null : cardPageCount + 1;
+  return {
+    pageCount: checkTablePage ?? cardPageCount,
+    firstCardIndexByPage: Array.from(
+      { length: cardPageCount },
+      (_, index) => index
+    ),
+    checkTablePage,
+  };
+}
+
+/**
  * PDF が何ページになるかを見積もる
  *
  * @remarks
@@ -260,6 +285,10 @@ export function estimatePdfLayout(
   settings: ResolvedProjectSettings
 ): PdfLayoutEstimate {
   const { layoutType, pageOrientation, checkTable } = settings;
+  if (layoutType === "slide") {
+    return estimateSlideLayout(items.length, checkTable);
+  }
+
   const columns = LAYOUT_COLUMNS[layoutType];
   const cardWidth = calculatePdfCardWidth(layoutType, pageOrientation);
   const contentHeight = getPdfContentSize(layoutType, pageOrientation).height;
@@ -268,7 +297,7 @@ export function estimatePdfLayout(
 
   const firstCardIndexByPage = [0];
   // 現在のページで使った高さ（1 ページ目はヘッダーの分から始める）
-  let used = calculatePdfHeaderHeight(settings);
+  let used: number = PDF_HEADER_HEIGHT;
   let rowsOnPage = 0;
 
   /**

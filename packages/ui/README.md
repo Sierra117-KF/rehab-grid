@@ -21,11 +21,18 @@ packages/ui/
 │   │   │   ├── Canvas/             # D&Dグリッド
 │   │   │   │   ├── index.tsx
 │   │   │   │   ├── AutoFitText.tsx
+│   │   │   │   ├── CardDosages.tsx      # カードの部品（縦型・スライドで共用）
+│   │   │   │   ├── CardImage.tsx
+│   │   │   │   ├── CardPrecautions.tsx
+│   │   │   │   ├── CardTitle.tsx
 │   │   │   │   ├── EmptyState.tsx
 │   │   │   │   ├── InlineEditInput.tsx
 │   │   │   │   ├── PageEstimateBadge.tsx
 │   │   │   │   ├── SheetSummary.tsx
-│   │   │   │   └── SortableCard.tsx
+│   │   │   │   ├── SlideCardBody.tsx    # スライドの横長カードの中身
+│   │   │   │   ├── SortableCard.tsx     # 外側（ドラッグ・選択・画像ドロップ・操作ボタン）
+│   │   │   │   ├── VerticalCardBody.tsx # 1〜4列の縦型カードの中身
+│   │   │   │   └── cardTypes.ts         # 中身の部品の共通 props
 │   │   │   ├── EditorHeader/       # ヘッダーメニュー群
 │   │   │   │   ├── index.tsx
 │   │   │   │   ├── ExportMenu.tsx
@@ -137,10 +144,10 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 
 | コンポーネント | 説明 | サブコンポーネント |
 |--------------|------|------------------|
-| `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド（インライン編集・A4収容ガイド・用量自動縮小対応） | `AutoFitText`, `EmptyState`, `InlineEditInput`, `PageEstimateBadge`, `SheetSummary`, `SortableCard` |
+| `Canvas` | @dnd-kit統合ドラッグ&ドロップグリッド（インライン編集・A4収容ガイド・用量自動縮小対応） | `AutoFitText`, `CardDosages`, `CardImage`, `CardPrecautions`, `CardTitle`, `EmptyState`, `InlineEditInput`, `PageEstimateBadge`, `SheetSummary`, `SlideCardBody`, `SortableCard`, `VerticalCardBody` |
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー | `ExportMenu`, `ImportConfirmDialog`, `PdfMenu`, `ProjectInfo`, `MobileEditorMenu` |
 | `ImageLibraryPanel` | 画像アップロード・管理・検索・一括削除（他の指導箋で使われている画像は削除確認で警告） | `BulkDeleteControls`, `CategoryFilter`, `ImageDropzone`, `ImageSearchInput`, `ThumbnailCard`, `ThumbnailGrid`, `MobileImageButtons`, `UsedInOtherProjectsWarning` |
-| `DesignSettingsDialog` | デザイン設定（列数・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
+| `DesignSettingsDialog` | デザイン設定（レイアウト（1〜4列・スライド）・用紙の向き・プリセット・テーマカラー・印刷の色・文字サイズ・カード番号・用量ラベル・PDF のヘッダーと実施チェック表）。開閉と初期セクションは `useModalStore` | `GridLayoutSelector`, `ThemeColorSelector`, `OptionButtonGroup`, `DosageLabelSettings`, `SheetSettings` |
 | `ImageEditModal` | カード画像の編集（左右反転・90°回転・5:3 トリミング・矢印/丸/四角の注釈） | - |
 | `PdfPreviewModal` | PDFプレビュー表示 | - |
 | `ExerciseCardLibraryModal` | マイ運動（保存したカードの一覧・検索・追加・削除） | - |

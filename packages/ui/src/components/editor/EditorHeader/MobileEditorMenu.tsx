@@ -4,16 +4,16 @@ import {
   BACKUP_EXPORT_ALL_LABEL,
   BACKUP_MENU_ALL_SECTION,
   BACKUP_MENU_CURRENT_SECTION,
-  BACKUP_RESTORE_LABEL,
-  BUTTON_BACKUP,
   DESIGN_SETTINGS_LABEL,
   EXERCISE_CARD_ADD_BUTTON_LABEL,
   EXPORT_JSON_LABEL,
+  EXPORT_MENU_LABEL,
   EXPORT_ZIP_LABEL,
+  getLayoutLabel,
   HOME_LINK_TOOLTIP,
   IMPORT_LOADING_LABEL,
+  IMPORT_OPEN_DESCRIPTION,
   IMPORT_OPEN_LABEL,
-  LAYOUT_COLUMNS,
   PROJECT_DELETE_TOOLTIP,
   PROJECT_LIST_LABEL,
   REDO_LABEL,
@@ -24,7 +24,6 @@ import { cn } from "@rehab-grid/core/lib/utils";
 import type { LayoutType } from "@rehab-grid/core/types";
 import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import {
-  ArchiveRestore,
   Bookmark,
   ChevronDown,
   ChevronRight,
@@ -67,7 +66,7 @@ type MobileEditorMenuProps = {
   onTemplateClick: () => void;
   /** マイ運動モーダルを開く */
   onExerciseCardsClick: () => void;
-  /** ファイルを開くダイアログを開く */
+  /** 読み込むファイルの選択ダイアログを開く（指導箋ファイル・バックアップ ZIP 共通） */
   onOpenClick: () => void;
   /** インポート中かどうか */
   isImporting: boolean;
@@ -77,8 +76,6 @@ type MobileEditorMenuProps = {
   onExportZIP: () => void;
   /** 全データまとめてバックアップダイアログを開く */
   onExportBackup: () => void;
-  /** バックアップから復元ファイル選択を開く */
-  onRestoreBackup: () => void;
   /** プロジェクト削除ダイアログを開く */
   onDeleteProject: () => void;
   /** メニューを閉じる */
@@ -91,12 +88,16 @@ type MobileEditorMenuProps = {
 type MenuItemProps = {
   icon: React.ElementType;
   label: string;
+  /** ラベルの下に表示する補足テキスト */
+  description?: string;
   onClick: () => void;
   disabled?: boolean;
   variant?: "default" | "destructive";
   rightContent?: React.ReactNode;
   /** アイコンのカラークラス（例: text-sky-500） */
   iconColor?: string;
+  /** アイコンに追加するクラス（例: animate-spin） */
+  iconClassName?: string;
 };
 
 /**
@@ -106,11 +107,13 @@ function MenuItem(props: MenuItemProps) {
   const {
     icon,
     label,
+    description,
     onClick,
     disabled = false,
     variant = "default",
     rightContent,
     iconColor,
+    iconClassName,
   } = props;
 
   // Reactコンポーネントとして使用するためPascalCaseで別名定義
@@ -135,10 +138,18 @@ function MenuItem(props: MenuItemProps) {
           "size-5 shrink-0",
           variant === "destructive"
             ? "text-destructive"
-            : (iconColor ?? "text-muted-foreground")
+            : (iconColor ?? "text-muted-foreground"),
+          iconClassName
         )}
       />
-      <span className="flex-1">{label}</span>
+      <span className="flex flex-1 flex-col">
+        <span>{label}</span>
+        {description !== undefined && description !== "" ? (
+          <span className="text-xs font-normal text-muted-foreground">
+            {description}
+          </span>
+        ) : null}
+      </span>
       {rightContent}
     </button>
   );
@@ -165,7 +176,6 @@ export function MobileEditorMenu({
   onExportJSON,
   onExportZIP,
   onExportBackup,
-  onRestoreBackup,
   onDeleteProject,
   onClose,
 }: MobileEditorMenuProps) {
@@ -253,14 +263,6 @@ export function MobileEditorMenu({
   }, [onClose, onExportBackup]);
 
   /**
-   * バックアップから復元クリックハンドラ
-   */
-  const handleRestoreBackup = useCallback(() => {
-    onClose();
-    onRestoreBackup();
-  }, [onClose, onRestoreBackup]);
-
-  /**
    * プロジェクト削除クリックハンドラ
    */
   const handleDeleteProject = useCallback(() => {
@@ -302,7 +304,7 @@ export function MobileEditorMenu({
         iconColor="text-orange-500"
       />
 
-      {/* デザイン設定（列数バッジ付き） */}
+      {/* デザイン設定（レイアウトのバッジ付き） */}
       <MenuItem
         icon={Palette}
         label={DESIGN_SETTINGS_LABEL}
@@ -311,7 +313,7 @@ export function MobileEditorMenu({
         rightContent={
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-              {LAYOUT_COLUMNS[layoutType]}列
+              {getLayoutLabel(layoutType)}
             </span>
             <ChevronRight className="size-4" />
           </span>
@@ -334,16 +336,18 @@ export function MobileEditorMenu({
         iconColor="text-teal-600"
       />
 
-      {/* ファイルを開く */}
+      {/* 読み込み（指導箋ファイル・バックアップ ZIP を中身で自動判別） */}
       <MenuItem
         icon={isImporting ? Loader2 : FolderOpen}
         label={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+        description={IMPORT_OPEN_DESCRIPTION}
         onClick={handleOpenClick}
         disabled={isImporting}
         iconColor="text-emerald-500"
+        iconClassName={isImporting ? "animate-spin" : undefined}
       />
 
-      {/* エクスポート（アコーディオン） */}
+      {/* 書き出し（アコーディオン） */}
       <Button
         variant="ghost"
         className={cn(
@@ -351,9 +355,10 @@ export function MobileEditorMenu({
           "text-foreground hover:bg-accent"
         )}
         onClick={toggleExportExpanded}
+        aria-expanded={isExportExpanded}
       >
         <Download className="size-5 shrink-0 text-amber-500" />
-        <span className="flex-1">{BUTTON_BACKUP}</span>
+        <span className="flex-1">{EXPORT_MENU_LABEL}</span>
         <ChevronDown
           className={cn(
             "size-4 text-muted-foreground transition-transform duration-200",
@@ -395,18 +400,6 @@ export function MobileEditorMenu({
           >
             <Package className="size-4 text-amber-600" />
             <span>{BACKUP_EXPORT_ALL_LABEL}</span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent",
-              isImporting && "pointer-events-none opacity-50"
-            )}
-            onClick={handleRestoreBackup}
-            disabled={isImporting}
-          >
-            <ArchiveRestore className="size-4 text-emerald-600" />
-            <span>{BACKUP_RESTORE_LABEL}</span>
           </button>
         </div>
       ) : null}

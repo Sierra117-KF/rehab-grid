@@ -247,6 +247,16 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
       expect(result.images.size).toBe(0); // JSONでは画像なし
     });
 
+    it("スライド（layoutType: slide）の JSON を取り込める", async () => {
+      const file = createValidJSONFile({
+        settings: { layoutType: "slide", themeColor: "#22c55e" },
+      });
+
+      const result = await importProject(file);
+
+      expect(result.project.settings.layoutType).toBe("slide");
+    });
+
     it("JSONインポートでは画像参照がクリアされる", async () => {
       const file = createValidJSONFile({
         items: [
@@ -412,9 +422,6 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
         header: {
           showPatientNameBox: true,
           dateMode: "none",
-          facilityName: "",
-          therapistName: "",
-          overallNote: "",
         },
         checkTable: "none",
       });
@@ -430,9 +437,6 @@ describe("プロジェクトインポート（Browser Mode）", { concurrent: fa
         header: {
           showPatientNameBox: false,
           dateMode: "printed",
-          facilityName: "○○病院",
-          therapistName: "山田",
-          overallNote: "目標：毎日続ける\n次回：12月1日",
         },
         checkTable: "monthly",
       } as const;

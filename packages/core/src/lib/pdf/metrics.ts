@@ -10,24 +10,26 @@ import {
   CJK_PATTERN,
   FONT_SIZES_LARGE,
   FONT_SIZES_SINGLE_COLUMN,
+  FONT_SIZES_SLIDE,
   getPdfContentSize,
   LABELS,
   LINE_CLAMP,
   PDF_CARD_STYLE,
   PDF_CHAR_WIDTH_RATIO,
+  PDF_DEFAULT_LINE_HEIGHT,
   PDF_HALF_WIDTH_CHAR_RATIO,
   PDF_HEADER_HEIGHT,
   PDF_IMAGE_ASPECT_RATIO,
-  PDF_LABELS,
-  PDF_OVERALL_NOTE_MAX_LINES,
+  PDF_SLIDE,
   PDF_SPACING,
   PDF_TEXT_STYLE,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
 import {
+  type EditorItem,
   type LayoutType,
+  type PrintColorMode,
   type ResolvedProjectSettings,
-  type SheetHeaderSettings,
   type TextScale,
 } from "@rehab-grid/core/types";
 import { truncateToLines } from "@rehab-grid/core/utils/pdf";
@@ -70,6 +72,7 @@ export function getPdfCardImageSize(cardWidth: number): {
  * レイアウトと文字サイズの設定に応じたカード内のフォントサイズを取得する
  *
  * 1列レイアウトは高齢者向けの拡大表示サイズを使う（文字サイズの設定に関わらず）。
+ * スライドはスライド専用のサイズを使う（文字サイズの設定に関わらず）。
  * 2〜4列で「大きめ」を選んだ場合は約1.25倍のサイズを使う。
  *
  * @param layoutType - レイアウトタイプ（省略時は通常サイズ）
@@ -89,6 +92,9 @@ export function getPdfCardFontSizes(
       precautionTitle: FONT_SIZES_SINGLE_COLUMN.precautionTitle,
       precautionText: FONT_SIZES_SINGLE_COLUMN.precautionText,
     };
+  }
+  if (layoutType === "slide") {
+    return { ...FONT_SIZES_SLIDE };
   }
   if (textScale === "large") {
     return { ...FONT_SIZES_LARGE };
@@ -178,33 +184,14 @@ const VERY_WIDE_HALF_WIDTH_CHAR_PATTERN = /^[MWmw@%&]$/;
 /** 近似値よりやや幅が広い半角英大文字（0.78em 相当として見積もる） */
 const UPPERCASE_HALF_WIDTH_CHAR_PATTERN = /^[A-Z]$/;
 
-/** 半角英大文字の 1 行フィット用幅比率 */
+/** 半角英大文字の幅比率 */
 const PDF_UPPERCASE_CHAR_RATIO = 0.78;
 
-/**
- * 1 行フィット用にテキストの描画幅を安全側に見積もる
- *
- * @param text - テキスト
- * @param fontSize - フォントサイズ（ポイント単位）
- * @param halfWidthRatio - 半角 1 文字の基本幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
- * @returns 安全側に見積もった幅（ポイント単位）
- */
-function measureSingleLineTextWidth(
-  text: string,
-  fontSize: number,
-  halfWidthRatio: number
-): number {
-  return Array.from(text).reduce((sum, char) => {
-    if (char === " ") return sum + fontSize * PDF_SPACE_WIDTH_RATIO;
-    if (VERY_WIDE_HALF_WIDTH_CHAR_PATTERN.test(char)) return sum + fontSize;
-    if (UPPERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
-      return sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO);
-    }
-    return (
-      sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
-    );
-  }, 0);
-}
+/** 近似値よりやや幅が広い半角小文字・記号（NotoSansJP 実測 Regular 0.606〜0.620 / Bold 0.626〜0.644） */
+const WIDE_LOWERCASE_HALF_WIDTH_CHAR_PATTERN = /^[bdhnopqu`]$/;
+
+/** 幅広の半角小文字・記号の幅比率 */
+const PDF_WIDE_LOWERCASE_CHAR_RATIO = 0.65;
 
 /**
  * 用量の 1 項目分の幅を求める
@@ -244,7 +231,7 @@ export function fitPdfFontSizeToSingleLine(
 ): number {
   if (text === "" || maxWidth <= 0) return baseFontSize;
 
-  const unitWidth = measureSingleLineTextWidth(text, 1, halfWidthRatio);
+  const unitWidth = measurePdfTextWidth(text, 1, halfWidthRatio);
   if (unitWidth <= 0) return baseFontSize;
 
   const safeWidth = maxWidth * PDF_SINGLE_LINE_FIT_SAFETY_RATIO;
@@ -257,9 +244,13 @@ export function fitPdfFontSizeToSingleLine(
 /**
  * テキストの描画幅を見積もる
  *
+ * @remarks
+ * 全角文字は 1em、半角の空白は約 0.23em、幅の広い半角文字（M/W/m/w/@/%/&）は 1em、
+ * その他の半角英大文字は 0.78em、残りの半角文字は halfWidthRatio として安全側に見積もる。
+ *
  * @param text - テキスト
  * @param fontSize - フォントサイズ（ポイント単位）
- * @param halfWidthRatio - 半角 1 文字の幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @param halfWidthRatio - 半角 1 文字の基本幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
  * @returns 幅（ポイント単位）
  */
 export function measurePdfTextWidth(
@@ -269,6 +260,18 @@ export function measurePdfTextWidth(
 ): number {
   return Array.from(text).reduce((sum, char) => {
     if (char === " ") return sum + fontSize * PDF_SPACE_WIDTH_RATIO;
+    if (VERY_WIDE_HALF_WIDTH_CHAR_PATTERN.test(char)) return sum + fontSize;
+    if (UPPERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
+      return (
+        sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO)
+      );
+    }
+    if (WIDE_LOWERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
+      return (
+        sum +
+        fontSize * Math.max(halfWidthRatio, PDF_WIDE_LOWERCASE_CHAR_RATIO)
+      );
+    }
     return (
       sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
     );
@@ -288,18 +291,25 @@ type PdfTextLine = {
 };
 
 /**
+ * 1 段落を折り返しの単位に分ける正規表現
+ *
+ * CJK・全角文字は 1 文字ずつ、空白のまとまりと非 CJK の半角語はそれぞれのまとまりとして切り出す。
+ * 実際の PDF 生成（Worker のハイフネーション設定）では CJK を含む語全体を文字単位で分割するため、
+ * 半角文字と CJK が空白なしで隣接する箇所では見積もりが安全側（多め）に倒れる。
+ */
+const BREAK_UNIT_PATTERN =
+  /[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]| +|[^\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF ]+/g;
+
+/**
  * 1 段落を折り返しの単位に分ける
  *
- * Worker のハイフネーション設定と同じく、日本語を含む語は 1 文字ずつ、それ以外の語は空白で区切る
+ * 日本語・全角文字は 1 文字ずつ、半角語と空白はそれぞれのまとまりで区切る。
  *
  * @param paragraph - 改行を含まないテキスト
  * @returns 折り返しの単位（空白も 1 単位として残す）
  */
 function splitIntoBreakUnits(paragraph: string): string[] {
-  return paragraph
-    .split(/( +)/)
-    .filter((part) => part !== "")
-    .flatMap((part) => (CJK_PATTERN.test(part) ? Array.from(part) : [part]));
+  return paragraph.match(BREAK_UNIT_PATTERN) ?? [];
 }
 
 /**
@@ -343,6 +353,23 @@ function wrapPdfText(
       } else {
         line = { ...line, end: offset, width: line.width + unitWidth };
         if (isSpace) shrink += unitWidth * PDF_SPACE_SHRINK_RATIO;
+      }
+      // 1 語だけで行幅を超える長い半角文字列（URL 等）は、描画前に breakPdfOverflowWords で分割する前提に合わせて文字単位で折り返す
+      if (!isSpace && unitWidth > width) {
+        let charOffset = line.start;
+        line = { start: charOffset, end: charOffset, width: 0 };
+        for (const char of Array.from(unit)) {
+          const charWidth = measurePdfTextWidth(char, fontSize, halfWidthRatio);
+          const charStart = charOffset;
+          charOffset += char.length;
+          if (line.end > line.start && line.width + charWidth > width) {
+            lines.push(line);
+            line = { start: charStart, end: charOffset, width: charWidth };
+          } else {
+            line = { ...line, end: charOffset, width: line.width + charWidth };
+          }
+        }
+        shrink = 0;
       }
     }
     lines.push(line);
@@ -454,128 +481,357 @@ export function getPdfCardDescriptionText(
 }
 
 /**
+ * 1 語だけで行幅を超える半角連続文字列に改行を入れ、PDF で横にはみ出さないようにする
+ *
+ * @remarks
+ * Worker のハイフネーション設定は通常の英単語を途中で切らないよう半角のみの語を `[word]` で返すため、
+ * 1 語だけで行幅を超える長い半角文字列はそのまま渡すと枠の右端をはみ出す。
+ * PDF の Text 要素に渡す直前にこの関数を通すことで、通常の英単語のワードラップを維持しつつ
+ * 行幅を超える語だけを文字単位で折り返せるようにする（キャンバス表示には使わない）。
+ *
+ * @param text - テキスト
+ * @param width - テキスト領域の幅（ポイント単位）
+ * @param fontSize - フォントサイズ（ポイント単位）
+ * @param halfWidthRatio - 半角 1 文字の幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @returns 行幅を超える半角語を改行で分割したテキスト
+ */
+export function breakPdfOverflowWords(
+  text: string,
+  width: number,
+  fontSize: number,
+  halfWidthRatio: number
+): string {
+  if (!text || width <= 0) return text;
+
+  return text
+    .split("\n")
+    .map((paragraph) =>
+      splitIntoBreakUnits(paragraph)
+        .map((part) => {
+          if (part.trim() === "" || CJK_PATTERN.test(part)) {
+            return part;
+          }
+          if (measurePdfTextWidth(part, fontSize, halfWidthRatio) <= width) {
+            return part;
+          }
+          // 1 語だけで行幅を超える半角文字列を、行幅に収まるチャンクごとに改行で区切る
+          const chunks: string[] = [];
+          let current = "";
+          let currentWidth = 0;
+          for (const char of Array.from(part)) {
+            const charWidth = measurePdfTextWidth(
+              char,
+              fontSize,
+              halfWidthRatio
+            );
+            if (current !== "" && currentWidth + charWidth > width) {
+              chunks.push(current);
+              current = char;
+              currentWidth = charWidth;
+            } else {
+              current += char;
+              currentWidth += charWidth;
+            }
+          }
+          if (current !== "") {
+            chunks.push(current);
+          }
+          return chunks.join("\n");
+        })
+        .join("")
+    )
+    .join("\n");
+}
+
+/**
  * カードの注意点 1 件に出す文字列を作る（行頭の「•」付き、行数の上限で切り詰める）
  *
  * @param value - 注意点
- * @param contentWidth - カード内コンテンツの幅（ポイント単位）
+ * @param textWidth - 注意点の枠の中の幅（ポイント単位。getPdfPrecautionTextWidth）
  * @param fontSize - 注意点のフォントサイズ（ポイント単位）
  * @returns 表示する文字列
  */
 export function getPdfCardPrecautionText(
   value: string,
-  contentWidth: number,
+  textWidth: number,
   fontSize: number
 ): string {
-  const displayValue = truncateToLines(
-    value.slice(0, TEXT_LIMITS.precaution),
+  return fitPdfTextToLines(
+    toPdfPrecautionLine(value),
     LINE_CLAMP.precaution,
-    estimateCharsPerLine(contentWidth, fontSize, PDF_CHAR_WIDTH_RATIO.body)
+    textWidth,
+    fontSize,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
   );
-  return `• ${displayValue}`;
 }
 
 /**
- * 施設名・担当者名の行に出す文字列を作る
- *
- * @param header - ヘッダーの項目
- * @returns 「施設名（全角空白）担当: 担当者名」形式の文字列（どちらも空欄なら空文字）
+ * スライドのカードの大きさ（ポイント単位）
  */
-export function getPdfHeaderSubText(
-  header: Pick<SheetHeaderSettings, "facilityName" | "therapistName">
-): string {
-  const facilityName = header.facilityName.trim();
-  const therapistName = header.therapistName.trim();
-  return [
-    facilityName,
-    therapistName !== "" ? `${PDF_LABELS.therapistLabel} ${therapistName}` : "",
-  ]
-    .filter((text) => text !== "")
-    .join("　");
-}
+export type PdfSlideCardSize = {
+  /** 幅 */
+  width: number;
+  /** 高さ */
+  height: number;
+};
 
 /**
- * 全体メモの表示用の文字列と行数を求める
+ * スライドのカード内の寸法（ポイント単位）
+ */
+export type PdfSlideColumns = {
+  /** カード内側の幅（枠線と余白を除く） */
+  innerWidth: number;
+  /** タイトル行の下の本体（左右の列）の高さ */
+  bodyHeight: number;
+  /** 左の列の幅（＝画像の幅） */
+  leftColumnWidth: number;
+  /** 画像の高さ */
+  imageHeight: number;
+  /** 右の列の幅 */
+  rightColumnWidth: number;
+};
+
+/**
+ * スライドの説明・注意点に出す行数の上限
+ */
+export type PdfSlideTextLines = {
+  /** 説明の行数（説明が空なら 0） */
+  descriptionLines: number;
+  /** 注意点 1 件あたりの行数 */
+  precautionLines: number;
+};
+
+/** スライドのカードの枠線と内側の余白（片側） */
+const PDF_SLIDE_CARD_INSET =
+  PDF_CARD_STYLE.borderWidth + PDF_SLIDE.cardPadding;
+
+/** スライドのタイトル行の高さ（下の余白を含む。番号バッジの有無に関わらず同じ高さを確保する） */
+const PDF_SLIDE_TITLE_ROW_HEIGHT =
+  Math.max(
+    FONT_SIZES_SLIDE.title * PDF_DEFAULT_LINE_HEIGHT,
+    FONT_SIZES_SLIDE.title * CARD_NUMBER_BADGE_RATIO.size
+  ) + PDF_SLIDE.titleMarginBottom;
+
+/** スライドで注意点の行数を減らすときの順（最初は縦型カードと同じ上限） */
+const PDF_SLIDE_PRECAUTION_LINE_STEPS = [LINE_CLAMP.precaution, 2, 1] as const;
+
+/**
+ * スライドのカードの大きさを求める
  *
  * @remarks
- * 1 文字を全角幅とみなして行数を多めに見積もる（ヘッダーの高さが足りなくなるのを防ぐ）。
- * 最大行数（PDF_OVERALL_NOTE_MAX_LINES）を超えた分は「…」で切り詰める。
+ * A4 横のコンテンツ領域から、ヘッダー・ヘッダーとの間隔・ページ下端の余裕を引いた固定の大きさ。
+ * ヘッダーは全ページに出すため、全ページで同じ大きさになる。キャンバスは縦横比にこの値を使う。
  *
- * @param note - 全体メモ（前後の空白は除く）
- * @param contentWidth - ページのコンテンツ幅（ポイント単位）
- * @returns 表示用の文字列と行数（メモが空欄なら行数 0）
+ * @returns カードの大きさ（ポイント単位）
  */
-export function getPdfOverallNoteLayout(
-  note: string,
-  contentWidth: number
-): { text: string; lineCount: number } {
-  const trimmed = note.trim();
-  if (trimmed === "") return { text: "", lineCount: 0 };
-
-  const textWidth =
-    contentWidth -
-    (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) * 2;
-  const charsPerLine = estimateCharsPerLine(
-    textWidth,
-    PDF_SPACING.overallNoteFontSize,
-    PDF_CHAR_WIDTH_RATIO.fullWidth
-  );
-  const text = truncateToLines(
-    trimmed,
-    PDF_OVERALL_NOTE_MAX_LINES,
-    charsPerLine
-  );
-  const lineCount = text
-    .split("\n")
-    .reduce(
-      (sum, line) => sum + (Math.ceil(line.length / charsPerLine) || 1),
-      0
-    );
-  // 切り詰めたときに付く「…」の分で 1 行増えたように数えないよう、最大行数で抑える
+export function getPdfSlideCardSize(): PdfSlideCardSize {
+  const contentSize = getPdfContentSize("slide");
   return {
-    text,
-    lineCount: Math.min(lineCount, PDF_OVERALL_NOTE_MAX_LINES),
+    width: contentSize.width,
+    height:
+      contentSize.height -
+      PDF_HEADER_HEIGHT -
+      PDF_SLIDE.headerGap -
+      PDF_SLIDE.pageBottomMargin,
   };
 }
 
 /**
- * 設定に応じた PDF ヘッダーの高さを求める
+ * スライドのカード内の左右の列の幅と画像の大きさを求める
  *
  * @remarks
- * タイトル・日付欄・氏名欄の 1 行だけなら PDF_HEADER_HEIGHT（既定の設定では従来と同じ高さ）。
- * 施設名・担当者名の行と全体メモの枠を出すと、その分だけ高くなる。
- * A4 収容見積もりでも同じ計算を使う。
+ * 左の列（画像＋用量）は基本の比率の幅で 5:3 の画像を置く。
  *
- * @param settings - プロジェクト設定（ヘッダーの項目とページのコンテンツ幅に使う列数・用紙の向き）
- * @returns ヘッダーの高さ（ポイント単位）
+ * @returns カード内の寸法（ポイント単位）
  */
-export function calculatePdfHeaderHeight(
-  settings: Pick<
-    ResolvedProjectSettings,
-    "header" | "layoutType" | "pageOrientation"
-  >
+export function getPdfSlideColumns(): PdfSlideColumns {
+  const cardSize = getPdfSlideCardSize();
+  const innerWidth = cardSize.width - PDF_SLIDE_CARD_INSET * 2;
+  const bodyHeight =
+    cardSize.height - PDF_SLIDE_CARD_INSET * 2 - PDF_SLIDE_TITLE_ROW_HEIGHT;
+  const leftColumnWidth =
+    (innerWidth - PDF_SLIDE.columnGap) * PDF_SLIDE.imageColumnRatio;
+  const imageHeight = leftColumnWidth / PDF_IMAGE_ASPECT_RATIO;
+  return {
+    innerWidth,
+    bodyHeight,
+    leftColumnWidth,
+    imageHeight,
+    rightColumnWidth: innerWidth - PDF_SLIDE.columnGap - leftColumnWidth,
+  };
+}
+
+/**
+ * 注意点の枠の幅から、枠の中の文字を置ける幅を求める
+ *
+ * @param boxWidth - 注意点の枠の幅（ポイント単位）
+ * @param printColorMode - 印刷の色づかい（白黒は枠線を引く）
+ * @param padding - 枠の内側の余白（省略時は縦型カードの既定値）
+ * @returns 文字を置ける幅（ポイント単位）
+ */
+export function getPdfPrecautionTextWidth(
+  boxWidth: number,
+  printColorMode: PrintColorMode,
+  padding: number = PDF_SPACING.precautionPadding
 ): number {
-  const { header, layoutType, pageOrientation } = settings;
-  const lineHeight =
-    PDF_SPACING.headerSubTextFontSize * PDF_SPACING.headerSubLineHeight;
-  let height = PDF_HEADER_HEIGHT;
+  const borderWidth =
+    printColorMode === "monochrome" ? PDF_SPACING.precautionBorderWidth : 0;
+  return boxWidth - (padding + borderWidth) * 2;
+}
 
-  if (getPdfHeaderSubText(header) !== "") {
-    height += PDF_SPACING.headerRowGap + lineHeight;
-  }
+/**
+ * 注意点 1 件を行頭の「•」付きの文字列にする
+ *
+ * @param value - 注意点
+ * @returns 「• 注意点」形式の文字列（最大文字数で切る）
+ */
+function toPdfPrecautionLine(value: string): string {
+  return `• ${value.slice(0, TEXT_LIMITS.precaution)}`;
+}
 
-  const { lineCount } = getPdfOverallNoteLayout(
-    header.overallNote,
-    getPdfContentSize(layoutType, pageOrientation).width
+/**
+ * スライドの説明・注意点に出す行数の上限を求める
+ *
+ * @remarks
+ * 右の列（本体の高さ）に必ず収まるよう、次の順で行数を決める。
+ * 1. 注意点 1 件あたり 3 行で、残りの高さに入るだけ説明を出す（最大 10 行）
+ * 2. 説明が 3 行（説明がそれより短ければその行数）に届かなければ、注意点を 2 行、1 行と減らす
+ * 3. それでも届かなければ、説明を 1 行まで減らす
+ * PDF とキャンバスの両方で同じ結果を使う。
+ *
+ * @param item - エディタアイテム（説明・注意点）
+ * @param settings - プロジェクト設定（印刷の色づかい）
+ * @returns 説明と注意点 1 件あたりの行数
+ */
+export function getSlideTextLines(
+  item: Pick<EditorItem, "description" | "precautions">,
+  settings: Pick<ResolvedProjectSettings, "printColorMode">
+): PdfSlideTextLines {
+  const { bodyHeight, rightColumnWidth } = getPdfSlideColumns();
+  const fontSizes = FONT_SIZES_SLIDE;
+  const descriptionLineHeight =
+    fontSizes.description * PDF_SPACING.descriptionLineHeight;
+  const hasDescription = item.description !== "";
+  const actualDescriptionLines = hasDescription
+    ? countPdfTextLines(
+        item.description.slice(0, TEXT_LIMITS.description),
+        rightColumnWidth,
+        fontSizes.description,
+        PDF_HALF_WIDTH_CHAR_RATIO.regular
+      )
+    : 0;
+
+  const precautions = item.precautions ?? [];
+  const precautionTextWidth = getPdfPrecautionTextWidth(
+    rightColumnWidth,
+    settings.printColorMode,
+    PDF_SLIDE.precautionPadding
   );
-  if (lineCount > 0) {
-    height +=
-      PDF_SPACING.headerRowGap +
-      (PDF_SPACING.overallNotePadding + PDF_SPACING.overallNoteBorderWidth) *
-        2 +
-      lineCount *
-        PDF_SPACING.overallNoteFontSize *
-        PDF_SPACING.headerSubLineHeight;
-  }
+  const precautionLineCounts = precautions.map((p) =>
+    countPdfTextLines(
+      toPdfPrecautionLine(p.value),
+      precautionTextWidth,
+      fontSizes.precautionText,
+      PDF_HALF_WIDTH_CHAR_RATIO.regular
+    )
+  );
+  // 枠の内側の余白と枠線（白黒のみ）の和（片側）
+  const precautionBoxInset = (rightColumnWidth - precautionTextWidth) / 2;
 
-  return height;
+  /**
+   * 注意点 1 件あたりの行数を maxLines にしたときの、注意点の枠の高さ（上の余白を含む）
+   *
+   * @param maxLines - 注意点 1 件あたりの行数
+   * @returns 高さ（ポイント単位。注意点がなければ 0）
+   */
+  const getPrecautionHeight = (maxLines: number): number => {
+    if (precautions.length === 0) return 0;
+    const textLines = precautionLineCounts.reduce(
+      (sum, lines) => sum + Math.min(lines, maxLines),
+      0
+    );
+    const itemGaps = Math.max(0, precautions.length - 1) * PDF_SLIDE.precautionItemGap;
+    return (
+      (hasDescription ? PDF_SLIDE.precautionMarginTop : 0) +
+      precautionBoxInset * 2 +
+      fontSizes.precautionTitle * PDF_DEFAULT_LINE_HEIGHT +
+      PDF_SLIDE.precautionTitleMarginBottom +
+      textLines * fontSizes.precautionText * PDF_SPACING.precautionLineHeight +
+      itemGaps
+    );
+  };
+
+  /**
+   * 注意点の行数を maxLines にしたときに出せる説明の行数
+   *
+   * @param maxLines - 注意点 1 件あたりの行数
+   * @returns 説明の行数
+   */
+  const getDescriptionLines = (maxLines: number): number =>
+    Math.min(
+      actualDescriptionLines,
+      PDF_SLIDE.descriptionMaxLines,
+      Math.floor(
+        (bodyHeight - getPrecautionHeight(maxLines)) / descriptionLineHeight
+      )
+    );
+
+  const wantedLines = Math.min(
+    actualDescriptionLines,
+    PDF_SLIDE.descriptionMinLines
+  );
+  for (const precautionLines of PDF_SLIDE_PRECAUTION_LINE_STEPS) {
+    const descriptionLines = getDescriptionLines(precautionLines);
+    if (descriptionLines >= wantedLines) {
+      return { descriptionLines, precautionLines };
+    }
+  }
+  return {
+    descriptionLines: hasDescription ? Math.max(1, getDescriptionLines(1)) : 0,
+    precautionLines: 1,
+  };
+}
+
+/**
+ * スライドの説明に出す文字列を作る（行数の上限で切り詰める）
+ *
+ * @param description - 説明
+ * @param maxLines - 行数の上限（getSlideTextLines）
+ * @param width - 右の列の幅（ポイント単位）
+ * @returns 表示する文字列
+ */
+export function getPdfSlideDescriptionText(
+  description: string,
+  maxLines: number,
+  width: number
+): string {
+  return fitPdfTextToLines(
+    description.slice(0, TEXT_LIMITS.description),
+    maxLines,
+    width,
+    FONT_SIZES_SLIDE.description,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
+  );
+}
+
+/**
+ * スライドの注意点 1 件に出す文字列を作る（行頭の「•」付き、行数の上限で切り詰める）
+ *
+ * @param value - 注意点
+ * @param maxLines - 行数の上限（getSlideTextLines）
+ * @param textWidth - 注意点の枠の中の幅（ポイント単位。getPdfPrecautionTextWidth）
+ * @returns 表示する文字列
+ */
+export function getPdfSlidePrecautionText(
+  value: string,
+  maxLines: number,
+  textWidth: number
+): string {
+  return fitPdfTextToLines(
+    toPdfPrecautionLine(value),
+    maxLines,
+    textWidth,
+    FONT_SIZES_SLIDE.precautionText,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
+  );
 }

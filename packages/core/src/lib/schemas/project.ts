@@ -65,7 +65,13 @@ export const precautionSchema = z.object({
 /**
  * グリッドレイアウトタイプスキーマ
  */
-export const layoutTypeSchema = z.enum(["grid1", "grid2", "grid3", "grid4"]);
+export const layoutTypeSchema = z.enum([
+  "grid1",
+  "grid2",
+  "grid3",
+  "grid4",
+  "slide",
+]);
 
 /**
  * エディタアイテムスキーマ
@@ -155,12 +161,6 @@ const sheetHeaderSchema = z.object({
   showPatientNameBox: z.boolean().optional().catch(undefined),
   /** 日付欄 */
   dateMode: z.enum(["none", "blank", "printed"]).optional().catch(undefined),
-  /** 病院・施設名 */
-  facilityName: optionalTextSchema(TEXT_LIMITS.facilityName),
-  /** 担当者名 */
-  therapistName: optionalTextSchema(TEXT_LIMITS.therapistName),
-  /** 全体メモ（改行可） */
-  overallNote: optionalTextSchema(TEXT_LIMITS.overallNote),
 });
 
 /**

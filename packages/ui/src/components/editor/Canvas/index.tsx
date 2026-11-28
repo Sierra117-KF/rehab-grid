@@ -28,12 +28,14 @@ import {
   MONOCHROME_COLORS,
 } from "@rehab-grid/core/lib/constants";
 import { type PdfLayoutEstimate } from "@rehab-grid/core/lib/pdf/layout";
+import { getPdfSlideCardSize } from "@rehab-grid/core/lib/pdf/metrics";
 import { cn } from "@rehab-grid/core/lib/utils";
 import type {
   CheckTableType,
   DosageLabels,
   EditorItem,
   LayoutType,
+  PageOrientation,
   PrintColorMode,
   SheetHeaderSettings,
   TextScale,
@@ -44,10 +46,16 @@ import { Button } from "@rehab-grid/ui/components/wrapped/Button";
 import { ImagePlus } from "lucide-react";
 import { Fragment, useCallback, useState } from "react";
 
+import { type InlineEditUpdates } from "./cardTypes";
 import { EmptyState } from "./EmptyState";
 import { PageEstimateBadge } from "./PageEstimateBadge";
 import { SheetSummary } from "./SheetSummary";
-import { type InlineEditUpdates, SortableCard } from "./SortableCard";
+import { SortableCard } from "./SortableCard";
+
+/**
+ * CSS 変数（--xxx）を含められる style の型
+ */
+type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
  * カードの間に出す改ページの目安（グリッドの行の切れ目に、横幅いっぱいで置く）
@@ -69,11 +77,6 @@ function PageBreakDivider({ page }: { page: number }) {
     </div>
   );
 }
-
-/**
- * CSS 変数（--xxx）を含められる style の型
- */
-type CssVariableStyle = React.CSSProperties & Record<`--${string}`, string>;
 
 /**
  * カードの色を持つ CSS 変数の名前（既定値は globals.css。SortableCard がユーティリティやインライン style で参照する）
@@ -154,6 +157,8 @@ export type CanvasProps = {
   printColorMode?: PrintColorMode;
   /** カード内の文字サイズ（省略時は標準） */
   textScale?: TextScale;
+  /** 用紙の向きの設定（PDF の注意点省略位置の計算に使う。省略時は自動） */
+  pageOrientation?: PageOrientation;
   /** カード番号を表示するか（省略時は表示しない） */
   showCardNumbers?: boolean;
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
@@ -199,10 +204,6 @@ export type CanvasProps = {
   canAddCard?: boolean;
   /** カードの複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
   onItemDuplicate?: (itemId: string) => void;
-  /** カードの画像の左右反転ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
-  onItemImageFlip?: (itemId: string) => void;
-  /** 画像の処理中かどうか（処理中は左右反転ボタンを押せない） */
-  isImageProcessing?: boolean;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -237,6 +238,7 @@ export function Canvas({
   themeColor,
   printColorMode = "color",
   textScale = "standard",
+  pageOrientation = "auto",
   showCardNumbers = false,
   dosageLabels,
   sheetHeader,
@@ -252,8 +254,6 @@ export function Canvas({
   onAddCardWithImage,
   canAddCard = true,
   onItemDuplicate,
-  onItemImageFlip,
-  isImageProcessing = false,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -351,10 +351,14 @@ export function Canvas({
       />
     ) : null;
 
+  const isSlide = layoutType === "slide";
+  const slideCardSize = isSlide ? getPdfSlideCardSize() : null;
+
   // 改ページの目安（各ページの先頭のカードの位置 → ページ番号）。モバイルは常に 1 列表示で
   // グリッドの行の切れ目と PDF の改ページが一致しないため、区切り線を出さない
+  // （スライドは PDF も 1 ページ 1 枚で一致するため出す）
   const pageStartByIndex = new Map(
-    isMobile || pageEstimate === undefined
+    (isMobile && !isSlide) || pageEstimate === undefined
       ? []
       : pageEstimate.firstCardIndexByPage
           .map((index, page) => [index, page + 1] as const)
@@ -522,19 +526,15 @@ export function Canvas({
                           ? () => onItemDuplicate(item.id)
                           : undefined
                       }
-                      onFlipImage={
-                        onItemImageFlip
-                          ? () => onItemImageFlip(item.id)
-                          : undefined
-                      }
-                      isImageProcessing={isImageProcessing}
                       onImageAreaClick={onImageAreaClick}
                       onSettingsClick={onSettingsClick}
                       isMobile={isMobile}
                       layoutType={layoutType}
                       textScale={textScale}
+                      pageOrientation={pageOrientation}
                       cardNumber={showCardNumbers ? index + 1 : undefined}
                       dosageLabels={dosageLabels}
+                      printColorMode={printColorMode}
                       onInlineEdit={
                         !isMobile && onItemInlineEdit
                           ? (updates) => onItemInlineEdit(item.id, updates)
@@ -551,12 +551,27 @@ export function Canvas({
             <DragOverlay>
               {activeItem ? (
                 <div className="rounded-xl border border-primary bg-card shadow-2xl opacity-95">
-                  <div className="flex flex-col gap-3 p-4">
-                    <div className="aspect-4/3 rounded-lg bg-muted/30" />
-                    <h3 className="font-semibold text-sm">
-                      {activeItem.title || LABELS.untitledExercise}
-                    </h3>
-                  </div>
+                  {slideCardSize !== null ? (
+                    // スライドは横長のカードと同じ比率の箱にする
+                    <div
+                      className="flex flex-col gap-3 p-4"
+                      style={{
+                        aspectRatio: slideCardSize.width / slideCardSize.height,
+                      }}
+                    >
+                      <h3 className="font-semibold text-sm">
+                        {activeItem.title || LABELS.untitledExercise}
+                      </h3>
+                      <div className="w-1/2 flex-1 rounded-lg bg-muted/30" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3 p-4">
+                      <div className="aspect-4/3 rounded-lg bg-muted/30" />
+                      <h3 className="font-semibold text-sm">
+                        {activeItem.title || LABELS.untitledExercise}
+                      </h3>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </DragOverlay>

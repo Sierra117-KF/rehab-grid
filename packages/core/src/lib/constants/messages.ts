@@ -10,9 +10,9 @@ export const UNKNOWN_ERROR_MESSAGE = "不明なエラーが発生しました";
 /** 画像処理失敗時のメッセージ */
 export const IMAGE_PROCESSING_ERROR_MESSAGE = "画像の処理に失敗しました";
 
-// インポート関連メッセージ
-/** インポート成功メッセージ */
-export const IMPORT_SUCCESS_MESSAGE = "プロジェクトをインポートしました";
+// 読み込み（インポート）関連メッセージ
+/** 読み込み成功メッセージ */
+export const IMPORT_SUCCESS_MESSAGE = "指導箋を読み込みました";
 
 /** 対応していないファイル形式 */
 export const IMPORT_ERROR_INVALID_FORMAT = "対応していないファイル形式です";
@@ -23,9 +23,9 @@ export const IMPORT_ERROR_VALIDATION = "ファイル形式が正しくありま�
 /** 破損したZIPファイル */
 export const IMPORT_ERROR_CORRUPTED_ZIP = "ZIPファイルが破損しています";
 
-/** ZIPにプロジェクトデータがない */
+/** ZIPに指導箋またはバックアップのデータがない */
 export const IMPORT_ERROR_NO_PROJECT =
-  "ZIPファイルにプロジェクトデータがありません";
+  "ZIPファイルに指導箋またはバックアップのデータがありません";
 
 /** 上書き確認ダイアログのタイトル */
 export const IMPORT_CONFIRM_TITLE = "指導箋を開きますか？";
@@ -130,12 +130,6 @@ export function createApplyToAllSuccessMessage(
 }
 
 // 画像編集関連メッセージ
-/** 左右反転ボタンのラベル（プロパティパネル） */
-export const IMAGE_FLIP_BUTTON_LABEL = "左右反転";
-
-/** カード上の左右反転ボタンのツールチップ */
-export const IMAGE_FLIP_TOOLTIP = "画像を左右反転";
-
 /** 画像編集ボタンのラベル（モーダルのタイトルも兼ねる） */
 export const IMAGE_EDIT_LABEL = "画像を編集";
 
@@ -225,7 +219,7 @@ export const PROJECT_DELETE_CONFIRM_TITLE = "指導箋を削除";
 
 /** プロジェクト削除確認ダイアログの説明 */
 export const PROJECT_DELETE_CONFIRM_DESCRIPTION =
-  "現在表示されている指導箋を削除します。この操作は元に戻せません。保存する場合は事前にバックアップをダウンロードしてください。";
+  "現在表示されている指導箋を削除します。この操作は元に戻せません。保存する場合は事前に「書き出し」から保存してください。";
 
 /** プロジェクト削除成功メッセージ */
 export const PROJECT_DELETE_SUCCESS_MESSAGE = "指導箋を削除しました";
@@ -237,7 +231,7 @@ export const PROJECT_DELETE_SUCCESS_MESSAGE = "指導箋を削除しました";
  * @returns ダイアログ説明文
  */
 export function createProjectDeleteConfirmDescription(title: string): string {
-  return `「${title}」を削除します。この操作は元に戻せません。保存する場合は事前に開いてバックアップをダウンロードしてください。`;
+  return `「${title}」を削除します。この操作は元に戻せません。保存する場合は事前に開いて「書き出し」から保存してください。`;
 }
 
 // 指導箋一覧（複数プロジェクト保存）関連メッセージ
@@ -274,7 +268,7 @@ export const PROJECT_LIST_DELETE_LABEL = "削除";
 
 /** 指導箋一覧に置くバックアップの案内 */
 export const PROJECT_LIST_BACKUP_NOTICE =
-  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切なデータは「バックアップ」の「まとめてバックアップ（ZIP）」で保存してください。";
+  "指導箋はこのブラウザの中にだけ保存されます。ブラウザのデータ削除などで消えることがあるため、大切なデータは「書き出し」の「まとめてバックアップ（ZIP）」で保存してください（「読み込み」から復元できます）。";
 
 /** 新しい指導箋を作ったときのメッセージ */
 export const PROJECT_CREATE_SUCCESS_MESSAGE = "新しい指導箋を作成しました";
@@ -310,8 +304,8 @@ export const PDF_GENERATE_FAILED = "PDF 生成に失敗しました";
 /** Workerエラー時のデフォルトメッセージ */
 export const WORKER_ERROR_MESSAGE = "Worker でエラーが発生しました";
 
-/** インポート失敗メッセージ */
-export const IMPORT_FAILED_MESSAGE = "インポートに失敗しました";
+/** ファイル読み込み失敗メッセージ */
+export const IMPORT_FAILED_MESSAGE = "ファイルの読み込みに失敗しました";
 
 // PDFメニューのラベル
 /** PDFプレビューのラベル */
@@ -336,26 +330,39 @@ export const PDF_PREVIEW_GENERATING = "プレビューを生成中...";
 /** キャンセルボタンのラベル */
 export const BUTTON_CANCEL = "キャンセル";
 
-// エクスポートメニューのラベル
-/** 軽量JSONエクスポートのラベル */
-export const EXPORT_JSON_LABEL = "テキストのみ";
+// 書き出しメニューのラベル
+/** 軽量JSON書き出しのラベル */
+export const EXPORT_JSON_LABEL = "テキストのみ（JSON）";
 
-/** 完全バックアップ（ZIP）エクスポートのラベル */
-export const EXPORT_ZIP_LABEL = "画像付き";
+/** 画像付きZIP書き出しのラベル */
+export const EXPORT_ZIP_LABEL = "画像付き（ZIP）";
 
-// インポートボタンのラベル
+// 読み込みボタンのラベル
 /** ファイル読み込み中のラベル */
 export const IMPORT_LOADING_LABEL = "読み込み中...";
 
-/** ファイルを開くボタンのラベル */
-export const IMPORT_OPEN_LABEL = "指導箋を開く";
+/** 読み込みボタンのラベル（指導箋ファイル・一括バックアップ ZIP を中身で自動判別する） */
+export const IMPORT_OPEN_LABEL = "読み込み";
+
+/** モバイルメニューの読み込み項目に添える補足テキスト */
+export const IMPORT_OPEN_DESCRIPTION = "指導箋・バックアップ（ZIP）";
+
+/** 読み込みボタンのツールチップ（復元もここから行えることを示す） */
+export const IMPORT_OPEN_TOOLTIP =
+  "指導箋ファイル・バックアップ（ZIP）を読み込み";
 
 // EditorHeader関連ラベル
 /** プロジェクトタイトルラベル */
 export const LABEL_PROJECT_TITLE = "タイトル：";
 
-/** バックアップボタンのラベル */
-export const BUTTON_BACKUP = "バックアップ";
+/** 書き出しメニューボタンのラベル */
+export const EXPORT_MENU_LABEL = "書き出し";
+
+/** 書き出しメニューボタンのツールチップ（一括バックアップもここから行えることを示す） */
+export const EXPORT_MENU_TOOLTIP = "指導箋の書き出し・まとめてバックアップ";
+
+/** 単一指導箋の書き出し失敗メッセージ */
+export const EXPORT_FAILED_MESSAGE = "書き出しに失敗しました";
 
 /** PDFメニューボタンのラベル */
 export const PDF_MENU_LABEL = "PDF";
@@ -643,8 +650,8 @@ export const DESIGN_SETTINGS_LABEL = "デザイン設定";
 export const DESIGN_SETTINGS_DESCRIPTION =
   "指導箋の見た目と印刷の設定を変更できます。変更はすぐに反映されます";
 
-/** デザイン設定ダイアログの列数セクションの見出し */
-export const DESIGN_SETTINGS_LAYOUT_HEADING = "列数";
+/** デザイン設定ダイアログのレイアウトセクションの見出し */
+export const DESIGN_SETTINGS_LAYOUT_HEADING = "レイアウト";
 
 /** デザイン設定ダイアログの用紙の向きセクションの見出し */
 export const DESIGN_SETTINGS_ORIENTATION_HEADING = "用紙の向き（PDF）";
@@ -656,6 +663,10 @@ export const PAGE_ORIENTATION_AUTO_HINT = "自動：1〜2列は縦、3〜4列は
 export const PAGE_ORIENTATION_SINGLE_COLUMN_NOTE =
   "1列は縦向き固定です（横向きでは1枚のカードがページに収まりません）";
 
+/** スライドのときに向きを選べない理由 */
+export const PAGE_ORIENTATION_SLIDE_NOTE =
+  "スライドは常にA4横です（1ページに運動を1つずつ配置します）";
+
 /** 4列を縦向きにしたときの注意 */
 export const PAGE_ORIENTATION_NARROW_NOTE =
   "4列を縦向きにするとカードが細くなり、回数などの数値が窮屈になります";
@@ -665,7 +676,7 @@ export const DESIGN_SETTINGS_PRESET_HEADING = "用途別プリセット";
 
 /** 用途別プリセットの説明（どの設定が変わるか） */
 export const DESIGN_SETTINGS_PRESET_DESCRIPTION =
-  "よく使う組み合わせをまとめて設定します（列数・色・用量のラベルは変わりません）";
+  "よく使う組み合わせをまとめて設定します（レイアウト・色・用量のラベルは変わりません）";
 
 /** デザイン設定ダイアログの印刷の色セクションの見出し */
 export const DESIGN_SETTINGS_PRINT_COLOR_HEADING = "印刷の色";
@@ -680,6 +691,14 @@ export const DESIGN_SETTINGS_TEXT_SCALE_HEADING = "文字サイズ";
 /** 1列のときに文字サイズが変わらない理由 */
 export const TEXT_SCALE_SINGLE_COLUMN_NOTE =
   "1列は常に大きめの文字で表示されます";
+
+/** スライドのときに文字サイズが変わらない理由 */
+export const TEXT_SCALE_SLIDE_NOTE =
+  "スライドは専用の文字サイズで表示されます";
+
+/** スライドのときのヘッダーの扱い */
+export const SHEET_HEADER_SLIDE_NOTE =
+  "スライドではヘッダーが全ページに表示されます";
 
 /** デザイン設定ダイアログのカード番号セクションの見出し */
 export const DESIGN_SETTINGS_CARD_NUMBER_HEADING = "カード番号";
@@ -717,19 +736,6 @@ export const PATIENT_NAME_BOX_TOGGLE_LABEL =
 /** ヘッダーの日付欄の見出し */
 export const SHEET_DATE_MODE_LABEL = "日付";
 
-/** 病院・施設名の入力欄のラベル */
-export const SHEET_FACILITY_NAME_LABEL = "病院・施設名";
-
-/** 担当者名の入力欄のラベル */
-export const SHEET_THERAPIST_NAME_LABEL = "担当者名";
-
-/** 全体メモの入力欄のラベル */
-export const SHEET_OVERALL_NOTE_LABEL = "全体メモ";
-
-/** 全体メモのプレースホルダー（病名などを書きたくなりやすいため、書かない内容も示す） */
-export const SHEET_OVERALL_NOTE_PLACEHOLDER =
-  "目標・次回来院日など（病名・個人情報は書かない）";
-
 /** 実施チェック表の見出し */
 export const CHECK_TABLE_LABEL = "自主トレ実施チェック表";
 
@@ -757,9 +763,6 @@ export const SHEET_SUMMARY_DATE_BLANK = "日付欄";
 
 /** 要約：出力日の印字 */
 export const SHEET_SUMMARY_DATE_PRINTED = "出力日";
-
-/** 要約：全体メモ */
-export const SHEET_SUMMARY_OVERALL_NOTE = "メモ";
 
 /** 要約ボタンの説明（クリックで設定を開く） */
 export const SHEET_SUMMARY_BUTTON_LABEL =
@@ -871,17 +874,14 @@ export const CTA_BUTTON_LABEL_RESUME = "続きから再開";
 export const CTA_BUTTON_LABEL_TRY = "使ってみる";
 
 // 一括バックアップ・復元関連メッセージ
-/** バックアップメニューの見出し（現在の指導箋） */
+/** 書き出しメニューの見出し（現在の指導箋） */
 export const BACKUP_MENU_CURRENT_SECTION = "この指導箋";
 
-/** バックアップメニューの見出し（端末の全データ・マイライブラリ） */
+/** 書き出しメニューの見出し（端末の全データ・マイライブラリ） */
 export const BACKUP_MENU_ALL_SECTION = "全データ・マイライブラリ";
 
 /** まとめてバックアップメニュー項目のラベル */
 export const BACKUP_EXPORT_ALL_LABEL = "まとめてバックアップ（ZIP）";
-
-/** バックアップから復元メニュー項目のラベル */
-export const BACKUP_RESTORE_LABEL = "バックアップから復元";
 
 /** まとめてバックアップダイアログのタイトル */
 export const BACKUP_EXPORT_DIALOG_TITLE = "まとめてバックアップ";

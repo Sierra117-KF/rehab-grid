@@ -12,7 +12,8 @@ import {
   applyOrientation,
   createEditedImageBlob,
   type EditableImage,
-  flipAndSaveImage,
+  loadImageEditSource,
+  saveEditedImage,
 } from "@rehab-grid/core/utils/imageEdit";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -91,10 +92,14 @@ describe("画像編集（実 Canvas）", { concurrent: false }, () => {
     await db.open();
   });
 
-  it("取り込み画像のクイック左右反転は全体を反転し、元画像を残して「_編集」の名前で保存する", async () => {
+  it("全体を左右反転して保存すると、元画像を残して「_編集」の名前で保存する", async () => {
     await saveImage("original", await toPngBlob(createStripedCanvas()), "縦縞");
 
-    const editedId = await flipAndSaveImage("original");
+    const { image: sourceImage, displayName } =
+      await loadImageEditSource("original");
+    const flipped = applyOrientation(sourceImage, "flipWhole");
+    const blob = await createEditedImageBlob(flipped, null, []);
+    const editedId = await saveEditedImage(blob, displayName);
 
     const edited = await getImageRecord(editedId);
     expect(edited?.fileName).toBe("縦縞_編集");

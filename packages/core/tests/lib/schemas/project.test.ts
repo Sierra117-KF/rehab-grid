@@ -206,7 +206,7 @@ describe("lib/schemas/project", () => {
   });
 
   describe("layoutTypeSchema", () => {
-    it.each(["grid1", "grid2", "grid3", "grid4"] as const)(
+    it.each(["grid1", "grid2", "grid3", "grid4", "slide"] as const)(
       "有効な値 '%s' でパース成功する",
       (layoutType) => {
         const result = layoutTypeSchema.safeParse(layoutType);
@@ -414,7 +414,7 @@ describe("lib/schemas/project", () => {
       expect(result.data).toEqual(data);
     });
 
-    it.each(["grid1", "grid2", "grid3", "grid4"] as const)(
+    it.each(["grid1", "grid2", "grid3", "grid4", "slide"] as const)(
       "layoutType '%s' でパース成功する",
       (layoutType) => {
         const data = { ...createValidProjectSettings(), layoutType };
@@ -541,14 +541,11 @@ describe("lib/schemas/project", () => {
         header: {
           showPatientNameBox: false,
           dateMode: "blank",
-          facilityName: "○○病院 リハビリテーション科",
-          therapistName: "山田",
-          overallNote: "目標：毎日続ける\n次回：12月1日",
         },
         checkTable: "weekly",
       } as const;
 
-      it("有効な値はそのまま保持される（改行も保つ）", () => {
+      it("有効な値はそのまま保持される", () => {
         const data = { ...createValidProjectSettings(), ...sheetSettings };
         const result = projectSettingsSchema.safeParse(data);
 
@@ -566,10 +563,30 @@ describe("lib/schemas/project", () => {
         expect(result.data?.checkTable).toBeUndefined();
       });
 
+      it("廃止されたヘッダー項目（施設名・担当者名・全体メモ）が含まれる旧データもパース成功し、取り除かれる", () => {
+        const data = {
+          ...createValidProjectSettings(),
+          header: {
+            showPatientNameBox: true,
+            dateMode: "blank",
+            facilityName: "○○病院",
+            therapistName: "山田",
+            overallNote: "目標：毎日続ける",
+          },
+        };
+        const result = projectSettingsSchema.safeParse(data);
+
+        expect(result.success).toBeTruthy();
+        expect(result.data?.header).toEqual({
+          showPatientNameBox: true,
+          dateMode: "blank",
+        });
+      });
+
       it("ヘッダー・チェック表の型違いはインポート全体を失敗させず、未指定として扱う", () => {
         const data = {
           ...createValidProjectSettings(),
-          header: "○○病院",
+          header: "invalid",
           checkTable: "daily",
         };
         const result = projectSettingsSchema.safeParse(data);
@@ -583,32 +600,13 @@ describe("lib/schemas/project", () => {
           ...createValidProjectSettings(),
           header: {
             showPatientNameBox: "no",
-            dateMode: "today",
-            facilityName: "○○病院",
-            therapistName: 3,
+            dateMode: "printed",
           },
         };
         const result = projectSettingsSchema.safeParse(data);
 
         expect(result.success).toBeTruthy();
-        expect(result.data?.header).toEqual({ facilityName: "○○病院" });
-      });
-
-      it("自由入力の項目はサニタイズし、最大文字数を超えた分はカットする", () => {
-        const data = {
-          ...createValidProjectSettings(),
-          header: {
-            facilityName: `<script>alert(1)</script>${"あ".repeat(40)}`,
-            therapistName: "い".repeat(25),
-            overallNote: "う".repeat(160),
-          },
-        };
-        const result = projectSettingsSchema.safeParse(data);
-
-        expect(result.data?.header?.facilityName).not.toContain("<");
-        expect(result.data?.header?.facilityName).toHaveLength(30);
-        expect(result.data?.header?.therapistName).toHaveLength(20);
-        expect(result.data?.header?.overallNote).toHaveLength(150);
+        expect(result.data?.header).toEqual({ dateMode: "printed" });
       });
     });
   });

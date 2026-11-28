@@ -309,7 +309,7 @@ ui/src/
 | `EditorHeader` | エクスポート/インポート/PDF出力メニュー |
 | `ImageLibraryPanel` | 画像アップロード・管理・一括削除 |
 | `PropertyPanel` | 選択カードの編集パネル |
-| `DesignSettingsDialog` | デザイン設定（列数・テーマカラー・印刷スタイル・PDF のヘッダーと実施チェック表） |
+| `DesignSettingsDialog` | デザイン設定（レイアウト［1〜4列・スライド］・テーマカラー・印刷スタイル・PDF のヘッダーと実施チェック表） |
 | `ImageEditModal` | 画像編集（反転・90°回転・5:3 トリミング・注釈） |
 | `ProjectListModal` | マイ指導箋一覧（検索・切替・新規・複製・削除） |
 | `ExerciseCardLibraryModal` | マイ運動ライブラリ（保存済みカードの検索・追加・削除） |

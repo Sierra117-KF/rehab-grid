@@ -67,12 +67,6 @@ export type SheetHeaderSettings = {
   showPatientNameBox: boolean;
   /** 日付欄 */
   dateMode: SheetDateMode;
-  /** 病院・施設名 */
-  facilityName: string;
-  /** 担当者名 */
-  therapistName: string;
-  /** 全体メモ（目標・次回来院日など。改行可） */
-  overallNote: string;
 };
 
 /**
@@ -102,7 +96,7 @@ export type ProjectSettings = {
   showCardNumbers?: boolean;
   /** 用量のラベル（未指定・空欄のキーは LABELS の reps / sets / frequency） */
   dosageLabels?: Partial<DosageLabels>;
-  /** PDF ヘッダーの項目（未指定のキーは氏名欄あり・日付なし・空欄） */
+  /** PDF ヘッダーの項目（未指定のキーは氏名欄あり・日付なし） */
   header?: Partial<SheetHeaderSettings>;
   /** 自主トレ実施チェック表（デフォルト: "none"） */
   checkTable?: CheckTableType;

@@ -62,6 +62,7 @@ export const PDF_CONTENT_SIZE_LANDSCAPE = {
  * レイアウトタイプと用紙の向きの設定から、PDFを横向き（landscape）にするかを判定
  *
  * @remarks
+ * スライドは横長カードを置く形式のため、指定に関わらず横向きにする。
  * 1列は横向きにすると 1 枚のカードがページに収まらないため、指定に関わらず縦向きにする
  *
  * @param layoutType - グリッドレイアウトタイプ
@@ -72,6 +73,7 @@ export function isLandscapeLayout(
   layoutType: LayoutType,
   orientation: PageOrientation = "auto"
 ): boolean {
+  if (layoutType === "slide") return true;
   const columns = LAYOUT_COLUMNS[layoutType];
   if (columns === 1) return false;
   if (orientation === "auto") return columns >= 3;
@@ -116,15 +118,48 @@ export function getPdfContentSize(
 export const PDF_GRID_GAP = 12;
 
 /**
- * ヘッダーの基本の高さ（ポイント単位）
+ * ヘッダーの高さ（ポイント単位）
  *
- * タイトル・日付欄・氏名欄の 1 行だけのときの高さ。施設名・担当者名や全体メモを出すと
- * その分だけ高くなる（calculatePdfHeaderHeight）
+ * タイトル・日付欄・氏名欄の 1 行分の高さ
  */
 export const PDF_HEADER_HEIGHT = 35;
 
-/** 全体メモ（PDF ヘッダー）の最大行数。超えた分は「…」で切り詰める */
-export const PDF_OVERALL_NOTE_MAX_LINES = 5;
+/**
+ * スライド（A4 横・1 ページ 1 運動）のレイアウト（ポイント単位）
+ *
+ * カードの大きさは固定値（lib/pdf/metrics.ts の getPdfSlideCardSize）
+ */
+export const PDF_SLIDE = {
+  /** ヘッダーとカードの間隔 */
+  headerGap: PDF_GRID_GAP,
+  /**
+   * ページ下端の余裕（折り返しの見積もり誤差を吸収する）
+   *
+   * @remarks
+   * 描画テストは PDF_PAGE_ESTIMATE_MARGIN を 0 にして見積もりを確かめるため、描画寸法に使う値は別に持つ
+   */
+  pageBottomMargin: 8,
+  /** カードの内側の余白（大きな横長カードに合わせて縦型カードより広めに取る） */
+  cardPadding: 16,
+  /** タイトル行の下の余白 */
+  titleMarginBottom: 12,
+  /** 左の列（画像・用量）と右の列（説明・注意点）の間隔 */
+  columnGap: 20,
+  /** 左の列の基本幅（内側の幅から列の間隔を引いた幅に対する比率） */
+  imageColumnRatio: 0.6,
+  /** 説明と注意点の枠の間隔 */
+  precautionMarginTop: 12,
+  /** 注意点の枠の内側の余白 */
+  precautionPadding: 10,
+  /** 注意点の見出しの下の余白 */
+  precautionTitleMarginBottom: 4,
+  /** 注意点の各項目どうしの間隔 */
+  precautionItemGap: 2,
+  /** 説明の最大行数 */
+  descriptionMaxLines: 10,
+  /** 注意点の行数を減らしてでも確保したい説明の行数 */
+  descriptionMinLines: 3,
+} as const;
 
 /**
  * 自主トレ実施チェック表のレイアウト（ポイント単位）
@@ -290,8 +325,6 @@ export const PDF_LABELS = {
   patientLabel: "氏名:",
   /** 日付欄のラベル */
   dateLabel: "日付:",
-  /** 担当者名の前に付けるラベル */
-  therapistLabel: "担当:",
   /** 1週間の実施チェック表の見出し */
   weeklyCheckTableTitle: "自主トレ実施チェック表（1週間）",
   /** 1か月の実施チェック表の見出し（月は手書きしてもらう） */
@@ -356,18 +389,6 @@ export const PDF_SPACING = {
   dateBoxWidth: 90,
   /** 印字した日付のフォントサイズ */
   dateFontSize: 10,
-  /** ヘッダー内の行と行の間隔 */
-  headerRowGap: 4,
-  /** 施設名・担当者名のフォントサイズ */
-  headerSubTextFontSize: 9,
-  /** 全体メモのフォントサイズ */
-  overallNoteFontSize: 9,
-  /** 施設名・担当者名と全体メモの行高 */
-  headerSubLineHeight: 1.4,
-  /** 全体メモの枠の内側の余白 */
-  overallNotePadding: 4,
-  /** 全体メモの枠線の太さ */
-  overallNoteBorderWidth: 1,
   /** ページ番号のページ下端からの距離（下マージンの中に置く） */
   footerBottom: 20,
 } as const;
@@ -424,8 +445,8 @@ export const PDF_SUPPORTED_IMAGE_PREFIXES = [
 ] as const;
 
 /**
- * CJK（中国語・日本語・韓国語）文字の正規表現パターン
+ * CJK（中国語・日本語・韓国語）および全角英数字・記号の正規表現パターン
  *
- * 日本語は単語境界がないため、文字単位で分割を許可するために使用
+ * 日本語や全角文字は単語境界がないため、文字単位で分割を許可するために使用
  */
-export const CJK_PATTERN = /[\u3000-\u9FFF\uAC00-\uD7AF]/;
+export const CJK_PATTERN = /[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]/;

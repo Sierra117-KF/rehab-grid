@@ -35,13 +35,19 @@ import { estimatePdfLayout } from "@/lib/pdf/layout";
 import { createTestItem, createTestMeta } from "./pdfTestUtils";
 
 /** レイアウト結果のノード（必要な項目だけ） */
+type LayoutLine = {
+  string?: string;
+  box?: { width: number };
+  runs?: { positions?: { xAdvance?: number }[] }[];
+};
+
 type LayoutNode = {
   type: string;
   value?: string;
   props?: { wrap?: boolean };
   style?: { borderTopLeftRadius?: number };
-  box?: { height: number };
-  lines?: unknown[];
+  box?: { top: number; width: number; height: number };
+  lines?: LayoutLine[];
   children?: LayoutNode[];
 };
 
@@ -206,21 +212,35 @@ const SCENARIOS: { name: string; settings: Partial<ProjectSettings> }[] = [
     settings: { layoutType: "grid4", pageOrientation: "portrait", textScale: "large" },
   },
   {
-    name: "2列 × ヘッダー 3 段 × 1週間",
+    name: "2列 × 日付記入欄 × 1週間",
     settings: {
       layoutType: "grid2",
       checkTable: "weekly",
       header: {
         dateMode: "blank",
-        facilityName: "○○病院 リハビリテーション科",
-        therapistName: "山田",
-        overallNote: "目標：自宅の階段を手すりなしで上れるようになる\n次回来院日：12月1日",
       },
     },
   },
   {
     name: "3列 × 1か月",
     settings: { layoutType: "grid3", checkTable: "monthly" },
+  },
+  { name: "スライド", settings: { layoutType: "slide" } },
+  {
+    name: "スライド × 日付記入欄 × 白黒 × 番号 × 1週間",
+    settings: {
+      layoutType: "slide",
+      printColorMode: "monochrome",
+      showCardNumbers: true,
+      checkTable: "weekly",
+      header: {
+        dateMode: "blank",
+      },
+    },
+  },
+  {
+    name: "スライド × 1か月",
+    settings: { layoutType: "slide", checkTable: "monthly" },
   },
 ];
 
@@ -323,6 +343,156 @@ describe("用量の自動縮小（実際の PDF レンダリングで 1 行に�
       expect(nodes).toHaveLength(12);
       for (const node of nodes) {
         expect(node.lines?.length).toBe(1);
+      }
+    }
+  );
+});
+
+/**
+ * 1 行の実際の可視描画幅（末尾の折り返し空白を除いた全グリフの xAdvance の和）を返す
+ *
+ * react-pdf（textkit）は行末の空白を描画しないが内部の positions には残すため、
+ * 末尾の空白分のグリフは除外して実測する。
+ */
+function measureRealLineWidth(line: LayoutLine): number {
+  const text = line.string ?? "";
+  const trailingSpaces = text.length - text.trimEnd().length;
+  const advances = (line.runs ?? []).flatMap((run) =>
+    (run.positions ?? []).map((pos) => pos.xAdvance ?? 0)
+  );
+  const visibleCount = Math.max(0, advances.length - trailingSpaces);
+  return advances.slice(0, visibleCount).reduce((sum, w) => sum + w, 0);
+}
+
+/**
+ * カード内のすべての TEXT ノードについて、各行の実測描画幅が自身の幅（box.width）を
+ * はみ出していないことを検証する
+ */
+function expectNoHorizontalOverflow(node: LayoutNode) {
+  if (node.type === "TEXT" && node.lines !== undefined && node.box !== undefined) {
+    // 浮動小数点丸め誤差のみ許容（1pt 未満）
+    const limit = node.box.width + 1;
+    for (const line of node.lines) {
+      expect(measureRealLineWidth(line)).toBeLessThanOrEqual(limit);
+    }
+  }
+  for (const child of node.children ?? []) {
+    expectNoHorizontalOverflow(child);
+  }
+}
+
+/**
+ * ノードの上端から、子孫のうち最も下にある要素の下端までの高さ
+ *
+ * box.top は親の上端からの位置
+ */
+function measureContentBottom(node: LayoutNode): number {
+  return Math.max(
+    0,
+    ...(node.children ?? []).map(
+      (child) =>
+        (child.box?.top ?? 0) +
+        Math.max(child.box?.height ?? 0, measureContentBottom(child))
+    )
+  );
+}
+
+describe("注意点の折り返し・省略（実際の PDF レンダリングで縦にも横にもはみ出さないこと）", () => {
+  it(
+    "縦型カード（2列・4列縦大きめ）で長い全角・半角連続・改行入りの注意点が枠内に収まり、3行超は省略される",
+    { timeout: 60_000 },
+    async () => {
+      const precautions = [
+        { id: "p1", value: `前をまっすぐ向く${"え".repeat(42)}` },
+        { id: "p2", value: `肩の力を抜く${"q".repeat(43)}` },
+        { id: "p3", value: `肩の力を抜く ${"q".repeat(42)}` },
+        { id: "p4", value: `親指に力を入れる ${"ｒ".repeat(40)}` },
+        { id: "p5", value: "W".repeat(50) },
+      ];
+      const item = createTestItem({
+        id: "precaution-overflow",
+        order: 0,
+        title: "カード1",
+        description: `呼${"あ".repeat(120)}\n${"q".repeat(70)}`,
+        precautions,
+      });
+
+      for (const settings of [
+        resolveProjectSettings({ layoutType: "grid2" }),
+        resolveProjectSettings({
+          layoutType: "grid4",
+          pageOrientation: "portrait",
+          textScale: "large",
+          printColorMode: "monochrome",
+        }),
+      ]) {
+        const layout = await computePdfLayoutTree([item], settings);
+        const cards = layout.children.flatMap(collectCards);
+        expect(cards).toHaveLength(1);
+        expectNoHorizontalOverflow(cards[0]!);
+      }
+    }
+  );
+});
+
+describe("スライドの最悪の入力（実際の PDF レンダリングでカードからはみ出さないこと）", () => {
+  it(
+    "日付印字・白黒・番号・用量・説明 200 文字・長い注意点 5 件でも、1 カード 1 ページでカードの中に収まる",
+    { timeout: 60_000 },
+    async () => {
+      const settings = resolveProjectSettings({
+        layoutType: "slide",
+        printColorMode: "monochrome",
+        showCardNumbers: true,
+        header: {
+          dateMode: "printed",
+        },
+      });
+      const longItem = (
+        i: number,
+        precautionText: string,
+        description = SAMPLE_TEXT.repeat(3).slice(0, 200)
+      ) =>
+        createTestItem({
+          id: `worst-${String(i)}`,
+          order: i,
+          title: `カード${String(i + 1)}ブリッジ運動と体幹の安定性向上`,
+          description,
+          dosages: { reps: "左右各１０回ずつ", sets: "３〜５セット", frequency: "毎日朝昼晩３回" },
+          precautions: Array.from({ length: 5 }, (_p, j) => ({
+            id: `p-${String(i)}-${String(j)}`,
+            value: precautionText,
+          })),
+        });
+      // 全角・半角混在・改行入り・空白なし長文半角・全角英字連続・幅広半角英大文字のパターン
+      const items = [
+        longItem(0, "あ".repeat(50)),
+        longItem(1, SAMPLE_TEXT.slice(0, 50)),
+        longItem(2, "痛み\nしびれ\nめまいが出たら中止"),
+        longItem(3, "W".repeat(50), "a".repeat(200)),
+        longItem(
+          4,
+          "ROM MMT ADL SLR TUG ".repeat(3).slice(0, 50),
+          "WWWWW ".repeat(34).slice(0, 200)
+        ),
+        longItem(5, `肩の力を抜く${"q".repeat(43)}`),
+        longItem(6, `肩の力を抜く ${"q".repeat(42)}`),
+        longItem(7, `親指に力を入れる ${"ｒ".repeat(40)}`),
+      ];
+
+      const layout = await computePdfLayoutTree(items, settings);
+
+      expect(layout.children).toHaveLength(items.length);
+      for (const page of layout.children) {
+        const cards = collectCards(page);
+        expect(cards).toHaveLength(1);
+        const card = cards[0]!;
+        // 枠線 1 + スライド内側余白 16 の内側に収まる（縦方向。Yoga の float32 丸め誤差のみ許容）
+        expect(measureContentBottom(card)).toBeLessThanOrEqual(
+          (card.box?.height ?? 0) - 17 + 0.01
+        );
+        // テキストが枠の右端をはみ出さない（横方向）
+        expectNoHorizontalOverflow(card);
       }
     }
   );

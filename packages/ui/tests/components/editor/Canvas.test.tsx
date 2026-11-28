@@ -5,7 +5,6 @@ import {
   DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE_LARGE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
-  IMAGE_FLIP_TOOLTIP,
   INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LAYOUT_COLUMNS,
@@ -13,10 +12,11 @@ import {
   SHEET_SUMMARY_BUTTON_LABEL,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import { getPdfSlideCardSize } from "@rehab-grid/core/lib/pdf/metrics";
 import { resolveProjectSettings } from "@rehab-grid/core/lib/settings";
 import { type EditorItem } from "@rehab-grid/core/types";
 import { Canvas, type CanvasProps } from "@rehab-grid/ui/components/editor/Canvas";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -383,67 +383,6 @@ describe("Canvas", () => {
     });
   });
 
-  describe("左右反転ボタン（ホバーアクション）", () => {
-    const itemWithImage = createTestItem({
-      id: "item-1",
-      imageSource: "img-123",
-    });
-    const imageUrls = new Map([["img-123", "blob:http://example.com/image"]]);
-
-    it("クリックで onItemImageFlip(itemId) が呼ばれ、カードの選択は起きない", async () => {
-      const user = userEvent.setup();
-      const onItemImageFlip = vi.fn();
-      const props = setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip,
-      });
-
-      await user.click(screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP }));
-
-      expect(onItemImageFlip).toHaveBeenCalledWith("item-1");
-      expect(props.onItemSelect).not.toHaveBeenCalled();
-    });
-
-    it("画像の処理中は押せない", () => {
-      setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip: vi.fn(),
-        isImageProcessing: true,
-      });
-
-      expect(
-        screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP })
-      ).toBeDisabled();
-    });
-
-    it.each([
-      ["画像がない", createTestItem({ id: "item-1" }), imageUrls],
-      // 参照切れ画像（imageSource はあるが URL がない）は反転できない
-      ["画像の URL がない", itemWithImage, new Map<string, string>()],
-    ])("%s カードには表示しない", (_, item, urls) => {
-      setupCanvas({ items: [item], imageUrls: urls, onItemImageFlip: vi.fn() });
-
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
-      ).not.toBeInTheDocument();
-    });
-
-    it("モバイルでは表示しない", () => {
-      setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip: vi.fn(),
-        isMobile: true,
-      });
-
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
-      ).not.toBeInTheDocument();
-    });
-  });
-
   describe("レイアウト", () => {
     it.each([
       ["grid1", 1],
@@ -596,21 +535,19 @@ describe("Canvas", () => {
       );
     });
 
-    it("入力した項目と選んだチェック表を並べて表示する", () => {
+    it("選んだヘッダー項目とチェック表を並べて表示する", () => {
       setupCanvas({
         items: [createTestItem()],
         sheetHeader: {
           ...defaultHeader,
-          facilityName: "○○病院",
           dateMode: "blank",
-          overallNote: "次回：12月1日",
         },
         checkTable: "weekly",
         onSheetSettingsClick: vi.fn(),
       });
 
       expect(getSummaryButton()).toHaveTextContent(
-        "ヘッダー：病院・施設名・日付欄・氏名欄・メモ／チェック表：1週間"
+        "ヘッダー：日付欄・氏名欄／チェック表：1週間"
       );
     });
 
@@ -833,6 +770,250 @@ describe("Canvas", () => {
       expect(
         screen.queryByLabelText(INLINE_EDIT_TITLE_LABEL)
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("スライド", () => {
+    const slideItem = createTestItem({
+      id: "item-1",
+      title: "スクワット",
+      imageSource: "img-123",
+      description: "膝を90度に曲げて、ゆっくり立ち上がる",
+      dosages: { reps: "10回", sets: "3セット", frequency: "1日2回" },
+      precautions: [{ id: "p1", value: "痛みが出たら中止" }],
+    });
+    const imageUrls = new Map([["img-123", "blob:http://example.com/image"]]);
+
+    /** スライドのカードを描画する（sheetHeader は省略して既定値で計算させる） */
+    function setupSlide(overrides: Partial<CanvasProps> = {}) {
+      return setupCanvas({
+        items: [slideItem],
+        imageUrls,
+        layoutType: "slide",
+        ...overrides,
+      });
+    }
+
+    it("1 列で、左の列に画像と用量、右の列に説明と注意点を置いた横型のカードを描く", () => {
+      setupSlide();
+
+      expect(screen.getByRole("list")).toHaveStyle({
+        gridTemplateColumns: "repeat(1, minmax(0, 1fr))",
+      });
+      const body = screen.getByTestId("slide-card-body");
+      const { width, height } = getPdfSlideCardSize();
+      expect(body.style.aspectRatio).toBe(String(width / height));
+
+      const left = within(screen.getByTestId("slide-left-column"));
+      expect(left.getByRole("img", { name: "スクワット" })).toBeInTheDocument();
+      expect(left.getByText("10回")).toBeInTheDocument();
+      const rightEl = screen.getByTestId("slide-right-column");
+      expect(rightEl).toHaveClass("justify-center");
+      const right = within(rightEl);
+      expect(right.getByText(slideItem.description)).toBeInTheDocument();
+      expect(right.getByText(/痛みが出たら中止/)).toBeInTheDocument();
+      expect(
+        within(body).getByRole("heading", { level: 3, name: "スクワット" })
+      ).toBeInTheDocument();
+    });
+
+    it("用量がないときは左の列ごと垂直中央寄せにする", () => {
+      setupSlide({
+        items: [{ ...slideItem, dosages: undefined }],
+      });
+
+      expect(screen.getByTestId("slide-left-column")).toHaveClass(
+        "justify-center"
+      );
+    });
+
+    it("収まらない説明・注意点は、画面の幅によらず PDF と同じ位置で切り詰めて末尾に「…」を付ける", () => {
+      const longDescription = "膝を曲げてゆっくり立ち上がる。".repeat(14).slice(0, 200);
+      // 4 行ある注意点を 5 件並べ、説明・注意点ともに切り詰められる状態を作る
+      const multiLinePrecaution =
+        "1行目の注意点\n2行目の注意点\n3行目の注意点\n4行目の注意点";
+      setupSlide({
+        printColorMode: "monochrome",
+        items: [
+          {
+            ...slideItem,
+            description: longDescription,
+            precautions: [1, 2, 3, 4, 5].map((n) => ({
+              id: `p${String(n)}`,
+              value: multiLinePrecaution,
+            })),
+          },
+        ],
+      });
+
+      const right = within(screen.getByTestId("slide-right-column"));
+      const description = right.getByText(/^膝を曲げてゆっくり立ち上がる。/);
+      const shown = description.textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(longDescription.startsWith(shown.slice(0, -1))).toBeTruthy();
+      expect(shown.length).toBeLessThan(longDescription.length);
+      // 注意点も 3 行で切り詰められ、行頭の「•」付き＋末尾「…」になる
+      const precautions = right.getAllByText(/^• 1行目の注意点/);
+      expect(precautions).toHaveLength(5);
+      for (const precaution of precautions) {
+        expect(precaution.textContent.endsWith("…")).toBeTruthy();
+        expect(precaution.textContent).not.toContain("4行目の注意点");
+      }
+    });
+
+    it("説明が空のときは説明を描かず、注意点だけを出す", () => {
+      setupSlide({ items: [{ ...slideItem, description: "" }] });
+
+      const right = within(screen.getByTestId("slide-right-column"));
+      expect(right.queryByText(slideItem.description)).not.toBeInTheDocument();
+      expect(right.getByText(/痛みが出たら中止/)).toBeInTheDocument();
+    });
+
+    it("モバイルでも改ページの目安の区切り線を出す（PDF も 1 ページ 1 枚のため）", () => {
+      setupSlide({
+        items: [
+          { ...slideItem, id: "a", order: 0, title: "運動A" },
+          { ...slideItem, id: "b", order: 1, title: "運動B" },
+        ],
+        isMobile: true,
+        pageEstimate: {
+          pageCount: 2,
+          firstCardIndexByPage: [0, 1],
+          checkTablePage: null,
+        },
+      });
+
+      expect(screen.getByTestId("page-break")).toHaveTextContent(
+        "ここから2ページ目（目安）"
+      );
+    });
+
+    it("モバイルではタイトルに重ねず、スライドの上の操作バーにドラッグハンドルと編集ボタンを置く", async () => {
+      const user = userEvent.setup();
+      const onSettingsClick = vi.fn();
+      setupSlide({ isMobile: true, onSettingsClick });
+
+      const bar = within(screen.getByTestId("slide-mobile-actions"));
+      const dragHandle = bar.getByRole("button", {
+        name: "ドラッグして並べ替え",
+      });
+      const editButton = bar.getByRole("button", { name: "カードを編集" });
+      expect(dragHandle).not.toHaveClass("absolute");
+      expect(editButton).not.toHaveClass("absolute");
+      expect(
+        within(screen.getByTestId("slide-card-body")).getByRole("heading", {
+          level: 3,
+          name: "スクワット",
+        })
+      ).toBeInTheDocument();
+
+      await user.click(editButton);
+      expect(onSettingsClick).toHaveBeenCalledWith("item-1");
+    });
+
+    it("タイトルと用量をインライン編集できる", async () => {
+      const user = userEvent.setup();
+      const props = setupSlide({
+        selectedItemId: slideItem.id,
+        onItemInlineEdit: vi.fn(),
+      });
+
+      await user.dblClick(screen.getByText("スクワット"));
+      const input = screen.getByLabelText(INLINE_EDIT_TITLE_LABEL);
+      expect(input).toHaveClass("text-left");
+      await user.clear(input);
+      await user.type(input, "ランジ{Enter}");
+      expect(props.onItemInlineEdit).toHaveBeenCalledWith(slideItem.id, {
+        title: "ランジ",
+      });
+
+      await user.dblClick(screen.getByText("3セット"));
+      await user.type(
+        screen.getByLabelText(`${LABELS.sets}（カード上で編集）`),
+        "{Backspace}{Backspace}{Backspace}{Enter}"
+      );
+      expect(props.onItemInlineEdit).toHaveBeenLastCalledWith(slideItem.id, {
+        dosages: { reps: "10回", sets: "3", frequency: "1日2回" },
+      });
+    });
+
+    it("複製ボタンが使える", async () => {
+      const user = userEvent.setup();
+      const onItemDuplicate = vi.fn();
+      setupSlide({ onItemDuplicate });
+
+      await user.click(screen.getByRole("button", { name: DUPLICATE_TOOLTIP }));
+
+      expect(onItemDuplicate).toHaveBeenCalledWith("item-1");
+    });
+
+    it("スライド以外では横型のカードを描かない", () => {
+      setupSlide({ layoutType: "grid1" });
+
+      expect(screen.queryByTestId("slide-card-body")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("縦型カードの注意点省略表示", () => {
+    const longPrecaution = "あ".repeat(50);
+    const itemWithLongPrecaution = createTestItem({
+      id: "item-precaution",
+      precautions: [{ id: "p1", value: longPrecaution }],
+    });
+
+    it("4列縦向きなど表示幅に収まらない設定ではキャンバスでも末尾に「…」を付けて表示する", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "portrait",
+        textScale: "standard",
+      });
+
+      const shown = screen.getByText(/^• あ+/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown.length).toBeLessThan(longPrecaution.length + 2);
+    });
+
+    it("同じ注意点でも 2 列や 4 列横向き（標準文字）など収まる設定では「…」を付けずに全文表示する", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "landscape",
+        textScale: "standard",
+      });
+
+      expect(screen.getByText(`• ${longPrecaution}`)).toBeInTheDocument();
+    });
+
+    it("4列横向きでも文字サイズを「大きめ」にすると収まらなくなり「…」で表示される", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "landscape",
+        textScale: "large",
+      });
+
+      const shown = screen.getByText(/^• あ+/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown.length).toBeLessThan(longPrecaution.length + 2);
+    });
+
+    it("改行が 4 行以上ある注意点は 2 列でも 3 行で切り詰められて「…」が付く", () => {
+      setupCanvas({
+        items: [
+          createTestItem({
+            id: "item-multiline",
+            precautions: [
+              { id: "p1", value: "1行目\n2行目\n3行目\n4行目" },
+            ],
+          }),
+        ],
+        layoutType: "grid2",
+      });
+
+      const shown = screen.getByText(/^• 1行目/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown).not.toContain("4行目");
     });
   });
 

@@ -1,5 +1,6 @@
 import {
   getPdfContentSize,
+  isLandscapeLayout,
   LAYOUT_COLUMNS,
   PDF_CONTENT_SIZE,
 } from "@rehab-grid/core/lib/constants";
@@ -86,9 +87,6 @@ const TEST_SETTINGS: ResolvedProjectSettings = {
   header: {
     showPatientNameBox: true,
     dateMode: "none",
-    facilityName: "",
-    therapistName: "",
-    overallNote: "",
   },
   checkTable: "none",
 };
@@ -157,6 +155,8 @@ describe("pdf.ts", () => {
       ["grid3", "portrait", 163.76], // (515.28 - 24) / 3 = 163.76
       ["grid4", "portrait", 119.82], // (515.28 - 36) / 4 = 119.82
       ["grid1", "landscape", 515.28], // 1列は横向き指定でも縦向き
+      ["slide", "auto", 761.89], // スライドは常に A4 横の全幅
+      ["slide", "portrait", 761.89], // 縦向き指定でも横向き
     ] as const)(
       "layoutType=%s・向き=%s のとき、カード幅 %f を返す",
       (layoutType, orientation, expectedWidth) => {
@@ -178,6 +178,19 @@ describe("pdf.ts", () => {
       expect(columns).toBe(2);
       expect(contentSize).toBe(PDF_CONTENT_SIZE);
       expect(result).toBeGreaterThan(0);
+    });
+  });
+
+  describe("isLandscapeLayout", () => {
+    it.each(["auto", "portrait", "landscape"] as const)(
+      "スライドは向き=%s でも横向きになる",
+      (orientation) => {
+        expect(isLandscapeLayout("slide", orientation)).toBeTruthy();
+      }
+    );
+
+    it("1列は横向き指定でも縦向きのまま", () => {
+      expect(isLandscapeLayout("grid1", "landscape")).toBeFalsy();
     });
   });
 

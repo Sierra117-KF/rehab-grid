@@ -19,6 +19,7 @@ import {
   Columns3,
   Columns4,
   type LucideIcon,
+  Presentation,
   Square,
 } from "lucide-react";
 
@@ -87,20 +88,42 @@ export const HISTORY_LIMIT = 50;
 export const HISTORY_MERGE_WINDOW_MS = 800;
 
 /**
+ * レイアウトの表示ラベル（すべてのレイアウトを網羅する）
+ */
+const LAYOUT_LABELS: Record<LayoutType, string> = {
+  grid1: "1列",
+  grid2: "2列",
+  grid3: "3列",
+  grid4: "4列",
+  slide: "スライド",
+};
+
+/**
+ * レイアウトの表示ラベルを返す
+ *
+ * @param layoutType - レイアウトタイプ
+ * @returns 「1列」〜「4列」「スライド」
+ */
+export function getLayoutLabel(layoutType: LayoutType): string {
+  return LAYOUT_LABELS[layoutType];
+}
+
+/**
  * グリッドレイアウトオプション
  *
  * レイアウト切替UIで使用するアイコンとラベルの定義
- * 各列数に対応するアイコンを使用（Square=1列、Columns2=2列、Columns3=3列、Columns4=4列）
+ * 各列数に対応するアイコンを使用（Square=1列、Columns2=2列、Columns3=3列、Columns4=4列、Presentation=スライド）
  */
 export const LAYOUT_OPTIONS: {
   id: LayoutType;
   icon: LucideIcon;
   label: string;
 }[] = [
-  { id: "grid1", icon: Square, label: "1列" },
-  { id: "grid2", icon: Columns2, label: "2列" },
-  { id: "grid3", icon: Columns3, label: "3列" },
-  { id: "grid4", icon: Columns4, label: "4列" },
+  { id: "grid1", icon: Square, label: LAYOUT_LABELS.grid1 },
+  { id: "grid2", icon: Columns2, label: LAYOUT_LABELS.grid2 },
+  { id: "grid3", icon: Columns3, label: LAYOUT_LABELS.grid3 },
+  { id: "grid4", icon: Columns4, label: LAYOUT_LABELS.grid4 },
+  { id: "slide", icon: Presentation, label: LAYOUT_LABELS.slide },
 ];
 
 /**
@@ -220,7 +243,7 @@ export const DOSAGE_LABEL_SUGGESTIONS: Readonly<
  * 用途別のデザインプリセット
  *
  * @remarks
- * 列数・テーマカラー・用量ラベルには触れない（利用者が個別に決めた値を上書きしない）。
+ * レイアウト・テーマカラー・用量ラベルには触れない（利用者が個別に決めた値を上書きしない）。
  * 選ぶと updateSettings で一括適用する（履歴 1 件）。
  */
 export const DESIGN_PRESETS: readonly {

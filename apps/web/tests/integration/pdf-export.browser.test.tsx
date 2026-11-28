@@ -280,6 +280,40 @@ describe("PDF出力（EditorHeader経由）", () => {
     expect(mockToastSuccess).toHaveBeenCalledWith(PDF_DOWNLOAD_SUCCESS);
   });
 
+  it("スライドの設定でも、その設定のまま PDF 生成→ダウンロードが実行される", async () => {
+    const meta = createTestMeta({ title: "テストプロジェクト" });
+    const items = [
+      createTestItem({ id: "item-1", title: "スクワット", order: 0 }),
+      createTestItem({ id: "item-2", title: "ランジ", order: 1 }),
+    ];
+    const settings = { ...TEST_SETTINGS, layoutType: "slide" as const };
+
+    useEditorStore.setState(getInitialEditorState({ meta, items, settings }));
+
+    const blob = new Blob(["PDF"], { type: "application/pdf" });
+    mockPreparePdfGenerationData.mockResolvedValueOnce({
+      meta,
+      settings,
+      items,
+      images: {},
+    });
+    mockGeneratePdf.mockResolvedValueOnce(blob);
+
+    await renderHeader();
+
+    await openPdfMenu();
+    await userEvent.click(page.getByText(PDF_DOWNLOAD_LABEL));
+
+    expect(mockPreparePdfGenerationData).toHaveBeenCalledWith(
+      items,
+      meta,
+      settings
+    );
+    expect(mockGeneratePdf).toHaveBeenCalledTimes(1);
+    expect(mockDownloadBlob).toHaveBeenCalledWith(blob, "test.pdf");
+    expect(mockToastSuccess).toHaveBeenCalledWith(PDF_DOWNLOAD_SUCCESS);
+  });
+
   it("PDFメニュー → プレビューでプレビューモーダルが表示され、閉じられる", async () => {
     const meta = createTestMeta({ title: "テストプロジェクト" });
     const items = [createTestItem({ id: "item-1", title: "スクワット" })];

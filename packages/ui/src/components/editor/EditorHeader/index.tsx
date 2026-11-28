@@ -11,10 +11,12 @@ import {
   BUTTON_DELETE,
   createBackupRestoreSuccessMessage,
   DESIGN_SETTINGS_LABEL,
+  EXPORT_FAILED_MESSAGE,
   HOME_LINK_TOOLTIP,
   IMPORT_FAILED_MESSAGE,
   IMPORT_LOADING_LABEL,
   IMPORT_OPEN_LABEL,
+  IMPORT_OPEN_TOOLTIP,
   IMPORT_SUCCESS_MESSAGE,
   LIBRARY_SAVE_FAILED_MESSAGE,
   PDF_DOWNLOAD_SUCCESS,
@@ -152,13 +154,13 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   // インポート関連の状態
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const backupFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingImportResult, setPendingImportResult] =
     useState<ImportResult | null>(null);
 
   // 一括バックアップ・復元関連の状態
+  const isPreparingBackupRef = useRef(false);
   const [showBackupExportDialog, setShowBackupExportDialog] = useState(false);
   const [showBackupRestoreDialog, setShowBackupRestoreDialog] = useState(false);
   const [backupCounts, setBackupCounts] = useState<BackupSummaryCounts | null>(
@@ -209,8 +211,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   /**
    * 完全バックアップ（ZIP）としてエクスポート
    */
-  const handleExportZIP = useCallback(() => {
-    void downloadProjectAsZIP(stateToProjectFile({ meta, settings, items }));
+  const handleExportZIP = useCallback(async () => {
+    try {
+      await downloadProjectAsZIP(stateToProjectFile({ meta, settings, items }));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : EXPORT_FAILED_MESSAGE;
+      toast.error(message);
+    }
   }, [meta, settings, items]);
 
   /**
@@ -298,6 +306,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
    * まとめてバックアップダイアログを開く
    */
   const handleOpenBackupExport = useCallback(async () => {
+    if (isPreparingBackupRef.current) return;
+    isPreparingBackupRef.current = true;
     try {
       const counts = await collectCurrentBackupCounts();
       setBackupCounts(counts);
@@ -306,6 +316,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       const message =
         error instanceof Error ? error.message : BACKUP_EXPORT_FAILED_MESSAGE;
       toast.error(message);
+    } finally {
+      isPreparingBackupRef.current = false;
     }
   }, []);
 
@@ -326,13 +338,6 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
     },
     []
   );
-
-  /**
-   * バックアップから復元ファイル選択ダイアログを開く
-   */
-  const handleRestoreBackupClick = useCallback(() => {
-    backupFileInputRef.current?.click();
-  }, []);
 
   /**
    * バックアップ復元を実行
@@ -386,6 +391,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
   const applySingleImportResult = useCallback(
     async (result: ImportResult, mode: ImportOpenMode) => {
       setIsImporting(true);
+      const loadingToastId = toast.loading(IMPORT_LOADING_LABEL);
       try {
         await openImportResult(result, mode);
         toast.success(IMPORT_SUCCESS_MESSAGE);
@@ -394,6 +400,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
           error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE;
         toast.error(message);
       } finally {
+        toast.dismiss(loadingToastId);
         setIsImporting(false);
         setPendingImportResult(null);
       }
@@ -413,6 +420,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
       event.target.value = "";
 
       setIsImporting(true);
+      // モバイルではメニュー閉鎖後に処理が走るため、トーストでも読み込み中を通知する
+      const loadingToastId = toast.loading(IMPORT_LOADING_LABEL);
       try {
         const inspected = await inspectImportFile(file);
 
@@ -438,6 +447,7 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
           error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE;
         toast.error(message);
       } finally {
+        toast.dismiss(loadingToastId);
         setIsImporting(false);
       }
     },
@@ -628,22 +638,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
 
   return (
     <>
-      {/* 隠しファイル入力（共通） */}
+      {/* 隠しファイル入力（指導箋ファイル・一括バックアップ ZIP 共通。中身で自動判別する） */}
       <input
         ref={fileInputRef}
         type="file"
         accept=".json,.zip"
         onChange={(event) => void handleFileSelect(event)}
         className="hidden"
-        aria-label="プロジェクトファイルを選択"
-      />
-      <input
-        ref={backupFileInputRef}
-        type="file"
-        accept=".zip"
-        onChange={(event) => void handleFileSelect(event)}
-        className="hidden"
-        aria-label="バックアップファイルを選択"
+        aria-label="読み込むファイルを選択"
       />
 
       {/* モバイル/デスクトップ版ヘッダーの条件分岐 */}
@@ -692,9 +694,8 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
               onOpenClick={handleOpenClick}
               isImporting={isImporting}
               onExportJSON={handleExportJSON}
-              onExportZIP={handleExportZIP}
+              onExportZIP={() => void handleExportZIP()}
               onExportBackup={() => void handleOpenBackupExport()}
-              onRestoreBackup={handleRestoreBackupClick}
               onDeleteProject={handleOpenDeleteProjectDialog}
               onClose={handleCloseMobileMenu}
             />
@@ -805,14 +806,14 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 <span className="hidden xl:inline">{TEMPLATE_BUTTON_LABEL}</span>
               </Button>
 
-              {/* 開くボタン */}
+              {/* 読み込みボタン（指導箋ファイル・バックアップ ZIP を中身で自動判別） */}
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground"
                 onClick={handleOpenClick}
                 disabled={isImporting}
-                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL}
+                title={isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_TOOLTIP}
                 aria-label={
                   isImporting ? IMPORT_LOADING_LABEL : IMPORT_OPEN_LABEL
                 }
@@ -827,13 +828,11 @@ export function EditorHeader({ hideAppName = false }: EditorHeaderProps) {
                 </span>
               </Button>
 
-              {/* エクスポートドロップダウンメニュー */}
+              {/* 書き出しドロップダウンメニュー */}
               <ExportMenu
                 onExportJSON={handleExportJSON}
-                onExportZIP={handleExportZIP}
+                onExportZIP={() => void handleExportZIP()}
                 onExportBackup={() => void handleOpenBackupExport()}
-                onRestoreBackup={handleRestoreBackupClick}
-                isImporting={isImporting}
               />
 
               {/* PDFドロップダウンメニュー */}

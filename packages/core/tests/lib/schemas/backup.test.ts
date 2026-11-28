@@ -105,6 +105,27 @@ describe("backupManifestSchema", () => {
     expect(result.data.images[0]?.fileName).toBe("スクワット解説");
   });
 
+  it("スライドの指導箋を含むマニフェストをパースできる", () => {
+    const data = createValidProjectData();
+    const input = createValidManifest({
+      projects: [
+        {
+          id: "p1",
+          updatedAt: "2026-11-26T09:00:00.000Z",
+          data: {
+            ...data,
+            settings: { ...data.settings, layoutType: "slide" },
+          },
+        },
+      ],
+    });
+
+    const result = backupManifestSchema.safeParse(input);
+
+    expect(result.success).toBeTruthy();
+    expect(result.data?.projects[0]?.data.settings.layoutType).toBe("slide");
+  });
+
   it("配列フィールドが省略されても空配列として補完する", () => {
     const result = backupManifestSchema.safeParse({
       format: BACKUP_FORMAT,
