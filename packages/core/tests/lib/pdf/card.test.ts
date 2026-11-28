@@ -371,6 +371,44 @@ describe("createCard", () => {
 
       expect(extractTextContent(card)).not.toContain(LABELS.precautionTitle);
     });
+
+    it("狭いカードで 3 行に収まらない注意点は「…」で省略される", () => {
+      // 4列縦（幅 119.82pt）・大きめ文字（10pt）では 50 文字の注意点は 3 行に収まらない
+      const card = createCard(
+        createTestItem({
+          precautions: [{ id: "p1", value: "あ".repeat(TEXT_LIMITS.precaution) }],
+        }),
+        119.82,
+        undefined,
+        createSettings({
+          layoutType: "grid4",
+          pageOrientation: "portrait",
+          textScale: "large",
+        })
+      );
+
+      const precautionText = extractTextContent(card).find((t) =>
+        t.startsWith("• ")
+      );
+      expect(precautionText).toMatch(/^• あ+…$/);
+      expect(precautionText!.length).toBeLessThan(TEXT_LIMITS.precaution + 2);
+    });
+
+    it("1 語だけで行幅を超える長い半角連続文字の注意点は改行で分割される", () => {
+      const card = createCard(
+        createTestItem({
+          precautions: [{ id: "p1", value: `肩の力を抜く\n${"q".repeat(42)}` }],
+        }),
+        200
+      );
+
+      const precautionText = extractTextContent(card).find((t) =>
+        t.startsWith("• 肩の力を抜く")
+      );
+      expect(precautionText).toBeDefined();
+      // 2 行目の長い q 連続が折り返されて 3 行目へ分割される
+      expect(precautionText!.split("\n").length).toBeGreaterThanOrEqual(3);
+    });
   });
 
   it("カードはページをまたいで分割されない", () => {

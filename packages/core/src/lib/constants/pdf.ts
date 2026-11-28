@@ -433,8 +433,8 @@ export const PDF_SUPPORTED_IMAGE_PREFIXES = [
 ] as const;
 
 /**
- * CJK（中国語・日本語・韓国語）文字の正規表現パターン
+ * CJK（中国語・日本語・韓国語）および全角英数字・記号の正規表現パターン
  *
- * 日本語は単語境界がないため、文字単位で分割を許可するために使用
+ * 日本語や全角文字は単語境界がないため、文字単位で分割を許可するために使用
  */
-export const CJK_PATTERN = /[\u3000-\u9FFF\uAC00-\uD7AF]/;
+export const CJK_PATTERN = /[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]/;

@@ -12,12 +12,14 @@ import { type ProjectSettings } from "@rehab-grid/core/types";
 import { describe, expect, it } from "vitest";
 
 import {
+  breakPdfOverflowWords,
   countPdfTextLines,
   estimateCharsPerLine,
   fitPdfFontSizeToSingleLine,
   fitPdfTextToLines,
   getPdfCardFontSizes,
   getPdfCardImageSize,
+  getPdfCardPrecautionText,
   getPdfDosageItemWidth,
   getPdfPrecautionTextWidth,
   getPdfSlideCardSize,
@@ -36,9 +38,10 @@ describe("measurePdfTextWidth", () => {
     expect(measurePdfTextWidth(" ", 10, 0.5)).toBeCloseTo(2.3);
   });
 
-  it("幅の広い半角文字（M/W 等）と英大文字は安全側に広めに見積もる", () => {
+  it("幅の広い半角文字（M/W 等）・英大文字・幅広小文字（q/b 等）は安全側に広めに見積もる", () => {
     expect(measurePdfTextWidth("MW", 10, 0.5)).toBe(20);
     expect(measurePdfTextWidth("AB", 10, 0.5)).toBeCloseTo(15.6);
+    expect(measurePdfTextWidth("qb", 10, 0.5)).toBeCloseTo(13);
   });
 });
 
@@ -49,13 +52,18 @@ describe("countPdfTextLines", () => {
     expect(countPdfTextLines("あいう", 30, 10, 0.5)).toBe(1);
   });
 
+  it("全角英数字も 1 文字ずつ折り返す", () => {
+    // 幅 30pt・10pt の全角英字 → 1 行 3 文字、7 文字は 3 行
+    expect(countPdfTextLines("ｒ".repeat(7), 30, 10, 0.5)).toBe(3);
+  });
+
   it("改行文字では必ず改行し、空行も 1 行と数える", () => {
     expect(countPdfTextLines("あ\n\nい", 100, 10, 0.5)).toBe(3);
     expect(countPdfTextLines("", 100, 10, 0.5)).toBe(1);
   });
 
   it("日本語を含まない語は途中で折り返さず、空白で区切る", () => {
-    // "abcd"（20pt）と "efgh"（20pt）は 30pt の行に並ばない
+    // "abcd" と "efgh" は 30pt の行に並ばない
     expect(countPdfTextLines("abcd efgh", 30, 10, 0.5)).toBe(2);
   });
 
@@ -65,8 +73,53 @@ describe("countPdfTextLines", () => {
   });
 
   it("行内の空白を詰めて収まる場合は改行しない", () => {
-    // "ab cd" = 10 + 2.3 + 10 = 22.3pt。空白を 1/3 詰めると 21.5pt で 21.6pt の行に入る
-    expect(countPdfTextLines("ab cd", 21.6, 10, 0.5)).toBe(1);
+    // "ac ef" = 10 + 2.3 + 10 = 22.3pt。空白を 1/3 詰めると 21.5pt で 21.6pt の行に入る
+    expect(countPdfTextLines("ac ef", 21.6, 10, 0.5)).toBe(1);
+  });
+});
+
+describe("breakPdfOverflowWords", () => {
+  it("行幅に収まる通常の英単語や日本語・全角英数字は変更しない", () => {
+    expect(breakPdfOverflowWords("あいうえお Hello world", 100, 10, 0.56)).toBe(
+      "あいうえお Hello world"
+    );
+    expect(breakPdfOverflowWords("ｒ".repeat(30), 100, 10, 0.56)).toBe(
+      "ｒ".repeat(30)
+    );
+  });
+
+  it("1 語だけで行幅を超える半角連続文字列は行幅に収まる単位で改行を入れる", () => {
+    // 幅 30pt・q は 10 × 0.65 = 6.5pt → 1 行 4 文字
+    expect(breakPdfOverflowWords("q".repeat(10), 30, 10, 0.56)).toBe(
+      "qqqq\nqqqq\nqq"
+    );
+  });
+
+  it("日本語と空白なしで隣接した長い半角連続文字列も分割する", () => {
+    expect(
+      breakPdfOverflowWords(`• 肩の力を抜く${"q".repeat(10)}`, 30, 10, 0.56)
+    ).toBe("• 肩の力を抜くqqqq\nqqqq\nqq");
+  });
+
+  it("改行を含むテキストでも該当の半角語だけを分割する", () => {
+    expect(
+      breakPdfOverflowWords(`• 肩の力を抜く\n${"q".repeat(10)}`, 30, 10, 0.56)
+    ).toBe("• 肩の力を抜く\nqqqq\nqqqq\nqq");
+  });
+});
+
+describe("getPdfCardPrecautionText", () => {
+  it("3 行に収まる注意点は行頭に「• 」を付けてそのまま返す", () => {
+    expect(getPdfCardPrecautionText("痛みが出たら中止", 200, 8)).toBe(
+      "• 痛みが出たら中止"
+    );
+  });
+
+  it("狭い幅で 3 行に収まらない注意点は末尾を「…」で切り詰める", () => {
+    // 4列縦（幅 91.8pt・10pt 文字）は 1 行約 9 文字。50 文字は 3 行に収まらない
+    const result = getPdfCardPrecautionText("あ".repeat(50), 91.8, 10);
+    expect(result).toMatch(/^• あ+…$/);
+    expect(countPdfTextLines(result, 91.8, 10, 0.56)).toBeLessThanOrEqual(3);
   });
 });
 

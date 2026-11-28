@@ -35,13 +35,19 @@ import { estimatePdfLayout } from "@/lib/pdf/layout";
 import { createTestItem, createTestMeta } from "./pdfTestUtils";
 
 /** レイアウト結果のノード（必要な項目だけ） */
+type LayoutLine = {
+  string?: string;
+  box?: { width: number };
+  runs?: { positions?: { xAdvance?: number }[] }[];
+};
+
 type LayoutNode = {
   type: string;
   value?: string;
   props?: { wrap?: boolean };
   style?: { borderTopLeftRadius?: number };
-  box?: { top: number; height: number };
-  lines?: unknown[];
+  box?: { top: number; width: number; height: number };
+  lines?: LayoutLine[];
   children?: LayoutNode[];
 };
 
@@ -343,6 +349,39 @@ describe("用量の自動縮小（実際の PDF レンダリングで 1 行に�
 });
 
 /**
+ * 1 行の実際の可視描画幅（末尾の折り返し空白を除いた全グリフの xAdvance の和）を返す
+ *
+ * react-pdf（textkit）は行末の空白を描画しないが内部の positions には残すため、
+ * 末尾の空白分のグリフは除外して実測する。
+ */
+function measureRealLineWidth(line: LayoutLine): number {
+  const text = line.string ?? "";
+  const trailingSpaces = text.length - text.trimEnd().length;
+  const advances = (line.runs ?? []).flatMap((run) =>
+    (run.positions ?? []).map((pos) => pos.xAdvance ?? 0)
+  );
+  const visibleCount = Math.max(0, advances.length - trailingSpaces);
+  return advances.slice(0, visibleCount).reduce((sum, w) => sum + w, 0);
+}
+
+/**
+ * カード内のすべての TEXT ノードについて、各行の実測描画幅が自身の幅（box.width）を
+ * はみ出していないことを検証する
+ */
+function expectNoHorizontalOverflow(node: LayoutNode) {
+  if (node.type === "TEXT" && node.lines !== undefined && node.box !== undefined) {
+    // 浮動小数点丸め誤差のみ許容（1pt 未満）
+    const limit = node.box.width + 1;
+    for (const line of node.lines) {
+      expect(measureRealLineWidth(line)).toBeLessThanOrEqual(limit);
+    }
+  }
+  for (const child of node.children ?? []) {
+    expectNoHorizontalOverflow(child);
+  }
+}
+
+/**
  * ノードの上端から、子孫のうち最も下にある要素の下端までの高さ
  *
  * box.top は親の上端からの位置
@@ -357,6 +396,44 @@ function measureContentBottom(node: LayoutNode): number {
     )
   );
 }
+
+describe("注意点の折り返し・省略（実際の PDF レンダリングで縦にも横にもはみ出さないこと）", () => {
+  it(
+    "縦型カード（2列・4列縦大きめ）で長い全角・半角連続・改行入りの注意点が枠内に収まり、3行超は省略される",
+    { timeout: 60_000 },
+    async () => {
+      const precautions = [
+        { id: "p1", value: `前をまっすぐ向く${"え".repeat(42)}` },
+        { id: "p2", value: `肩の力を抜く${"q".repeat(43)}` },
+        { id: "p3", value: `肩の力を抜く ${"q".repeat(42)}` },
+        { id: "p4", value: `親指に力を入れる ${"ｒ".repeat(40)}` },
+        { id: "p5", value: "W".repeat(50) },
+      ];
+      const item = createTestItem({
+        id: "precaution-overflow",
+        order: 0,
+        title: "カード1",
+        description: `呼${"あ".repeat(120)}\n${"q".repeat(70)}`,
+        precautions,
+      });
+
+      for (const settings of [
+        resolveProjectSettings({ layoutType: "grid2" }),
+        resolveProjectSettings({
+          layoutType: "grid4",
+          pageOrientation: "portrait",
+          textScale: "large",
+          printColorMode: "monochrome",
+        }),
+      ]) {
+        const layout = await computePdfLayoutTree([item], settings);
+        const cards = layout.children.flatMap(collectCards);
+        expect(cards).toHaveLength(1);
+        expectNoHorizontalOverflow(cards[0]!);
+      }
+    }
+  );
+});
 
 describe("スライドの最悪の入力（実際の PDF レンダリングでカードからはみ出さないこと）", () => {
   it(
@@ -387,7 +464,7 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
             value: precautionText,
           })),
         });
-      // 全角・半角混在・改行入り・空白なし長文半角・幅広半角英大文字のパターン
+      // 全角・半角混在・改行入り・空白なし長文半角・全角英字連続・幅広半角英大文字のパターン
       const items = [
         longItem(0, "あ".repeat(50)),
         longItem(1, SAMPLE_TEXT.slice(0, 50)),
@@ -398,6 +475,9 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
           "ROM MMT ADL SLR TUG ".repeat(3).slice(0, 50),
           "WWWWW ".repeat(34).slice(0, 200)
         ),
+        longItem(5, `肩の力を抜く${"q".repeat(43)}`),
+        longItem(6, `肩の力を抜く ${"q".repeat(42)}`),
+        longItem(7, `親指に力を入れる ${"ｒ".repeat(40)}`),
       ];
 
       const layout = await computePdfLayoutTree(items, settings);
@@ -407,10 +487,12 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
         const cards = collectCards(page);
         expect(cards).toHaveLength(1);
         const card = cards[0]!;
-        // 枠線 1 + 余白 8 の内側に収まる
+        // 枠線 1 + 余白 8 の内側に収まる（縦方向）
         expect(measureContentBottom(card)).toBeLessThanOrEqual(
           (card.box?.height ?? 0) - 9
         );
+        // テキストが枠の右端をはみ出さない（横方向）
+        expectNoHorizontalOverflow(card);
       }
     }
   );

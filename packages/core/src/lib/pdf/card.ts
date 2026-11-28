@@ -30,6 +30,7 @@ import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 import { createElement, type ReactElement } from "react";
 
 import {
+  breakPdfOverflowWords,
   fitPdfFontSizeToSingleLine,
   getPdfCardDescriptionText,
   getPdfCardFontSizes,
@@ -428,10 +429,15 @@ export function createCard(
 
   // 説明（行数制限 + 幅制限で折り返し）
   if (item.description) {
-    const displayDescription = getPdfCardDescriptionText(
-      item.description,
+    const displayDescription = breakPdfOverflowWords(
+      getPdfCardDescriptionText(
+        item.description,
+        imageWidth,
+        fontSizes.description
+      ),
       imageWidth,
-      fontSizes.description
+      fontSizes.description,
+      PDF_HALF_WIDTH_CHAR_RATIO.regular
     );
     children.push(
       createElement(
@@ -461,14 +467,23 @@ export function createCard(
 
   // 注意点（行数制限 + 幅制限で折り返し）
   if (item.precautions && item.precautions.length > 0) {
+    const precautionTextWidth = getPdfPrecautionTextWidth(
+      imageWidth,
+      printColorMode
+    );
     children.push(
       createPrecautionBox(
         item.precautions.map((p) => ({
           key: p.id,
-          text: getPdfCardPrecautionText(
-            p.value,
-            imageWidth,
-            fontSizes.precautionText
+          text: breakPdfOverflowWords(
+            getPdfCardPrecautionText(
+              p.value,
+              precautionTextWidth,
+              fontSizes.precautionText
+            ),
+            precautionTextWidth,
+            fontSizes.precautionText,
+            PDF_HALF_WIDTH_CHAR_RATIO.regular
           ),
         })),
         imageWidth,
@@ -561,10 +576,15 @@ export function createSlideCard(
             fontSize: fontSizes.description,
           },
         },
-        getPdfSlideDescriptionText(
-          item.description,
-          descriptionLines,
-          rightColumnWidth
+        breakPdfOverflowWords(
+          getPdfSlideDescriptionText(
+            item.description,
+            descriptionLines,
+            rightColumnWidth
+          ),
+          rightColumnWidth,
+          fontSizes.description,
+          PDF_HALF_WIDTH_CHAR_RATIO.regular
         )
       )
     );
@@ -578,7 +598,12 @@ export function createSlideCard(
       createPrecautionBox(
         item.precautions.map((p) => ({
           key: p.id,
-          text: getPdfSlidePrecautionText(p.value, precautionLines, textWidth),
+          text: breakPdfOverflowWords(
+            getPdfSlidePrecautionText(p.value, precautionLines, textWidth),
+            textWidth,
+            fontSizes.precautionText,
+            PDF_HALF_WIDTH_CHAR_RATIO.regular
+          ),
         })),
         rightColumnWidth,
         fontSizes,

@@ -14,6 +14,7 @@ import type {
   DosageLabels,
   EditorItem,
   LayoutType,
+  PageOrientation,
   PrintColorMode,
   TextScale,
 } from "@rehab-grid/core/types";
@@ -113,9 +114,13 @@ export type SortableCardProps = {
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
   dosageLabels?: DosageLabels;
   /**
-   * 印刷の色づかい（スライドの説明・注意点の行数計算に使う。省略時はカラー）
+   * 印刷の色づかい（PDF の注意点省略位置やスライドの行数計算に使う。省略時はカラー）
    */
   printColorMode?: PrintColorMode;
+  /**
+   * 用紙の向きの設定（PDF の注意点省略位置の計算に使う。省略時は自動）
+   */
+  pageOrientation?: PageOrientation;
   /**
    * カード上でタイトル・用量を編集して確定したときのコールバック（デスクトップのみ）
    *
@@ -149,6 +154,7 @@ export function SortableCard({
   cardNumber,
   dosageLabels = LABELS,
   printColorMode = "color",
+  pageOrientation = "auto",
   onInlineEdit,
 }: SortableCardProps) {
   const [isImageDragOver, setIsImageDragOver] = useState(false);
@@ -418,7 +424,12 @@ export function SortableCard({
       {isSlide ? (
         <SlideCardBody {...cardBodyProps} printColorMode={printColorMode} />
       ) : (
-        <VerticalCardBody {...cardBodyProps} textScale={textScale} />
+        <VerticalCardBody
+          {...cardBodyProps}
+          textScale={textScale}
+          pageOrientation={pageOrientation}
+          printColorMode={printColorMode}
+        />
       )}
     </div>
   );

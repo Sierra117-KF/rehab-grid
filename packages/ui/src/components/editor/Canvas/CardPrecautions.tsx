@@ -43,7 +43,7 @@ type CardPrecautionsProps = {
   textClassName?: string;
   /** 本文の文字サイズのインラインスタイル */
   textStyle?: React.CSSProperties;
-  /** 注意点 1 件の表示を作る（スライドは PDF と同じ位置で切り詰める。省略時は「• 注意点」） */
+  /** 注意点 1 件の表示を作る（PDF と同じ位置で切り詰める。省略時は「• 注意点」） */
   formatText?: (value: string) => string;
 };
 

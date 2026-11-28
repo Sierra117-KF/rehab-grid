@@ -6,8 +6,20 @@ import {
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
+import {
+  getPdfCardFontSizes,
+  getPdfCardImageSize,
+  getPdfCardPrecautionText,
+  getPdfPrecautionTextWidth,
+} from "@rehab-grid/core/lib/pdf/metrics";
 import { cn } from "@rehab-grid/core/lib/utils";
-import type { LayoutType, TextScale } from "@rehab-grid/core/types";
+import type {
+  LayoutType,
+  PageOrientation,
+  PrintColorMode,
+  TextScale,
+} from "@rehab-grid/core/types";
+import { calculatePdfCardWidth } from "@rehab-grid/core/utils/pdf";
 
 import { CardDosages } from "./CardDosages";
 import { CardImage } from "./CardImage";
@@ -47,6 +59,10 @@ function getCardTextStyle(
 type VerticalCardBodyProps = CardBodyProps & {
   /** 文字サイズの設定 */
   textScale: TextScale;
+  /** 用紙の向きの設定（PDF の注意点省略位置の計算に使う） */
+  pageOrientation?: PageOrientation;
+  /** 印刷の色づかい（白黒モードの注意点枠線幅を含めた省略位置の計算に使う） */
+  printColorMode?: PrintColorMode;
 };
 
 /**
@@ -60,12 +76,29 @@ export function VerticalCardBody({
   onImageAreaClick,
   layoutType,
   textScale,
+  pageOrientation = "auto",
+  printColorMode = "color",
   cardNumber,
   dosageLabels,
   inlineEdit,
   touchHandlers,
 }: VerticalCardBodyProps) {
   const textStyle = getCardTextStyle(layoutType, textScale, isMobile);
+  // 注意点は PDF と同じ設定・位置で切り詰めた文字列を出し、キャンバス上で「…」による省略を目視確認できるようにする
+  const pdfLayoutType = layoutType ?? "grid2";
+  const pdfCardWidth = calculatePdfCardWidth(pdfLayoutType, pageOrientation);
+  const { width: pdfContentWidth } = getPdfCardImageSize(pdfCardWidth);
+  const pdfPrecautionTextWidth = getPdfPrecautionTextWidth(
+    pdfContentWidth,
+    printColorMode
+  );
+  const pdfFontSizes = getPdfCardFontSizes(pdfLayoutType, textScale);
+  const formatPrecaution = (value: string) =>
+    getPdfCardPrecautionText(
+      value,
+      pdfPrecautionTextWidth,
+      pdfFontSizes.precautionText
+    );
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -116,6 +149,7 @@ export function VerticalCardBody({
           touchHandlers={touchHandlers}
           titleClassName={textStyle.precautionTitleSize}
           textClassName={textStyle.precautionTextSize}
+          formatText={formatPrecaution}
         />
       ) : null}
     </div>

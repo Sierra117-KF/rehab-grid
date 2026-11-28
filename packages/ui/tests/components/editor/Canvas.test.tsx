@@ -942,6 +942,69 @@ describe("Canvas", () => {
     });
   });
 
+  describe("縦型カードの注意点省略表示", () => {
+    const longPrecaution = "あ".repeat(50);
+    const itemWithLongPrecaution = createTestItem({
+      id: "item-precaution",
+      precautions: [{ id: "p1", value: longPrecaution }],
+    });
+
+    it("4列縦向きなど表示幅に収まらない設定ではキャンバスでも末尾に「…」を付けて表示する", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "portrait",
+        textScale: "standard",
+      });
+
+      const shown = screen.getByText(/^• あ+/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown.length).toBeLessThan(longPrecaution.length + 2);
+    });
+
+    it("同じ注意点でも 2 列や 4 列横向き（標準文字）など収まる設定では「…」を付けずに全文表示する", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "landscape",
+        textScale: "standard",
+      });
+
+      expect(screen.getByText(`• ${longPrecaution}`)).toBeInTheDocument();
+    });
+
+    it("4列横向きでも文字サイズを「大きめ」にすると収まらなくなり「…」で表示される", () => {
+      setupCanvas({
+        items: [itemWithLongPrecaution],
+        layoutType: "grid4",
+        pageOrientation: "landscape",
+        textScale: "large",
+      });
+
+      const shown = screen.getByText(/^• あ+/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown.length).toBeLessThan(longPrecaution.length + 2);
+    });
+
+    it("改行が 4 行以上ある注意点は 2 列でも 3 行で切り詰められて「…」が付く", () => {
+      setupCanvas({
+        items: [
+          createTestItem({
+            id: "item-multiline",
+            precautions: [
+              { id: "p1", value: "1行目\n2行目\n3行目\n4行目" },
+            ],
+          }),
+        ],
+        layoutType: "grid2",
+      });
+
+      const shown = screen.getByText(/^• 1行目/).textContent;
+      expect(shown.endsWith("…")).toBeTruthy();
+      expect(shown).not.toContain("4行目");
+    });
+  });
+
   describe("モバイルモード", () => {
     it("isMobile=true のとき layoutType に関わらず常に1列表示になる", () => {
       setupCanvas({

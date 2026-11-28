@@ -187,6 +187,12 @@ const UPPERCASE_HALF_WIDTH_CHAR_PATTERN = /^[A-Z]$/;
 /** 半角英大文字の幅比率 */
 const PDF_UPPERCASE_CHAR_RATIO = 0.78;
 
+/** 近似値よりやや幅が広い半角小文字・記号（NotoSansJP 実測 Regular 0.606〜0.620 / Bold 0.626〜0.644） */
+const WIDE_LOWERCASE_HALF_WIDTH_CHAR_PATTERN = /^[bdhnopqu`]$/;
+
+/** 幅広の半角小文字・記号の幅比率 */
+const PDF_WIDE_LOWERCASE_CHAR_RATIO = 0.65;
+
 /**
  * 用量の 1 項目分の幅を求める
  *
@@ -260,6 +266,12 @@ export function measurePdfTextWidth(
         sum + fontSize * Math.max(halfWidthRatio, PDF_UPPERCASE_CHAR_RATIO)
       );
     }
+    if (WIDE_LOWERCASE_HALF_WIDTH_CHAR_PATTERN.test(char)) {
+      return (
+        sum +
+        fontSize * Math.max(halfWidthRatio, PDF_WIDE_LOWERCASE_CHAR_RATIO)
+      );
+    }
     return (
       sum + fontSize * (HALF_WIDTH_CHAR_PATTERN.test(char) ? halfWidthRatio : 1)
     );
@@ -279,18 +291,25 @@ type PdfTextLine = {
 };
 
 /**
+ * 1 段落を折り返しの単位に分ける正規表現
+ *
+ * react-pdf（textkit）と同じく、CJK・全角文字は 1 文字ずつ、
+ * 空白のまとまりと非 CJK の半角語はそれぞれのまとまりとして切り出す。
+ */
+const BREAK_UNIT_PATTERN =
+  /[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]| +|[^\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF ]+/g;
+
+/**
  * 1 段落を折り返しの単位に分ける
  *
- * Worker のハイフネーション設定と同じく、日本語を含む語は 1 文字ずつ、それ以外の語は空白で区切る
+ * Worker のハイフネーション設定および react-pdf の単語境界と同じく、
+ * 日本語・全角文字は 1 文字ずつ、半角語と空白はそれぞれのまとまりで区切る。
  *
  * @param paragraph - 改行を含まないテキスト
  * @returns 折り返しの単位（空白も 1 単位として残す）
  */
 function splitIntoBreakUnits(paragraph: string): string[] {
-  return paragraph
-    .split(/( +)/)
-    .filter((part) => part !== "")
-    .flatMap((part) => (CJK_PATTERN.test(part) ? Array.from(part) : [part]));
+  return paragraph.match(BREAK_UNIT_PATTERN) ?? [];
 }
 
 /**
@@ -462,24 +481,88 @@ export function getPdfCardDescriptionText(
 }
 
 /**
+ * 1 語だけで行幅を超える半角連続文字列に改行を入れ、PDF で横にはみ出さないようにする
+ *
+ * @remarks
+ * Worker のハイフネーション設定は通常の英単語を途中で切らないよう半角のみの語を `[word]` で返すため、
+ * 1 語だけで行幅を超える長い半角文字列はそのまま渡すと枠の右端をはみ出す。
+ * PDF の Text 要素に渡す直前にこの関数を通すことで、通常の英単語のワードラップを維持しつつ
+ * 行幅を超える語だけを文字単位で折り返せるようにする（キャンバス表示には使わない）。
+ *
+ * @param text - テキスト
+ * @param width - テキスト領域の幅（ポイント単位）
+ * @param fontSize - フォントサイズ（ポイント単位）
+ * @param halfWidthRatio - 半角 1 文字の幅（`PDF_HALF_WIDTH_CHAR_RATIO`）
+ * @returns 行幅を超える半角語を改行で分割したテキスト
+ */
+export function breakPdfOverflowWords(
+  text: string,
+  width: number,
+  fontSize: number,
+  halfWidthRatio: number
+): string {
+  if (!text || width <= 0) return text;
+
+  return text
+    .split("\n")
+    .map((paragraph) =>
+      splitIntoBreakUnits(paragraph)
+        .map((part) => {
+          if (part.trim() === "" || CJK_PATTERN.test(part)) {
+            return part;
+          }
+          if (measurePdfTextWidth(part, fontSize, halfWidthRatio) <= width) {
+            return part;
+          }
+          // 1 語だけで行幅を超える半角文字列を、行幅に収まるチャンクごとに改行で区切る
+          const chunks: string[] = [];
+          let current = "";
+          let currentWidth = 0;
+          for (const char of Array.from(part)) {
+            const charWidth = measurePdfTextWidth(
+              char,
+              fontSize,
+              halfWidthRatio
+            );
+            if (current !== "" && currentWidth + charWidth > width) {
+              chunks.push(current);
+              current = char;
+              currentWidth = charWidth;
+            } else {
+              current += char;
+              currentWidth += charWidth;
+            }
+          }
+          if (current !== "") {
+            chunks.push(current);
+          }
+          return chunks.join("\n");
+        })
+        .join("")
+    )
+    .join("\n");
+}
+
+/**
  * カードの注意点 1 件に出す文字列を作る（行頭の「•」付き、行数の上限で切り詰める）
  *
  * @param value - 注意点
- * @param contentWidth - カード内コンテンツの幅（ポイント単位）
+ * @param textWidth - 注意点の枠の中の幅（ポイント単位。getPdfPrecautionTextWidth）
  * @param fontSize - 注意点のフォントサイズ（ポイント単位）
  * @returns 表示する文字列
  */
 export function getPdfCardPrecautionText(
   value: string,
-  contentWidth: number,
+  textWidth: number,
   fontSize: number
 ): string {
-  const displayValue = truncateToLines(
-    value.slice(0, TEXT_LIMITS.precaution),
+  return fitPdfTextToLines(
+    toPdfPrecautionLine(value),
     LINE_CLAMP.precaution,
-    estimateCharsPerLine(contentWidth, fontSize, PDF_CHAR_WIDTH_RATIO.body)
+    textWidth,
+    fontSize,
+    PDF_HALF_WIDTH_CHAR_RATIO.regular
   );
-  return `• ${displayValue}`;
 }
 
 /**

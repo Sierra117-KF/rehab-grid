@@ -487,6 +487,7 @@ export function TrainingPage() {
           themeColor={settings.themeColor}
           printColorMode={settings.printColorMode}
           textScale={settings.textScale}
+          pageOrientation={settings.pageOrientation}
           showCardNumbers={settings.showCardNumbers}
           dosageLabels={settings.dosageLabels}
           sheetHeader={settings.header}

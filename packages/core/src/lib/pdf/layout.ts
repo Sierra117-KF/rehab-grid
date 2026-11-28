@@ -41,6 +41,7 @@ import {
   getPdfCardNumberBadgeSize,
   getPdfCardPrecautionText,
   getPdfDosageItemWidth,
+  getPdfPrecautionTextWidth,
   type PdfCardFontSizes,
 } from "./metrics";
 
@@ -197,20 +198,18 @@ export function estimatePdfCardHeight(
 
   if (item.precautions && item.precautions.length > 0) {
     // 白黒モードは注意点を枠線で囲む
-    const borderWidth =
-      printColorMode === "monochrome" ? PDF_SPACING.precautionBorderWidth : 0;
-    const textWidth =
-      contentWidth - (PDF_SPACING.precautionPadding + borderWidth) * 2;
+    const textWidth = getPdfPrecautionTextWidth(contentWidth, printColorMode);
+    const boxInset = (contentWidth - textWidth) / 2;
     height +=
       PDF_SPACING.precautionMarginTop +
-      (PDF_SPACING.precautionPadding + borderWidth) * 2 +
+      boxInset * 2 +
       fontSizes.precautionTitle * PDF_DEFAULT_LINE_HEIGHT +
       PDF_SPACING.precautionTitleMarginBottom;
     for (const precaution of item.precautions) {
       const lines = countPdfTextLines(
         getPdfCardPrecautionText(
           precaution.value,
-          contentWidth,
+          textWidth,
           fontSizes.precautionText
         ),
         textWidth,

@@ -35,6 +35,7 @@ import type {
   DosageLabels,
   EditorItem,
   LayoutType,
+  PageOrientation,
   PrintColorMode,
   SheetHeaderSettings,
   TextScale,
@@ -152,6 +153,8 @@ export type CanvasProps = {
   printColorMode?: PrintColorMode;
   /** カード内の文字サイズ（省略時は標準） */
   textScale?: TextScale;
+  /** 用紙の向きの設定（PDF の注意点省略位置の計算に使う。省略時は自動） */
+  pageOrientation?: PageOrientation;
   /** カード番号を表示するか（省略時は表示しない） */
   showCardNumbers?: boolean;
   /** 用量のラベル（省略時は LABELS の回数・セット・頻度） */
@@ -231,6 +234,7 @@ export function Canvas({
   themeColor,
   printColorMode = "color",
   textScale = "standard",
+  pageOrientation = "auto",
   showCardNumbers = false,
   dosageLabels,
   sheetHeader,
@@ -523,6 +527,7 @@ export function Canvas({
                       isMobile={isMobile}
                       layoutType={layoutType}
                       textScale={textScale}
+                      pageOrientation={pageOrientation}
                       cardNumber={showCardNumbers ? index + 1 : undefined}
                       dosageLabels={dosageLabels}
                       printColorMode={printColorMode}
