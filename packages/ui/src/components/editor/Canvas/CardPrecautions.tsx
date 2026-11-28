@@ -43,6 +43,8 @@ type CardPrecautionsProps = {
   textClassName?: string;
   /** 本文の文字サイズのインラインスタイル */
   textStyle?: React.CSSProperties;
+  /** 2 件目以降の項目の上の間隔（スライドで PDF の間隔に合わせる） */
+  itemGap?: string;
   /** 注意点 1 件の表示を作る（PDF と同じ位置で切り詰める。省略時は「• 注意点」） */
   formatText?: (value: string) => string;
 };
@@ -59,6 +61,7 @@ export function CardPrecautions({
   titleStyle,
   textClassName,
   textStyle,
+  itemGap,
   formatText = formatPrecautionLine,
 }: CardPrecautionsProps) {
   return (
@@ -76,14 +79,18 @@ export function CardPrecautions({
       >
         {LABELS.precautionTitle}
       </span>
-      {precautions.map((precaution) => (
+      {precautions.map((precaution, index) => (
         <p
           key={precaution.id}
           className={cn(
             textClassName,
             "text-precaution-text whitespace-pre-line wrap-break-word"
           )}
-          style={textStyle}
+          style={
+            index > 0 && itemGap !== undefined
+              ? { ...textStyle, marginTop: itemGap }
+              : textStyle
+          }
         >
           {formatText(precaution.value)}
         </p>

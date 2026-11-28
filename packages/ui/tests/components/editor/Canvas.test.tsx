@@ -807,12 +807,24 @@ describe("Canvas", () => {
       const left = within(screen.getByTestId("slide-left-column"));
       expect(left.getByRole("img", { name: "スクワット" })).toBeInTheDocument();
       expect(left.getByText("10回")).toBeInTheDocument();
-      const right = within(screen.getByTestId("slide-right-column"));
+      const rightEl = screen.getByTestId("slide-right-column");
+      expect(rightEl).toHaveClass("justify-center");
+      const right = within(rightEl);
       expect(right.getByText(slideItem.description)).toBeInTheDocument();
       expect(right.getByText(/痛みが出たら中止/)).toBeInTheDocument();
       expect(
         within(body).getByRole("heading", { level: 3, name: "スクワット" })
       ).toBeInTheDocument();
+    });
+
+    it("用量がないときは左の列ごと垂直中央寄せにする", () => {
+      setupSlide({
+        items: [{ ...slideItem, dosages: undefined }],
+      });
+
+      expect(screen.getByTestId("slide-left-column")).toHaveClass(
+        "justify-center"
+      );
     });
 
     it("収まらない説明・注意点は、画面の幅によらず PDF と同じ位置で切り詰めて末尾に「…」を付ける", () => {

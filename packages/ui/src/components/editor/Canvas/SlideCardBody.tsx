@@ -15,7 +15,9 @@ import {
   getPdfSlidePrecautionText,
   getSlideTextLines,
 } from "@rehab-grid/core/lib/pdf/metrics";
+import { cn } from "@rehab-grid/core/lib/utils";
 import type { PrintColorMode } from "@rehab-grid/core/types";
+import { getDosageBadgeLayout } from "@rehab-grid/core/utils/editor";
 
 import { CardDosages } from "./CardDosages";
 import { CardImage } from "./CardImage";
@@ -78,7 +80,7 @@ const SLIDE_FONT_STYLE = {
       SLIDE_MIN_FONT_PX.precautionTitle
     ),
     lineHeight: PDF_DEFAULT_LINE_HEIGHT,
-    marginBottom: ptToSlideCqw(PDF_SPACING.precautionTitleMarginBottom),
+    marginBottom: ptToSlideCqw(PDF_SLIDE.precautionTitleMarginBottom),
   },
   precautionText: {
     fontSize: ptToSlideCqw(
@@ -89,22 +91,20 @@ const SLIDE_FONT_STYLE = {
   },
 } as const satisfies Record<string, React.CSSProperties>;
 
-/** スライドの外枠の内側の余白（PDF のカードの余白） */
-const SLIDE_PADDING = ptToSlideCqw(PDF_CARD_STYLE.padding);
+/** スライドの外枠の内側の余白（PDF のスライドカードの余白） */
+const SLIDE_PADDING = ptToSlideCqw(PDF_SLIDE.cardPadding);
 
 /** タイトル行の下の余白 */
-const SLIDE_TITLE_MARGIN_BOTTOM = ptToSlideCqw(PDF_SPACING.cardTitleMarginBottom);
+const SLIDE_TITLE_MARGIN_BOTTOM = ptToSlideCqw(PDF_SLIDE.titleMarginBottom);
 
 /** 左右の列の間隔 */
 const SLIDE_COLUMN_GAP = ptToSlideCqw(PDF_SLIDE.columnGap);
 
 /**
- * 用量の上下の余白（PDF の用量セクションと用量の行の上余白、用量の項目の上下の余白）
+ * 用量の上下の余白（画像下の残り領域で上下中央に配置するため、上下均等に揃える）
  */
 const SLIDE_DOSAGE_STYLE: React.CSSProperties = {
-  paddingTop: ptToSlideCqw(
-    PDF_SPACING.dosageContainerMarginTop * 2 + PDF_SPACING.dosagePaddingVertical
-  ),
+  paddingTop: ptToSlideCqw(PDF_SPACING.dosagePaddingVertical),
   paddingBottom: ptToSlideCqw(PDF_SPACING.dosagePaddingVertical),
 };
 
@@ -121,12 +121,15 @@ const SLIDE_DOSAGE_DIVIDER_STYLE: React.CSSProperties = {
 };
 
 /** 注意点の枠の内側の余白 */
-const SLIDE_PRECAUTION_PADDING = ptToSlideCqw(PDF_SPACING.precautionPadding);
+const SLIDE_PRECAUTION_PADDING = ptToSlideCqw(PDF_SLIDE.precautionPadding);
 
 /** 説明と注意点の枠の間隔 */
 const SLIDE_PRECAUTION_MARGIN_TOP = ptToSlideCqw(
-  PDF_SPACING.precautionMarginTop
+  PDF_SLIDE.precautionMarginTop
 );
+
+/** 注意点の各項目どうしの間隔 */
+const SLIDE_PRECAUTION_ITEM_GAP = ptToSlideCqw(PDF_SLIDE.precautionItemGap);
 
 /**
  * SlideCardBody コンポーネントの Props
@@ -159,16 +162,22 @@ export function SlideCardBody({
   const cardSize = getPdfSlideCardSize();
   const { innerWidth, leftColumnWidth, rightColumnWidth } =
     getPdfSlideColumns(cardSize);
+  const minCardContentHeight = ptToSlideCqw(
+    cardSize.height - PDF_CARD_STYLE.borderWidth * 2
+  );
   const { descriptionLines, precautionLines } = getSlideTextLines(item, {
     printColorMode,
   });
   const hasPrecautions =
     item.precautions !== undefined && item.precautions.length > 0;
+  const hasDosages =
+    getDosageBadgeLayout(item.dosages, layoutType ?? "slide").length > 0;
   // 説明・注意点は PDF と同じ位置で切り詰めた文字列を出す（行数で切ると、文字が下限の大きさで
   // 止まる狭い画面では 1 行の文字数が減り、PDF より手前で切れてしまうため）
   const precautionTextWidth = getPdfPrecautionTextWidth(
     rightColumnWidth,
-    printColorMode
+    printColorMode,
+    PDF_SLIDE.precautionPadding
   );
   const formatPrecaution = (value: string) =>
     getPdfSlidePrecautionText(value, precautionLines, precautionTextWidth);
@@ -180,9 +189,13 @@ export function SlideCardBody({
       className="@container"
       style={{ aspectRatio: cardSize.width / cardSize.height }}
     >
-      <div style={{ padding: SLIDE_PADDING }}>
+      <div
+        className="flex flex-col"
+        style={{ padding: SLIDE_PADDING, minHeight: minCardContentHeight }}
+      >
         {/* タイトル行（左寄せ） */}
         <div
+          className="shrink-0"
           style={{ marginBottom: SLIDE_TITLE_MARGIN_BOTTOM }}
           {...touchHandlers}
         >
@@ -195,11 +208,17 @@ export function SlideCardBody({
           />
         </div>
 
-        <div className="flex items-start" style={{ gap: SLIDE_COLUMN_GAP }}>
-          {/* 左の列：画像と用量 */}
+        <div
+          className="flex flex-1 items-stretch"
+          style={{ gap: SLIDE_COLUMN_GAP }}
+        >
+          {/* 左の列：画像と用量（用量は画像の下の残り領域で上下中央に配置） */}
           <div
             data-testid="slide-left-column"
-            className="shrink-0"
+            className={cn(
+              "flex shrink-0 flex-col",
+              !hasDosages && "justify-center"
+            )}
             style={{ width: `${String((leftColumnWidth / innerWidth) * 100)}%` }}
           >
             <CardImage
@@ -210,24 +229,28 @@ export function SlideCardBody({
               isMobile={isMobile}
               onImageAreaClick={onImageAreaClick}
             />
-            <CardDosages
-              dosages={item.dosages}
-              layoutType={layoutType}
-              dosageLabels={dosageLabels}
-              inlineEdit={inlineEdit}
-              touchHandlers={touchHandlers}
-              valueStyle={SLIDE_FONT_STYLE.dosageValue}
-              labelStyle={SLIDE_FONT_STYLE.dosageLabel}
-              style={SLIDE_DOSAGE_STYLE}
-              rowStyle={SLIDE_DOSAGE_ROW_STYLE}
-              labelDividerStyle={SLIDE_DOSAGE_DIVIDER_STYLE}
-            />
+            {hasDosages ? (
+              <div className="flex flex-1 flex-col justify-center">
+                <CardDosages
+                  dosages={item.dosages}
+                  layoutType={layoutType}
+                  dosageLabels={dosageLabels}
+                  inlineEdit={inlineEdit}
+                  touchHandlers={touchHandlers}
+                  valueStyle={SLIDE_FONT_STYLE.dosageValue}
+                  labelStyle={SLIDE_FONT_STYLE.dosageLabel}
+                  style={SLIDE_DOSAGE_STYLE}
+                  rowStyle={SLIDE_DOSAGE_ROW_STYLE}
+                  labelDividerStyle={SLIDE_DOSAGE_DIVIDER_STYLE}
+                />
+              </div>
+            ) : null}
           </div>
 
-          {/* 右の列：説明と注意点 */}
+          {/* 右の列：説明と注意点（本体の高さの中で上下中央に配置。長文時は自動的に上下いっぱいに広がる） */}
           <div
             data-testid="slide-right-column"
-            className="min-w-0 flex-1"
+            className="flex min-w-0 flex-1 flex-col justify-center"
             {...touchHandlers}
           >
             {descriptionLines > 0 ? (
@@ -247,11 +270,11 @@ export function SlideCardBody({
                 precautions={item.precautions ?? []}
                 // ロングプレスは右の列全体で検知している
                 touchHandlers={{}}
-                // PDF の注意点は項目の間隔を取らない（見出しの下の余白だけ）
+                // PDF の注意点はスライド専用の間隔（itemGap）で並べる
                 className="space-y-0"
                 style={{
                   padding: SLIDE_PRECAUTION_PADDING,
-                  // 説明がないときは右の列の最上部から置く
+                  // 説明がないときは余白なしで置く
                   marginTop:
                     descriptionLines > 0 ? SLIDE_PRECAUTION_MARGIN_TOP : 0,
                 }}
@@ -259,6 +282,7 @@ export function SlideCardBody({
                 titleClassName="block"
                 titleStyle={SLIDE_FONT_STYLE.precautionTitle}
                 textStyle={SLIDE_FONT_STYLE.precautionText}
+                itemGap={SLIDE_PRECAUTION_ITEM_GAP}
                 formatText={formatPrecaution}
               />
             ) : null}

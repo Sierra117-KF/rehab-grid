@@ -487,9 +487,9 @@ describe("スライドの最悪の入力（実際の PDF レンダリングで�
         const cards = collectCards(page);
         expect(cards).toHaveLength(1);
         const card = cards[0]!;
-        // 枠線 1 + 余白 8 の内側に収まる（縦方向）
+        // 枠線 1 + スライド内側余白 16 の内側に収まる（縦方向。Yoga の float32 丸め誤差のみ許容）
         expect(measureContentBottom(card)).toBeLessThanOrEqual(
-          (card.box?.height ?? 0) - 9
+          (card.box?.height ?? 0) - 17 + 0.01
         );
         // テキストが枠の右端をはみ出さない（横方向）
         expectNoHorizontalOverflow(card);

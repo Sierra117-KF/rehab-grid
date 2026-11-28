@@ -230,26 +230,27 @@ describe("スライドの寸法", () => {
   });
 
   describe("getPdfSlideColumns", () => {
-    it("既定のサイズでは左の列を基本の比率（58%）の幅にし、5:3 の画像を置く", () => {
+    it("既定のサイズでは左の列を基本の比率（60%）の幅にし、5:3 の画像を置く", () => {
       const columns = getPdfSlideColumns({ width: 761.89, height: 460.28 });
 
-      expect(columns.innerWidth).toBeCloseTo(743.89, 6);
-      // 内側 442.28 − タイトル行 42.752
-      expect(columns.bodyHeight).toBeCloseTo(399.528, 6);
-      // (743.89 − 16) × 0.58
-      expect(columns.leftColumnWidth).toBeCloseTo(422.1762, 6);
-      expect(columns.imageHeight).toBeCloseTo(253.30572, 6);
-      expect(columns.rightColumnWidth).toBeCloseTo(305.7138, 6);
+      // 761.89 − (枠線 1 + 余白 16) × 2
+      expect(columns.innerWidth).toBeCloseTo(727.89, 6);
+      // 内側 426.28 − タイトル行 46.752
+      expect(columns.bodyHeight).toBeCloseTo(379.528, 6);
+      // (727.89 − 20) × 0.6
+      expect(columns.leftColumnWidth).toBeCloseTo(424.734, 6);
+      expect(columns.imageHeight).toBeCloseTo(254.8404, 6);
+      expect(columns.rightColumnWidth).toBeCloseTo(283.156, 6);
     });
 
     it("本体に収まらない高さのカードでは画像を抑え、左の列を細く・右の列を広くする", () => {
       const columns = getPdfSlideColumns({ width: 761.89, height: 366.68 });
 
-      expect(columns.bodyHeight).toBeCloseTo(305.928, 6);
-      // 本体 305.928 − 用量の確保高さ 82.92
-      expect(columns.imageHeight).toBeCloseTo(223.008, 6);
-      expect(columns.leftColumnWidth).toBeCloseTo(371.68, 6);
-      expect(columns.rightColumnWidth).toBeCloseTo(356.21, 6);
+      expect(columns.bodyHeight).toBeCloseTo(285.928, 6);
+      // 本体 285.928 − 用量の確保高さ 82.92
+      expect(columns.imageHeight).toBeCloseTo(203.008, 6);
+      expect(columns.leftColumnWidth).toBeCloseTo(338.346667, 5);
+      expect(columns.rightColumnWidth).toBeCloseTo(369.543333, 5);
       // 画像と用量の確保高さを足しても本体に収まる
       expect(columns.imageHeight + 82.92).toBeLessThanOrEqual(
         columns.bodyHeight + 1e-9
@@ -261,6 +262,8 @@ describe("スライドの寸法", () => {
     it("カラーは内側の余白だけ、白黒は枠線の分も引く", () => {
       expect(getPdfPrecautionTextWidth(300, "color")).toBe(288);
       expect(getPdfPrecautionTextWidth(300, "monochrome")).toBe(286);
+      expect(getPdfPrecautionTextWidth(300, "color", 10)).toBe(280);
+      expect(getPdfPrecautionTextWidth(300, "monochrome", 10)).toBe(278);
     });
   });
 
@@ -272,7 +275,7 @@ describe("スライドの寸法", () => {
       Array.from({ length: count }, (_, i) => ({ id: `p${String(i)}`, value }));
 
     it("説明 100 文字・注意点 3 件 × 2 行はそのまま出る", () => {
-      // 右の列 305.7pt は 14pt の全角 21 文字 → 説明 5 行。注意点 30 文字は 2 行
+      // 右の列 283.2pt は 14pt の全角 20 文字 → 説明 5 行。注意点 30 文字は 2 行
       const item = createTestItem({
         description: fullWidth(100),
         precautions: precautions(3, fullWidth(30)),
@@ -293,14 +296,14 @@ describe("スライドの寸法", () => {
       });
     });
 
-    it("説明 200 文字・注意点 5 件 × 3 行は、説明を残りの高さの 5 行に短縮する", () => {
+    it("説明 200 文字・注意点 5 件 × 3 行は、説明を残りの高さの 3 行に短縮する", () => {
       const item = createTestItem({
         description: fullWidth(200),
         precautions: precautions(5, fullWidth(50)),
       });
 
       expect(getSlideTextLines(item, slideSettings())).toEqual({
-        descriptionLines: 5,
+        descriptionLines: 3,
         precautionLines: 3,
       });
     });
@@ -323,14 +326,14 @@ describe("スライドの寸法", () => {
     });
 
     it("説明が 3 行に届かないときは、注意点 1 件あたりの行数を減らす", () => {
-      // 本体 399.5pt に 3 行 × 7 件の注意点（393.7pt）を置くと説明が入らないため 2 行にする
+      // 本体 379.5pt に 3 行 × 7 件の注意点を置くと説明が入らないため 2 行にする
       const item = createTestItem({
         description: fullWidth(200),
         precautions: precautions(7, "痛み\nしびれ\nめまい"),
       });
 
       expect(getSlideTextLines(item, slideSettings())).toEqual({
-        descriptionLines: 6,
+        descriptionLines: 3,
         precautionLines: 2,
       });
     });
@@ -343,7 +346,7 @@ describe("スライドの寸法", () => {
 
       expect(
         getSlideTextLines(item, slideSettings({ printColorMode: "monochrome" }))
-      ).toEqual({ descriptionLines: 5, precautionLines: 3 });
+      ).toEqual({ descriptionLines: 3, precautionLines: 3 });
     });
   });
 });

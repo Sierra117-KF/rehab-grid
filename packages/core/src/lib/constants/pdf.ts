@@ -139,10 +139,22 @@ export const PDF_SLIDE = {
    * 描画テストは PDF_PAGE_ESTIMATE_MARGIN を 0 にして見積もりを確かめるため、描画寸法に使う値は別に持つ
    */
   pageBottomMargin: 8,
+  /** カードの内側の余白（大きな横長カードに合わせて縦型カードより広めに取る） */
+  cardPadding: 16,
+  /** タイトル行の下の余白 */
+  titleMarginBottom: 12,
   /** 左の列（画像・用量）と右の列（説明・注意点）の間隔 */
-  columnGap: 16,
+  columnGap: 20,
   /** 左の列の基本幅（内側の幅から列の間隔を引いた幅に対する比率） */
-  imageColumnRatio: 0.58,
+  imageColumnRatio: 0.6,
+  /** 説明と注意点の枠の間隔 */
+  precautionMarginTop: 12,
+  /** 注意点の枠の内側の余白 */
+  precautionPadding: 10,
+  /** 注意点の見出しの下の余白 */
+  precautionTitleMarginBottom: 4,
+  /** 注意点の各項目どうしの間隔 */
+  precautionItemGap: 2,
   /** 説明の最大行数 */
   descriptionMaxLines: 10,
   /** 注意点の行数を減らしてでも確保したい説明の行数 */

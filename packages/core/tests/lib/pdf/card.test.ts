@@ -634,6 +634,7 @@ describe("createSlideCard", () => {
     const style = getStyle(card);
     expect(style?.width).toBeCloseTo(761.89, 6);
     expect(style?.height).toBeCloseTo(460.28, 6);
+    expect(style?.padding).toBe(16);
     expect(style?.marginBottom).toBe(0);
   });
 
@@ -644,8 +645,8 @@ describe("createSlideCard", () => {
     const placeholder = findElementsByType(card, "View").find(
       (el) => (el as { key?: string }).key === "imagePlaceholder"
     );
-    expect(getStyle(placeholder)?.width).toBeCloseTo(422.1762, 6);
-    expect(getStyle(placeholder)?.height).toBeCloseTo(253.30572, 6);
+    expect(getStyle(placeholder)?.width).toBeCloseTo(424.734, 6);
+    expect(getStyle(placeholder)?.height).toBeCloseTo(254.8404, 6);
   });
 
   it("対応形式の画像は Image として左の列の幅で表示される", () => {
@@ -713,7 +714,7 @@ describe("createSlideCard", () => {
     expect(texts.filter((t) => t === `• ${"い".repeat(50)}`)).toHaveLength(5);
   });
 
-  it("説明があれば注意点の枠の上に余白を取り、説明がなければ余白なしで右の列の最上部に置く", () => {
+  it("説明があれば注意点の枠の上にスライド用の余白を取り、説明がなければ余白なしで置く", () => {
     const withDescription = createSlideCard(
       createTestItem({ ...FULL_ITEM, description: "膝を曲げる" }),
       undefined,
@@ -728,11 +729,47 @@ describe("createSlideCard", () => {
     );
 
     expect(
-      getBoxStyle(withDescription, LABELS.precautionTitle)?.marginTop
-    ).toBe(6);
+      getBoxStyle(withDescription, LABELS.precautionTitle)
+    ).toMatchObject({
+      marginTop: 12,
+      padding: 10,
+    });
     expect(
       getBoxStyle(withoutDescription, LABELS.precautionTitle)?.marginTop
     ).toBe(0);
+  });
+
+  it("右の列と左の列の用量エリアを垂直中央寄せにし、用量がなければ左の列ごと垂直中央寄せにする", () => {
+    const withDosage = createSlideCard(FULL_ITEM, undefined, slideSettings(), 1);
+    const viewsWithDosage = findElementsByType(withDosage, "View");
+    const leftWithDosage = viewsWithDosage.find(
+      (el) => (el as { key?: string }).key === "left"
+    );
+    const dosageArea = viewsWithDosage.find(
+      (el) => (el as { key?: string }).key === "dosageArea"
+    );
+    const rightWithDosage = viewsWithDosage.find(
+      (el) => (el as { key?: string }).key === "right"
+    );
+
+    expect(getStyle(leftWithDosage)?.justifyContent).toBe("flex-start");
+    expect(getStyle(dosageArea)).toMatchObject({
+      flex: 1,
+      justifyContent: "center",
+    });
+    expect(getStyle(rightWithDosage)?.justifyContent).toBe("center");
+
+    const withoutDosage = createSlideCard(
+      createTestItem({ ...FULL_ITEM, dosages: undefined }),
+      undefined,
+      slideSettings(),
+      1
+    );
+    const viewsWithoutDosage = findElementsByType(withoutDosage, "View");
+    const leftWithoutDosage = viewsWithoutDosage.find(
+      (el) => (el as { key?: string }).key === "left"
+    );
+    expect(getStyle(leftWithoutDosage)?.justifyContent).toBe("center");
   });
 
   it("白黒では注意点を白背景に濃い枠線で囲む", () => {

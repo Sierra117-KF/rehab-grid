@@ -603,14 +603,14 @@ export type PdfSlideTextLines = {
 
 /** スライドのカードの枠線と内側の余白（片側） */
 const PDF_SLIDE_CARD_INSET =
-  PDF_CARD_STYLE.borderWidth + PDF_CARD_STYLE.padding;
+  PDF_CARD_STYLE.borderWidth + PDF_SLIDE.cardPadding;
 
 /** スライドのタイトル行の高さ（下の余白を含む。番号バッジの有無に関わらず同じ高さを確保する） */
 const PDF_SLIDE_TITLE_ROW_HEIGHT =
   Math.max(
     FONT_SIZES_SLIDE.title * PDF_DEFAULT_LINE_HEIGHT,
     FONT_SIZES_SLIDE.title * CARD_NUMBER_BADGE_RATIO.size
-  ) + PDF_SPACING.cardTitleMarginBottom;
+  ) + PDF_SLIDE.titleMarginBottom;
 
 /**
  * スライドの用量セクションに確保する高さ
@@ -688,15 +688,17 @@ export function getPdfSlideColumns(
  *
  * @param boxWidth - 注意点の枠の幅（ポイント単位）
  * @param printColorMode - 印刷の色づかい（白黒は枠線を引く）
+ * @param padding - 枠の内側の余白（省略時は縦型カードの既定値）
  * @returns 文字を置ける幅（ポイント単位）
  */
 export function getPdfPrecautionTextWidth(
   boxWidth: number,
-  printColorMode: PrintColorMode
+  printColorMode: PrintColorMode,
+  padding: number = PDF_SPACING.precautionPadding
 ): number {
   const borderWidth =
     printColorMode === "monochrome" ? PDF_SPACING.precautionBorderWidth : 0;
-  return boxWidth - (PDF_SPACING.precautionPadding + borderWidth) * 2;
+  return boxWidth - (padding + borderWidth) * 2;
 }
 
 /**
@@ -746,7 +748,8 @@ export function getSlideTextLines(
   const precautions = item.precautions ?? [];
   const precautionTextWidth = getPdfPrecautionTextWidth(
     rightColumnWidth,
-    settings.printColorMode
+    settings.printColorMode,
+    PDF_SLIDE.precautionPadding
   );
   const precautionLineCounts = precautions.map((p) =>
     countPdfTextLines(
@@ -771,12 +774,14 @@ export function getSlideTextLines(
       (sum, lines) => sum + Math.min(lines, maxLines),
       0
     );
+    const itemGaps = Math.max(0, precautions.length - 1) * PDF_SLIDE.precautionItemGap;
     return (
-      (hasDescription ? PDF_SPACING.precautionMarginTop : 0) +
+      (hasDescription ? PDF_SLIDE.precautionMarginTop : 0) +
       precautionBoxInset * 2 +
       fontSizes.precautionTitle * PDF_DEFAULT_LINE_HEIGHT +
-      PDF_SPACING.precautionTitleMarginBottom +
-      textLines * fontSizes.precautionText * PDF_SPACING.precautionLineHeight
+      PDF_SLIDE.precautionTitleMarginBottom +
+      textLines * fontSizes.precautionText * PDF_SPACING.precautionLineHeight +
+      itemGaps
     );
   };
 
