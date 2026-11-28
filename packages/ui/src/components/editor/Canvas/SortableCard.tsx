@@ -5,7 +5,6 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   DUPLICATE_TOOLTIP,
   IMAGE_DRAG_TYPE,
-  IMAGE_FLIP_TOOLTIP,
   INLINE_EDIT_HINT,
   LABELS,
   LONG_PRESS_DURATION,
@@ -18,7 +17,7 @@ import type {
   PrintColorMode,
   TextScale,
 } from "@rehab-grid/core/types";
-import { Copy, FlipHorizontal2, GripVertical, Pencil } from "lucide-react";
+import { Copy, GripVertical, Pencil } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import {
@@ -43,12 +42,10 @@ const MOBILE_ACTION_BUTTON_CLASS = cn(
  */
 function HoverActionButton({
   label,
-  disabled = false,
   onClick,
   children,
 }: {
   label: string;
-  disabled?: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -59,7 +56,7 @@ function HoverActionButton({
         "flex size-8 items-center justify-center rounded-full border border-border",
         "bg-background/90 text-muted-foreground shadow-sm",
         "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
-        "hover:text-primary disabled:cursor-not-allowed disabled:hover:text-muted-foreground"
+        "hover:text-primary"
       )}
       // カードのルート要素には dnd-kit の listeners（ドラッグ開始）と選択用の onClick が付いている。
       // ボタン操作でドラッグや選択が起きないよう、ポインター・キー・クリックの伝播を止める。
@@ -69,7 +66,6 @@ function HoverActionButton({
         e.stopPropagation();
         onClick();
       }}
-      disabled={disabled}
       title={label}
       aria-label={label}
     >
@@ -98,10 +94,6 @@ export type SortableCardProps = {
   onCanvasDragEnd?: () => void;
   /** 複製ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
   onDuplicate?: () => void;
-  /** 画像の左右反転ボタン（デスクトップのホバーアクション）が押されたときのコールバック */
-  onFlipImage?: () => void;
-  /** 画像の処理中かどうか（処理中は左右反転ボタンを押せない） */
-  isImageProcessing?: boolean;
 
   // モバイル用プロパティ
   /** 画像領域がタップされたときのコールバック（モバイル用） */
@@ -149,8 +141,6 @@ export function SortableCard({
   imageUrl,
   onCanvasDragEnd,
   onDuplicate,
-  onFlipImage,
-  isImageProcessing = false,
   onImageAreaClick,
   onSettingsClick,
   isMobile = false,
@@ -230,9 +220,8 @@ export function SortableCard({
 
   const isCurrentlyDragging = isDragging || isSortableDragging;
 
-  // 表示できている画像だけを反転の対象にする（参照切れ画像は対象外）
+  // 画像 URL が解決できている場合のみ表示対象にする（参照切れ画像はプレースホルダー扱い）
   const hasImage = item.imageSource !== "" && imageUrl !== undefined;
-  const canFlipImage = hasImage && onFlipImage !== undefined;
 
   /**
    * ロングプレスタイマーをクリア
@@ -417,22 +406,11 @@ export function SortableCard({
       )}
 
       {/* デスクトップ用: ホバーアクション（ホバー・フォーカス時に右上へ表示） */}
-      {!isMobile && (onDuplicate || canFlipImage) ? (
+      {!isMobile && onDuplicate ? (
         <div className="absolute right-2 top-2 z-20 flex gap-1.5">
-          {canFlipImage ? (
-            <HoverActionButton
-              label={IMAGE_FLIP_TOOLTIP}
-              disabled={isImageProcessing}
-              onClick={onFlipImage}
-            >
-              <FlipHorizontal2 className="size-4" />
-            </HoverActionButton>
-          ) : null}
-          {onDuplicate ? (
-            <HoverActionButton label={DUPLICATE_TOOLTIP} onClick={onDuplicate}>
-              <Copy className="size-4" />
-            </HoverActionButton>
-          ) : null}
+          <HoverActionButton label={DUPLICATE_TOOLTIP} onClick={onDuplicate}>
+            <Copy className="size-4" />
+          </HoverActionButton>
         </div>
       ) : null}
 

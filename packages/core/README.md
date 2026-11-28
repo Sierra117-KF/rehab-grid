@@ -381,7 +381,7 @@ type TemplateMetadata = {
 | `export.ts` | `exportToJSON()`, `exportToZIP()`, `importProject()` | プロジェクトのエクスポート・インポート |
 | `externalLink.ts` | `isAllowedExternalUrl()` | 外部リンク検証 |
 | `image.ts` | `processAndSaveImage()`, `isValidImageBlob()`, `partitionImageIds()` | 画像処理・検証 |
-| `imageEdit.ts` | `flipAndSaveImage()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
+| `imageEdit.ts` | `loadImageEditSource()`, `applyOrientation()`, `drawEditedImage()`, `createEditedImageBlob()`, `saveEditedImage()` | 画像編集（反転・回転・トリミング・注釈）。座標計算は純粋関数 |
 | `pdf.ts` | `calculatePdfCardWidth()`, `truncateToLines()`, `preparePdfGenerationData()` | PDF レイアウト計算・生成データ準備 |
 | `project.ts` | `applyImportResult()` | インポート／テンプレート結果を指定 ID で IndexedDB に保存（ストアへの反映は `openImportResult`） |
 | `search.ts` | `normalizeSearchText()`, `matchesSearchQuery()` | 表記揺れを吸収したキーワード検索 |

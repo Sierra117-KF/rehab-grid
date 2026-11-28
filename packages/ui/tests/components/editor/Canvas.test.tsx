@@ -5,7 +5,6 @@ import {
   DUPLICATE_TOOLTIP,
   EDITOR_TEXT_STYLE_LARGE,
   EDITOR_TEXT_STYLE_SINGLE_COLUMN,
-  IMAGE_FLIP_TOOLTIP,
   INLINE_EDIT_TITLE_LABEL,
   LABELS,
   LAYOUT_COLUMNS,
@@ -380,67 +379,6 @@ describe("Canvas", () => {
 
       expect(
         screen.queryByRole("button", { name: DUPLICATE_TOOLTIP })
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  describe("左右反転ボタン（ホバーアクション）", () => {
-    const itemWithImage = createTestItem({
-      id: "item-1",
-      imageSource: "img-123",
-    });
-    const imageUrls = new Map([["img-123", "blob:http://example.com/image"]]);
-
-    it("クリックで onItemImageFlip(itemId) が呼ばれ、カードの選択は起きない", async () => {
-      const user = userEvent.setup();
-      const onItemImageFlip = vi.fn();
-      const props = setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip,
-      });
-
-      await user.click(screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP }));
-
-      expect(onItemImageFlip).toHaveBeenCalledWith("item-1");
-      expect(props.onItemSelect).not.toHaveBeenCalled();
-    });
-
-    it("画像の処理中は押せない", () => {
-      setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip: vi.fn(),
-        isImageProcessing: true,
-      });
-
-      expect(
-        screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP })
-      ).toBeDisabled();
-    });
-
-    it.each([
-      ["画像がない", createTestItem({ id: "item-1" }), imageUrls],
-      // 参照切れ画像（imageSource はあるが URL がない）は反転できない
-      ["画像の URL がない", itemWithImage, new Map<string, string>()],
-    ])("%s カードには表示しない", (_, item, urls) => {
-      setupCanvas({ items: [item], imageUrls: urls, onItemImageFlip: vi.fn() });
-
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
-      ).not.toBeInTheDocument();
-    });
-
-    it("モバイルでは表示しない", () => {
-      setupCanvas({
-        items: [itemWithImage],
-        imageUrls,
-        onItemImageFlip: vi.fn(),
-        isMobile: true,
-      });
-
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_TOOLTIP })
       ).not.toBeInTheDocument();
     });
   });
@@ -987,17 +925,14 @@ describe("Canvas", () => {
       });
     });
 
-    it("複製・左右反転のボタンが使える", async () => {
+    it("複製ボタンが使える", async () => {
       const user = userEvent.setup();
       const onItemDuplicate = vi.fn();
-      const onItemImageFlip = vi.fn();
-      setupSlide({ onItemDuplicate, onItemImageFlip });
+      setupSlide({ onItemDuplicate });
 
       await user.click(screen.getByRole("button", { name: DUPLICATE_TOOLTIP }));
-      await user.click(screen.getByRole("button", { name: IMAGE_FLIP_TOOLTIP }));
 
       expect(onItemDuplicate).toHaveBeenCalledWith("item-1");
-      expect(onItemImageFlip).toHaveBeenCalledWith("item-1");
     });
 
     it("スライド以外では横型のカードを描かない", () => {

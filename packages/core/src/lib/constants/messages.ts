@@ -130,12 +130,6 @@ export function createApplyToAllSuccessMessage(
 }
 
 // 画像編集関連メッセージ
-/** 左右反転ボタンのラベル（プロパティパネル） */
-export const IMAGE_FLIP_BUTTON_LABEL = "左右反転";
-
-/** カード上の左右反転ボタンのツールチップ */
-export const IMAGE_FLIP_TOOLTIP = "画像を左右反転";
-
 /** 画像編集ボタンのラベル（モーダルのタイトルも兼ねる） */
 export const IMAGE_EDIT_LABEL = "画像を編集";
 

@@ -29,7 +29,6 @@ import { estimatePdfLayout } from "@rehab-grid/core/lib/pdf/layout";
 import { type EditorItem } from "@rehab-grid/core/types";
 import {
   createEditedImageBlob,
-  flipAndSaveImage,
   type ImageEditSource,
   loadImageEditSource,
   saveEditedImage,
@@ -166,7 +165,7 @@ export function TrainingPage() {
     (state) => state.setMobilePropertyPanelOpen
   );
 
-  // 画像の反転・編集用ステート
+  // 画像編集用ステート
   const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [imageEditTarget, setImageEditTarget] =
     useState<ImageEditTarget | null>(null);
@@ -349,30 +348,6 @@ export function TrainingPage() {
   );
 
   /**
-   * カードの画像を左右反転して新しい画像として保存し、カードに反映する
-   *
-   * @remarks
-   * サンプル画像（2 コマ構成）はコマの順番を保ったまま 2 コマずつ反転する
-   */
-  const handleImageFlip = useCallback(
-    async (itemId: string) => {
-      const imageId = items.find((item) => item.id === itemId)?.imageSource;
-      if (imageId === undefined || imageId === "") return;
-
-      setIsImageProcessing(true);
-      try {
-        const flippedImageId = await flipAndSaveImage(imageId);
-        applyEditedImage(itemId, imageId, flippedImageId);
-      } catch {
-        toast.error(IMAGE_EDIT_FAILED_MESSAGE);
-      } finally {
-        setIsImageProcessing(false);
-      }
-    },
-    [items]
-  );
-
-  /**
    * カードの画像を読み込んで画像編集モーダルを開く
    */
   const handleImageEditOpen = useCallback(
@@ -428,9 +403,6 @@ export function TrainingPage() {
   }, []);
 
   // イベントハンドラとして渡すため、Promise を返さない関数にする
-  const handleImageFlipClick = (itemId: string) => {
-    void handleImageFlip(itemId);
-  };
   const handleImageEditClick = (itemId: string) => {
     void handleImageEditOpen(itemId);
   };
@@ -530,8 +502,6 @@ export function TrainingPage() {
           onAddCardWithImage={handleAddCardWithImage}
           canAddCard={canAddCard}
           onItemDuplicate={handleItemDuplicate}
-          onItemImageFlip={handleImageFlipClick}
-          isImageProcessing={isImageProcessing}
           onImageAreaClick={handleMobileImageAreaClick}
           onSettingsClick={handleMobileSettingsClick}
           isMobile={isMobile}
@@ -552,7 +522,6 @@ export function TrainingPage() {
           onApplyPrecautionsToAll={
             canApplyToAll ? handleApplyPrecautionsToAll : undefined
           }
-          onImageFlip={handleImageFlipClick}
           onImageEdit={handleImageEditClick}
           isImageProcessing={isImageProcessing}
           dosageLabels={settings.dosageLabels}
@@ -595,7 +564,6 @@ export function TrainingPage() {
           onApplyPrecautionsToAll={
             canApplyToAll ? handleApplyPrecautionsToAll : undefined
           }
-          onImageFlip={handleImageFlipClick}
           onImageEdit={handleImageEditClick}
           isImageProcessing={isImageProcessing}
           dosageLabels={settings.dosageLabels}

@@ -7,7 +7,6 @@ import {
   DUPLICATE_BUTTON_LABEL,
   EXERCISE_CARD_SAVE_LABEL,
   IMAGE_EDIT_LABEL,
-  IMAGE_FLIP_BUTTON_LABEL,
   MAX_PRECAUTIONS_COUNT,
   TEXT_LIMITS,
 } from "@rehab-grid/core/lib/constants";
@@ -652,50 +651,38 @@ describe("PropertyPanel", () => {
   });
 
   describe("画像の編集", () => {
-    const getFlipButton = () =>
-      screen.getByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL });
     const getEditButton = () =>
       screen.getByRole("button", { name: IMAGE_EDIT_LABEL });
 
-    it("左右反転・画像を編集ボタンでカードIDが渡される", async () => {
+    it("画像を編集ボタンでカードIDが渡される", async () => {
       const user = userEvent.setup();
-      const onImageFlip = vi.fn();
       const onImageEdit = vi.fn();
       setupPropertyPanel({
         selectedItem: createTestItem({ id: "item-1", imageSource: "img-1" }),
-        onImageFlip,
         onImageEdit,
       });
 
-      await user.click(getFlipButton());
       await user.click(getEditButton());
 
-      expect(onImageFlip).toHaveBeenCalledWith("item-1");
       expect(onImageEdit).toHaveBeenCalledWith("item-1");
     });
 
     it("画像の処理中は押せない", () => {
       setupPropertyPanel({
         selectedItem: createTestItem({ imageSource: "img-1" }),
-        onImageFlip: vi.fn(),
         onImageEdit: vi.fn(),
         isImageProcessing: true,
       });
 
-      expect(getFlipButton()).toBeDisabled();
       expect(getEditButton()).toBeDisabled();
     });
 
     it("画像がないカードではボタンを表示しない", () => {
       setupPropertyPanel({
         selectedItem: createTestItem({ imageSource: "" }),
-        onImageFlip: vi.fn(),
         onImageEdit: vi.fn(),
       });
 
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL })
-      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: IMAGE_EDIT_LABEL })
       ).not.toBeInTheDocument();
@@ -706,9 +693,6 @@ describe("PropertyPanel", () => {
         selectedItem: createTestItem({ imageSource: "img-1" }),
       });
 
-      expect(
-        screen.queryByRole("button", { name: IMAGE_FLIP_BUTTON_LABEL })
-      ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: IMAGE_EDIT_LABEL })
       ).not.toBeInTheDocument();

@@ -5,7 +5,6 @@ import {
   getCropRect,
   getEditedImageName,
   getOutputSize,
-  getQuickFlipOperation,
   isTinyAnnotation,
   loadImageEditSource,
   panCrop,
@@ -246,16 +245,6 @@ describe("isTinyAnnotation", () => {
     const annotation = createAnnotation({ start: { x: 0, y: 0 }, end });
 
     expect(isTinyAnnotation(annotation, 1000, 500)).toBe(expected);
-  });
-});
-
-describe("getQuickFlipOperation", () => {
-  it("サンプル画像（2 コマ構成）は 2 コマずつ反転する", () => {
-    expect(getQuickFlipOperation("sample_lying_01")).toBe("flipPanels");
-  });
-
-  it("取り込み画像は全体を反転する", () => {
-    expect(getQuickFlipOperation("V1StGXR8_Z5jdHi6B-myT")).toBe("flipWhole");
   });
 });
 
